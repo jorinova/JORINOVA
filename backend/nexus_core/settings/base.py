@@ -4,7 +4,10 @@ Base Django Settings - NexusCore Engine
 """
 import os
 from pathlib import Path
-from decouple import config, Csv
+try:
+    from decouple import config, Csv  # type: ignore
+except Exception:  # pragma: no cover
+    from .decouple_compat import config, Csv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 FRONTEND_DIR = BASE_DIR.parent / 'frontend'
@@ -13,8 +16,19 @@ SECRET_KEY = config('SECRET_KEY', default='alis-x-nexus-dev-key-change-in-produc
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
+def _optional(*pkgs):
+    """Include package in INSTALLED_APPS only if importable."""
+    result = []
+    for pkg in pkgs:
+        try:
+            __import__(pkg.replace('-', '_').split('.')[0])
+            result.append(pkg)
+        except ImportError:
+            pass
+    return result
+
+
 INSTALLED_APPS = [
-    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -22,13 +36,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework_simplejwt',
+    *_optional('rest_framework_simplejwt'),
     'corsheaders',
     'channels',
-    'django_filters',
-    'drf_spectacular',
-    'auditlog',
-    'import_export',
+    *_optional('django_filters', 'drf_spectacular', 'auditlog', 'import_export'),
+
+
+
     # ALIS-X Core Apps
     'apps.authentication',
     'apps.core_config',
@@ -53,16 +67,19 @@ INSTALLED_APPS = [
     'apps.micro_ai',
     'apps.biotrack',
     'apps.bloodbank',
+    # ── Clinical AI ──
     'apps.hematology',
     'apps.quality',
     'apps.toxicology',
-    'apps.iot_analyzers',
     'apps.pathology',
+    # ── Infrastructure ──
+    'apps.iot_analyzers',
     'apps.interoperability',
     'apps.doctor_portal',
     'apps.specimen_tracking',
     'apps.forecast',
     'apps.audit',
+
 ]
 
 MIDDLEWARE = [
@@ -75,10 +92,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'auditlog.middleware.AuditlogMiddleware',
     'apps.authentication.middleware.SessionTimeoutMiddleware',
-    'apps.audit.middleware.SilentAuditMiddleware',   # stealth — zero-impact background logging
+    'apps.audit.middleware.SilentAuditMiddleware',
 ]
+try:
+    import auditlog  # noqa: F401
+    MIDDLEWARE.insert(-1, 'auditlog.middleware.AuditlogMiddleware')
+except ImportError:
+    pass
 
 ROOT_URLCONF = 'nexus_core.urls'
 
@@ -156,14 +177,32 @@ MEDIA_ROOT = BASE_DIR.parent / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # REST Framework
+_drf_auth = ['rest_framework.authentication.SessionAuthentication']
+try:
+    import rest_framework_simplejwt  # noqa: F401
+    _drf_auth.insert(0, 'rest_framework_simplejwt.authentication.JWTAuthentication')
+except ImportError:
+    pass
+
+_drf_filters = []
+try:
+    import django_filters  # noqa: F401
+    _drf_filters = ['django_filters.rest_framework.DjangoFilterBackend']
+except ImportError:
+    pass
+
+_drf_schema = 'rest_framework.schemas.openapi.AutoSchema'
+try:
+    import drf_spectacular  # noqa: F401
+    _drf_schema = 'drf_spectacular.openapi.AutoSchema'
+except ImportError:
+    pass
+
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': _drf_auth,
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_FILTER_BACKENDS': _drf_filters,
+    'DEFAULT_SCHEMA_CLASS': _drf_schema,
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 25,
 }

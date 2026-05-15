@@ -6,8 +6,12 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django_filters.rest_framework import DjangoFilterBackend
-from django_filters import rest_framework as django_filters
+try:
+    from django_filters.rest_framework import DjangoFilterBackend
+    from django_filters import rest_framework as django_filters
+except ModuleNotFoundError:
+    DjangoFilterBackend = object  # fallback: filter support disabled
+    django_filters = None  # type: ignore
 
 from .models import LabRequest, RequestedTest, Sample, LabResult, SampleStatus
 from apps.core_config.models import TestCatalog, LaboratoryDepartment
@@ -66,17 +70,22 @@ def new_request(request):
 
 # ─── Filters ──────────────────────────────────────────────────────────────────
 
-class LabRequestFilter(django_filters.FilterSet):
-    department  = django_filters.NumberFilter(field_name='requested_tests__test__department', distinct=True)
-    patient     = django_filters.NumberFilter(field_name='patient')
-    date_from   = django_filters.DateFilter(field_name='request_date__date', lookup_expr='gte')
-    date_to     = django_filters.DateFilter(field_name='request_date__date', lookup_expr='lte')
-    is_critical = django_filters.BooleanFilter(field_name='requested_tests__result__is_critical')
-    lab_id      = django_filters.CharFilter(field_name='lab_id', lookup_expr='icontains')
+# When django-filter isn't installed, disable FilterSet entirely.
+if django_filters is not None:
+    class LabRequestFilter(django_filters.FilterSet):
+        department  = django_filters.NumberFilter(field_name='requested_tests__test__department', distinct=True)
+        patient     = django_filters.NumberFilter(field_name='patient')
+        date_from   = django_filters.DateFilter(field_name='request_date__date', lookup_expr='gte')
+        date_to     = django_filters.DateFilter(field_name='request_date__date', lookup_expr='lte')
+        is_critical = django_filters.BooleanFilter(field_name='requested_tests__result__is_critical')
+        lab_id      = django_filters.CharFilter(field_name='lab_id', lookup_expr='icontains')
 
-    class Meta:
-        model  = LabRequest
-        fields = ['status', 'emergency_level', 'is_high_risk']
+        class Meta:
+            model  = LabRequest
+            fields = ['status', 'emergency_level', 'is_high_risk']
+else:
+    LabRequestFilter = None
+
 
 
 # ─── ViewSets ─────────────────────────────────────────────────────────────────

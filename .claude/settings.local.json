@@ -22,7 +22,10 @@
       "PowerShell(Head -30)",
       "PowerShell(Get-ChildItem \"d:\\\\JORINOVA NEXUS\\\\frontend\" -Recurse -Directory | Select-Object -First 50 | ForEach-Object { $_.FullName })",
       "PowerShell(Get-ChildItem \"d:\\\\JORINOVA NEXUS\\\\frontend\\\\modules\\\\hematology\" -Recurse | ForEach-Object { $_.FullName })",
-      "PowerShell(Get-ChildItem \"d:\\\\JORINOVA NEXUS\\\\frontend\\\\modules\\\\biochemistry\" -Recurse | ForEach-Object { $_.FullName })"
+      "PowerShell(Get-ChildItem \"d:\\\\JORINOVA NEXUS\\\\frontend\\\\modules\\\\biochemistry\" -Recurse | ForEach-Object { $_.FullName })",
+      "Bash(for dir *)",
+      "Read(//d/JORINOVA NEXUS/backend/**)",
+      "PowerShell(Get-ChildItem \"d:\\\\JORINOVA NEXUS\\\\backend\\\\apps\" -Directory | ForEach-Object { $name = $_.Name; $files = \\(Get-ChildItem $_.FullName -File | Select-Object -ExpandProperty Name\\) -join \", \"; \"$name`: $files\" })"
     ]
   }
 }
