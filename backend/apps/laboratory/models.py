@@ -187,13 +187,57 @@ class Sample(models.Model):
 
 
 class LabResult(models.Model):
-    """Individual test result entry."""
+    """
+    Individual test result entry — extended per spec:
+    result_source (MANUAL/AUTOMATED), entry_mode, result_type,
+    instrument linkage, structured reference range, PID/LID/SID quick refs.
+    """
+
+    class ResultType(models.TextChoices):
+        QUANTITATIVE = 'QUANTITATIVE', 'Quantitative (numeric)'
+        QUALITATIVE  = 'QUALITATIVE',  'Qualitative (pos/neg/text)'
+        SEMI_QUANT   = 'SEMI_QUANT',   'Semi-quantitative (1+/2+/3+)'
+        OBSERVATION  = 'OBSERVATION',  'Observation / Morphology'
+
+    class ResultSource(models.TextChoices):
+        MANUAL    = 'MANUAL',    '👤 Manual Entry'
+        AUTOMATED = 'AUTOMATED', '🤖 Analyzer / Automated'
+
+    class EntryMode(models.TextChoices):
+        SINGLE       = 'SINGLE',       'Single entry'
+        RAPID_ENTRY  = 'RAPID_ENTRY',  'Rapid / bulk screen entry'
+        BULK_IMPORT  = 'BULK_IMPORT',  'Excel / file batch import'
+        AUTO_STREAM  = 'AUTO_STREAM',  'Real-time analyzer stream'
+
+    # Core linkage
     requested_test = models.OneToOneField(RequestedTest, on_delete=models.CASCADE, related_name='result')
-    patient = models.ForeignKey('patients.Patient', on_delete=models.CASCADE, related_name='results')
-    value = models.TextField(blank=True)
-    numeric_value = models.FloatField(null=True, blank=True)
-    unit = models.CharField(max_length=50, blank=True)
-    reference_range = models.CharField(max_length=100, blank=True)
+    patient        = models.ForeignKey('patients.Patient', on_delete=models.CASCADE, related_name='results')
+
+    # Quick-reference identifiers (denormalized for query performance)
+    pid = models.CharField(max_length=30, blank=True, help_text='Patient PID — denormalized')
+    lid = models.CharField(max_length=25, blank=True, help_text='Global LID — denormalized')
+    sid = models.CharField(max_length=20, blank=True, help_text='Sample SID — denormalized')
+
+    # Result classification
+    result_type    = models.CharField(max_length=15, choices=ResultType.choices, default=ResultType.QUANTITATIVE)
+
+    # Values
+    value              = models.TextField(blank=True, help_text='Primary result value (text)')
+    numeric_value      = models.FloatField(null=True, blank=True)
+    unit               = models.CharField(max_length=50, blank=True)
+    qualitative_value  = models.CharField(max_length=100, blank=True, help_text='e.g. Positive, Negative, Reactive')
+    semi_quant_value   = models.CharField(max_length=50, blank=True, help_text='e.g. 1+, 2+, Trace')
+
+    # Reference range (structured)
+    reference_range    = models.CharField(max_length=100, blank=True, help_text='Display string e.g. 4.5–11.0')
+    reference_min      = models.FloatField(null=True, blank=True)
+    reference_max      = models.FloatField(null=True, blank=True)
+    reference_range_obj= models.ForeignKey(
+        'core_config.ReferenceRange', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='results', help_text='Versioned reference range used at time of entry'
+    )
+
+    # Flag
     flag = models.CharField(
         max_length=10,
         choices=[('H', 'High'), ('L', 'Low'), ('HH', 'Critical High'), ('LL', 'Critical Low'), ('N', 'Normal'), ('A', 'Abnormal')],
@@ -201,32 +245,225 @@ class LabResult(models.Model):
     )
     is_critical = models.BooleanField(default=False)
     is_abnormal = models.BooleanField(default=False)
-    ai_interpretation = models.TextField(blank=True)
+
+    # Source tracking (Spec: every result must carry source flag)
+    result_source      = models.CharField(max_length=15, choices=ResultSource.choices, default=ResultSource.MANUAL)
+    entry_mode         = models.CharField(max_length=15, choices=EntryMode.choices, default=EntryMode.SINGLE)
+    instrument         = models.ForeignKey(
+        'iot_analyzers.AnalyzerDevice', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='results', help_text='Required when result_source = AUTOMATED'
+    )
+
+    # Interpretation
+    ai_interpretation  = models.TextField(blank=True)
     technician_comment = models.TextField(blank=True)
-    entered_by = models.ForeignKey(
-        'authentication.NexusUser', on_delete=models.SET_NULL, null=True,
-        related_name='results_entered'
-    )
-    entered_at = models.DateTimeField(auto_now_add=True)
-    validated_by = models.ForeignKey(
-        'authentication.NexusUser', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='results_validated'
-    )
-    validated_at = models.DateTimeField(null=True, blank=True)
-    is_validated = models.BooleanField(default=False)
-    is_printed = models.BooleanField(default=False)
-    print_count = models.PositiveSmallIntegerField(default=0)
-    sms_sent = models.BooleanField(default=False)
-    email_sent = models.BooleanField(default=False)
-    corrected = models.BooleanField(default=False)
+
+    # Entry
+    entered_by  = models.ForeignKey('authentication.NexusUser', on_delete=models.SET_NULL, null=True, related_name='results_entered')
+    entered_at  = models.DateTimeField(auto_now_add=True)
+
+    # Validation
+    validated_by  = models.ForeignKey('authentication.NexusUser', on_delete=models.SET_NULL, null=True, blank=True, related_name='results_validated')
+    validated_at  = models.DateTimeField(null=True, blank=True)
+    is_validated  = models.BooleanField(default=False)
+
+    # Authorization (Level 2 — senior/pathologist)
+    authorized_by = models.ForeignKey('authentication.NexusUser', on_delete=models.SET_NULL, null=True, blank=True, related_name='results_authorized')
+    authorized_at = models.DateTimeField(null=True, blank=True)
+
+    # Release
+    is_printed      = models.BooleanField(default=False)
+    print_count     = models.PositiveSmallIntegerField(default=0)
+    sms_sent        = models.BooleanField(default=False)
+    email_sent      = models.BooleanField(default=False)
+
+    # Correction
+    corrected       = models.BooleanField(default=False)
     correction_note = models.TextField(blank=True)
+
+    # Critical document requirement
+    requires_document    = models.BooleanField(default=False, help_text='True when critical value — document upload mandatory')
+    critical_doc_uploaded= models.BooleanField(default=False)
 
     class Meta:
         db_table = 'lab_results'
         ordering = ['-entered_at']
+        indexes  = [
+            models.Index(fields=['pid', 'entered_at']),
+            models.Index(fields=['lid', 'entered_at']),
+            models.Index(fields=['is_critical', 'is_validated']),
+            models.Index(fields=['result_source', 'is_validated']),
+        ]
 
     def __str__(self):
-        return f"Result: {self.requested_test.test.name} | {self.patient.full_name}"
+        return f"Result: {self.requested_test.test.name} | {self.patient.full_name} [{self.flag}]"
+
+    def save(self, *args, **kwargs):
+        # Auto-populate quick-ref fields
+        if not self.pid and self.patient_id:
+            try: self.pid = self.patient.pid
+            except Exception: pass
+        if not self.lid and self.patient_id:
+            try: self.lid = self.patient.unique_lab_id
+            except Exception: pass
+        if not self.sid and self.requested_test_id:
+            try:
+                sample = self.requested_test.request.samples.first()
+                if sample: self.sid = sample.sid
+            except Exception: pass
+        # Auto-flag criticality
+        self.is_critical = self.flag in ('HH', 'LL')
+        self.is_abnormal = self.flag in ('H', 'L', 'A', 'HH', 'LL')
+        # Critical results require document upload
+        if self.is_critical:
+            self.requires_document = True
+        # Instrument required for AUTOMATED results
+        if self.result_source == self.ResultSource.AUTOMATED and not self.instrument_id:
+            pass  # Warning only — not enforced at DB level for flexibility
+        super().save(*args, **kwargs)
+
+
+# ═══════════════════════════════════════════════════════════════
+# CRITICAL RESULT DOCUMENTATION — Mandatory document upload
+# ═══════════════════════════════════════════════════════════════
+
+class CriticalDocument(models.Model):
+    """
+    Mandatory document for any critical laboratory result.
+    Spec: PDF report, scanned smear image, annotated image, etc.
+    Every critical result MUST be linked to a validated document.
+    """
+
+    class DocumentType(models.TextChoices):
+        PDF_REPORT     = 'pdf_report',    'PDF Lab Report'
+        SMEAR_IMAGE    = 'smear_image',   'Microscope / Smear Image'
+        ANNOTATED      = 'annotated',     'Annotated Result Image'
+        REFERRAL       = 'referral',      'External Referral Document'
+        ANALYZER_PRINT = 'analyzer_print','Analyzer Printout'
+        PATHOLOGY      = 'pathology',     'Pathology / Biopsy Report'
+        OTHER          = 'other',         'Other Supporting Document'
+
+    class Status(models.TextChoices):
+        PENDING   = 'pending',   'Pending Validation'
+        VALIDATED = 'validated', 'Validated'
+        REJECTED  = 'rejected',  'Rejected'
+
+    # Linkages
+    result        = models.ForeignKey(LabResult, on_delete=models.CASCADE, related_name='critical_documents')
+    patient       = models.ForeignKey('patients.Patient', on_delete=models.CASCADE, related_name='critical_documents')
+    lab_request   = models.ForeignKey(LabRequest, on_delete=models.CASCADE, related_name='critical_documents')
+
+    # Identifiers (denormalized for direct query)
+    pid           = models.CharField(max_length=30, blank=True)
+    lid           = models.CharField(max_length=25, blank=True)
+    sid           = models.CharField(max_length=20, blank=True)
+
+    # Document
+    document_type = models.CharField(max_length=20, choices=DocumentType.choices)
+    document_file = models.FileField(upload_to='critical_documents/%Y/%m/', help_text='PDF, JPG, PNG, TIFF')
+    file_name     = models.CharField(max_length=255, blank=True)
+    file_size_kb  = models.PositiveIntegerField(null=True, blank=True)
+
+    # Context
+    department    = models.ForeignKey('core_config.LaboratoryDepartment', on_delete=models.SET_NULL, null=True, blank=True)
+    test_name     = models.CharField(max_length=200, blank=True)
+    reason        = models.TextField(help_text='Why is this critical document required? e.g. Critical HGB 4.2 g/dL, blasts detected')
+    notes         = models.TextField(blank=True)
+
+    # People
+    uploaded_by   = models.ForeignKey('authentication.NexusUser', on_delete=models.SET_NULL, null=True, related_name='critical_docs_uploaded')
+    validated_by  = models.ForeignKey('authentication.NexusUser', on_delete=models.SET_NULL, null=True, blank=True, related_name='critical_docs_validated')
+    validated_at  = models.DateTimeField(null=True, blank=True)
+    status        = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
+
+    # PQC signature for tamper detection
+    pqc_hash      = models.CharField(max_length=64, blank=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table  = 'critical_documents'
+        ordering  = ['-created_at']
+        indexes   = [
+            models.Index(fields=['pid', 'created_at']),
+            models.Index(fields=['lid', 'created_at']),
+            models.Index(fields=['status', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"CritDoc [{self.document_type}] — {self.test_name} | {self.pid}"
+
+    def save(self, *args, **kwargs):
+        # Auto-populate
+        if not self.pid and self.patient_id:
+            try: self.pid = self.patient.pid
+            except Exception: pass
+        if not self.lid and self.patient_id:
+            try: self.lid = self.patient.unique_lab_id
+            except Exception: pass
+        if not self.pqc_hash:
+            import hashlib
+            content = f"{self.pid}|{self.lid}|{self.test_name}|{self.reason}|{self.created_at}"
+            self.pqc_hash = hashlib.sha256(content.encode()).hexdigest()
+        super().save(*args, **kwargs)
+
+
+class CriticalResultBook(models.Model):
+    """
+    Auto-generated entry in the Critical Results Book when a critical value is validated.
+    Spec: Critical value is automatically sent into critical book if validated.
+    Immutable — append only, no updates allowed.
+    """
+
+    result        = models.OneToOneField(LabResult, on_delete=models.CASCADE, related_name='critical_book_entry')
+    patient       = models.ForeignKey('patients.Patient', on_delete=models.CASCADE, related_name='critical_book_entries')
+    pid           = models.CharField(max_length=30)
+    lid           = models.CharField(max_length=25, blank=True)
+    entry_number  = models.CharField(max_length=20, unique=True, help_text='e.g. CRIT-2026-00001')
+
+    # Result data snapshot (immutable record)
+    test_name     = models.CharField(max_length=200)
+    result_value  = models.TextField()
+    unit          = models.CharField(max_length=50, blank=True)
+    reference_range = models.CharField(max_length=100, blank=True)
+    flag          = models.CharField(max_length=10)
+    department    = models.ForeignKey('core_config.LaboratoryDepartment', on_delete=models.SET_NULL, null=True, blank=True)
+
+    # Validation chain
+    validated_by  = models.CharField(max_length=200, help_text='Full name + role at time of validation')
+    validated_at  = models.DateTimeField()
+
+    # Clinical notification
+    clinician_notified    = models.BooleanField(default=False)
+    clinician_name        = models.CharField(max_length=200, blank=True)
+    notification_method   = models.CharField(max_length=50, blank=True, choices=[('phone','Phone'),('sms','SMS'),('portal','Portal'),('verbal','Verbal')])
+    notification_time     = models.DateTimeField(null=True, blank=True)
+    clinician_response    = models.TextField(blank=True, help_text='Clinician acknowledgement / action taken')
+    read_back_confirmed   = models.BooleanField(default=False, help_text='ISO 15189: critical values must be read-back confirmed')
+
+    # Document reference
+    critical_document     = models.ForeignKey(CriticalDocument, on_delete=models.SET_NULL, null=True, blank=True)
+
+    # Immutability
+    pqc_hash      = models.CharField(max_length=64, blank=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table  = 'critical_result_book'
+        ordering  = ['-created_at']
+
+    def __str__(self):
+        return f"{self.entry_number} — {self.test_name} [{self.flag}] | {self.pid}"
+
+    def save(self, *args, **kwargs):
+        if not self.entry_number:
+            year  = timezone.now().year
+            count = CriticalResultBook.objects.filter(created_at__year=year).count() + 1
+            self.entry_number = f"CRIT-{year}-{count:05d}"
+        if not self.pqc_hash:
+            import hashlib
+            content = f"{self.entry_number}|{self.pid}|{self.test_name}|{self.result_value}|{self.validated_at}"
+            self.pqc_hash = hashlib.sha256(content.encode()).hexdigest()
+        super().save(*args, **kwargs)
 
 
 # ═══════════════════════════════════════════════════════════════

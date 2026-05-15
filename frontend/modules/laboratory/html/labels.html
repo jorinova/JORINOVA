@@ -1,0 +1,177 @@
+{% extends "shared/html/base.html" %}
+{% load static %}
+
+{% block title %}🏷️ Label Print Center — NEXUS ALIS-X{% endblock %}
+{% block module_id %}laboratory{% endblock %}
+{% block nav_active_lab %}active{% endblock %}
+
+{% block module_css %}
+<link rel="stylesheet" href="{% static 'modules/laboratory/css/label_engine.css' %}">
+{% endblock %}
+
+{% block extra_head %}
+<!-- JsBarcode — Code 128 barcode renderer -->
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<!-- QRCode.js — QR code renderer -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="lpc-shell">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════ -->
+  <header class="lpc-header">
+    <div class="lpc-header-left">
+      <div class="lpc-icon">🏷️</div>
+      <div>
+        <h1 class="lpc-title">Label Print Center</h1>
+        <div class="lpc-sub">{{ today|date:"l, d F Y" }} · NEXUS ALIS-X · Specimen Labeling System</div>
+      </div>
+    </div>
+
+    <!-- Label size selector -->
+    <div class="lpc-size-controls">
+      <span class="lpc-ctrl-label">Label Format</span>
+      <div class="lpc-size-btns">
+        <button class="lpc-size-btn active" data-size="tube" title="Standard tube label (25×65mm)">
+          <span class="lpc-size-icon">🧪</span> Tube Label
+        </button>
+        <button class="lpc-size-btn" data-size="large" title="Large specimen sticker (50×80mm)">
+          <span class="lpc-size-icon">📋</span> Large Sticker
+        </button>
+        <button class="lpc-size-btn" data-size="wristband" title="Patient wristband (25×280mm)">
+          <span class="lpc-size-icon">⌨️</span> Wristband
+        </button>
+        <button class="lpc-size-btn" data-size="report" title="Report header label">
+          <span class="lpc-size-icon">📄</span> Report Header
+        </button>
+      </div>
+    </div>
+
+    <div class="lpc-header-right">
+      <div class="lpc-kpis">
+        <div class="lpc-kpi">
+          <div class="lpc-kpi-val" id="kpi-pending">—</div>
+          <div class="lpc-kpi-lbl">Pending Labels</div>
+        </div>
+        <div class="lpc-kpi">
+          <div class="lpc-kpi-val" id="kpi-printed">—</div>
+          <div class="lpc-kpi-lbl">Printed Today</div>
+        </div>
+        <div class="lpc-kpi">
+          <div class="lpc-kpi-val lpc-kpi-stat" id="kpi-stat">—</div>
+          <div class="lpc-kpi-lbl">🚨 STAT</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-print-all">
+        🖨️ Print All Pending
+      </button>
+    </div>
+  </header>
+
+  <!-- ══ TOOLBAR ═════════════════════════════════════════════════ -->
+  <div class="lpc-toolbar">
+    <div class="lpc-toolbar-left">
+      <!-- Search / Reprint by Lab ID -->
+      <div class="lpc-search-wrap">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" id="lpc-search" class="lpc-search"
+               placeholder="Search Lab ID, patient, PID, SID…" autocomplete="off">
+      </div>
+      <select class="lpc-filter" id="lpc-filter-dept">
+        <option value="">All Departments</option>
+        {% for dept in departments %}
+        <option value="{{ dept.id }}">{{ dept.abbreviation }}</option>
+        {% endfor %}
+      </select>
+      <select class="lpc-filter" id="lpc-filter-status">
+        <option value="pending_label">⏳ Pending Print</option>
+        <option value="all_today">📅 All Today</option>
+        <option value="emergency">🚨 STAT Only</option>
+      </select>
+    </div>
+    <div class="lpc-toolbar-right">
+      <!-- Reprint by barcode -->
+      <div class="lpc-reprint-wrap">
+        <i class="fas fa-barcode"></i>
+        <input type="text" id="lpc-reprint-input" class="lpc-reprint-input"
+               placeholder="Scan barcode to reprint…" autocomplete="off">
+        <button class="btn btn-ghost btn-sm" id="btn-reprint">🔁 Reprint</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="btn-refresh">
+        <i class="fas fa-arrows-rotate"></i> Refresh
+      </button>
+      <label class="lpc-copies-wrap">
+        <span class="lpc-ctrl-label">Copies</span>
+        <input type="number" id="lpc-copies" class="lpc-copies-input" value="1" min="1" max="5">
+      </label>
+    </div>
+  </div>
+
+  <!-- ══ BODY ════════════════════════════════════════════════════ -->
+  <div class="lpc-body">
+
+    <!-- Left: Label Queue -->
+    <aside class="lpc-queue">
+      <div class="lpc-queue-header">
+        <span class="lpc-queue-title">Label Queue</span>
+        <span class="lpc-queue-count" id="queue-count"></span>
+      </div>
+      <div class="lpc-queue-list" id="lpc-queue-list">
+        <div class="lpc-hint"><i class="fas fa-spinner fa-spin" style="font-size:24px;opacity:.3"></i><p>Loading…</p></div>
+      </div>
+    </aside>
+
+    <!-- Right: Label Preview area -->
+    <main class="lpc-preview-area" id="lpc-preview-area">
+
+      <!-- Empty state -->
+      <div class="lpc-preview-empty" id="lpc-preview-empty">
+        <div style="font-size:64px">🏷️</div>
+        <h2>Label Print Center</h2>
+        <p>Select a request from the queue to preview and print labels, or click <strong>Print All Pending</strong> to batch-print all pending labels for this shift.</p>
+        <div class="lpc-legend">
+          <div class="lpc-legend-item"><div class="lpc-legend-dot" style="background:#9B59B6"></div>Purple — EDTA (CBC, ESR)</div>
+          <div class="lpc-legend-item"><div class="lpc-legend-dot" style="background:#E74C3C"></div>Red — Plain (Chemistry, Serology)</div>
+          <div class="lpc-legend-item"><div class="lpc-legend-dot" style="background:#F39C12"></div>Yellow — SST (Biochem)</div>
+          <div class="lpc-legend-item"><div class="lpc-legend-dot" style="background:#2980B9"></div>Blue — Citrate (Coagulation)</div>
+          <div class="lpc-legend-item"><div class="lpc-legend-dot" style="background:#27AE60"></div>Green — Heparin (Heavy metals)</div>
+          <div class="lpc-legend-item"><div class="lpc-legend-dot" style="background:#95A5A6"></div>Grey — Fluoride (Glucose)</div>
+          <div class="lpc-legend-item"><div class="lpc-legend-dot" style="background:#F1C40F"></div>Yellow — Urine container</div>
+          <div class="lpc-legend-item"><div class="lpc-legend-dot" style="background:#EB984E"></div>Orange — Swab/Microbiology</div>
+        </div>
+      </div>
+
+      <!-- Active preview -->
+      <div id="lpc-preview-active" style="display:none">
+
+        <!-- Preview controls -->
+        <div class="lpc-preview-controls" id="lpc-preview-controls">
+          <div class="lpc-preview-patient" id="lpc-preview-patient"></div>
+          <div class="lpc-preview-btns">
+            <button class="btn btn-ghost btn-sm" id="btn-select-all-labels">☑️ Select All</button>
+            <button class="btn btn-primary" id="btn-print-selected">
+              🖨️ Print Selected (<span id="selected-count">0</span>)
+            </button>
+          </div>
+        </div>
+
+        <!-- Label cards grid -->
+        <div class="lpc-labels-grid" id="lpc-labels-grid">
+          <!-- Populated by JS -->
+        </div>
+
+      </div>
+
+    </main>
+  </div><!-- /lpc-body -->
+
+  <!-- ══ PRINT FRAME (hidden — actual print target) ══════════════ -->
+  <div id="print-frame" class="print-only"></div>
+
+</div><!-- /lpc-shell -->
+{% endblock %}
+
+{% block module_scripts %}
+<script src="{% static 'modules/laboratory/js/label_engine.js' %}" defer></script>
+{% endblock %}

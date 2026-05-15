@@ -1,7 +1,7 @@
 {% extends "shared/html/base.html" %}
 {% load static %}
 
-{% block title %}💠 Billing — NEXUS ALIS-X{% endblock %}
+{% block title %}💠 Billing & Finance — NEXUS ALIS-X{% endblock %}
 {% block module_id %}billing{% endblock %}
 {% block nav_active_billing %}active{% endblock %}
 
@@ -9,167 +9,471 @@
 <link rel="stylesheet" href="{% static 'modules/billing/css/billing.css' %}">
 {% endblock %}
 
-{% block content %}
-<div class="billing-main">
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+{% endblock %}
 
-  <header class="page-header">
-    <div class="page-header-left">
-      <div class="page-icon-wrap" style="background:rgba(0,255,65,0.07);border-color:rgba(0,255,65,0.14);color:var(--alert-green)">
-        <span style="font-size:20px">💠</span>
-      </div>
+{% block content %}
+<div class="bill-shell">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════ -->
+  <header class="bill-header">
+    <div class="bill-header-left">
+      <div class="bill-icon">💠</div>
       <div>
-        <h1 class="page-title">Billing &amp; Finance</h1>
-        <div class="page-subtitle">{{ today|date:"l, d F Y" }} · ALIS-X Finance Engine</div>
+        <h1 class="bill-title">Billing &amp; Consumable Engine</h1>
+        <div class="bill-sub">{{ today|date:"l, d F Y" }} · NEXUS ALIS-X · RBAC Controlled</div>
       </div>
     </div>
-    <div class="page-header-right">
-      <button class="btn btn-primary btn-sm" id="new-invoice-btn">
-        <span>➕</span> New Invoice
+
+    <!-- Role indicator -->
+    <div class="bill-role-indicator">
+      <div class="bri-item active" id="role-receptionist">
+        <i class="fas fa-user-tie"></i>
+        <span>Receptionist</span>
+        <span class="bri-badge">CREATOR</span>
+      </div>
+      <div class="bri-arrow">→</div>
+      <div class="bri-item" id="role-phlebotomist">
+        <i class="fas fa-syringe"></i>
+        <span>Phlebotomist</span>
+        <span class="bri-badge bri-badge-blue">VALIDATOR</span>
+      </div>
+      <div class="bri-arrow">→</div>
+      <div class="bri-item">
+        <i class="fas fa-robot"></i>
+        <span>System</span>
+        <span class="bri-badge bri-badge-green">EXECUTOR</span>
+      </div>
+    </div>
+
+    <div class="bill-header-right">
+      <div class="bill-kpi-mini">
+        <div class="bkm-item">
+          <div class="bkm-val" id="hkpi-today">—</div>
+          <div class="bkm-lbl">Today RWF</div>
+        </div>
+        <div class="bkm-item">
+          <div class="bkm-val bkm-orange" id="hkpi-pending">—</div>
+          <div class="bkm-lbl">Pending</div>
+        </div>
+        <div class="bkm-item">
+          <div class="bkm-val bkm-red" id="hkpi-validate">—</div>
+          <div class="bkm-lbl">Awaiting Validation</div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-new-invoice">
+        <i class="fas fa-plus"></i> New Invoice
       </button>
     </div>
   </header>
 
-  <!-- Tab nav -->
-  <div class="tab-nav billing-tab-nav" role="tablist">
-    <button class="tab-btn active" data-pane="invoices-pane">💳 Invoices</button>
-    <button class="tab-btn" data-pane="payments-pane">💰 Payments</button>
-    <button class="tab-btn" data-pane="insurance-pane">🛡️ Insurance</button>
-    <button class="tab-btn" data-pane="summary-pane">📊 Daily Summary</button>
-  </div>
+  <!-- ══ TABS ════════════════════════════════════════════════════ -->
+  <nav class="bill-tab-nav" role="tablist">
+    <button class="bill-tab active" data-pane="pane-invoices">
+      <i class="fas fa-file-invoice"></i> Invoices
+      <span class="bill-badge" id="badge-invoices">—</span>
+    </button>
+    <button class="bill-tab" data-pane="pane-validation">
+      <i class="fas fa-syringe"></i> 🩸 Phlebotomist Validation
+      <span class="bill-badge bill-badge-orange" id="badge-validation">—</span>
+    </button>
+    <button class="bill-tab" data-pane="pane-payments">
+      <i class="fas fa-money-bill-wave"></i> Payments
+    </button>
+    <button class="bill-tab" data-pane="pane-insurance">
+      <i class="fas fa-shield-halved"></i> Insurance
+    </button>
+    <button class="bill-tab" data-pane="pane-summary">
+      <i class="fas fa-chart-bar"></i> Daily Summary
+    </button>
+  </nav>
 
-  <div class="billing-body">
+  <!-- ══ PANES ═══════════════════════════════════════════════════ -->
+  <div class="bill-pane-body">
 
-    <!-- Invoices -->
-    <div class="tab-pane active" id="invoices-pane">
-      <div class="billing-stat-row">
-        <div class="billing-stat">
-          <div class="billing-stat-icon">💳</div>
-          <div>
-            <div class="billing-stat-val" id="bs-total">0</div>
-            <div class="billing-stat-lbl">Total Invoices</div>
-          </div>
+    <!-- ════ INVOICES ════ -->
+    <div class="bill-pane active" id="pane-invoices">
+
+      <!-- KPI strip -->
+      <div class="bill-kpi-strip">
+        <div class="bill-kpi-card">
+          <div class="bkc-icon">💳</div>
+          <div class="bkc-val" id="kpi-total">—</div>
+          <div class="bkc-lbl">Total Invoices</div>
         </div>
-        <div class="billing-stat">
-          <div class="billing-stat-icon">✅</div>
-          <div>
-            <div class="billing-stat-val" id="bs-paid" style="color:var(--alert-green)">0</div>
-            <div class="billing-stat-lbl">Paid</div>
-          </div>
+        <div class="bill-kpi-card bill-kpi-green">
+          <div class="bkc-icon">✅</div>
+          <div class="bkc-val" id="kpi-paid">—</div>
+          <div class="bkc-lbl">Paid</div>
         </div>
-        <div class="billing-stat">
-          <div class="billing-stat-icon">⏳</div>
-          <div>
-            <div class="billing-stat-val" id="bs-pending" style="color:var(--alert-yellow)">0</div>
-            <div class="billing-stat-lbl">Pending</div>
-          </div>
+        <div class="bill-kpi-card bill-kpi-yellow">
+          <div class="bkc-icon">⏳</div>
+          <div class="bkc-val" id="kpi-pending">—</div>
+          <div class="bkc-lbl">Pending Payment</div>
         </div>
-        <div class="billing-stat">
-          <div class="billing-stat-icon">💰</div>
-          <div>
-            <div class="billing-stat-val" id="bs-revenue">0 RWF</div>
-            <div class="billing-stat-lbl">Today's Revenue</div>
-          </div>
+        <div class="bill-kpi-card bill-kpi-orange">
+          <div class="bkc-icon">🩺</div>
+          <div class="bkc-val" id="kpi-provisional">—</div>
+          <div class="bkc-lbl">Provisional (draft)</div>
+        </div>
+        <div class="bill-kpi-card bill-kpi-cyan">
+          <div class="bkc-icon">💰</div>
+          <div class="bkc-val" id="kpi-revenue">—</div>
+          <div class="bkc-lbl">Today's Revenue (RWF)</div>
         </div>
       </div>
 
-      <div class="glass-panel" style="overflow:hidden;margin-top:var(--space-md)">
-        <div class="chart-header" style="gap:var(--space-md)">
-          <div class="chart-title"><span>💳</span> Invoice Log</div>
-          <div class="search-wrap" style="max-width:220px;margin-left:auto">
-            <i class="fas fa-magnifying-glass search-icon"></i>
-            <input type="text" class="fi" placeholder="🔍 Search patient, invoice#…">
+      <!-- Filters + table -->
+      <div class="bill-toolbar">
+        <div class="bill-toolbar-left">
+          <div class="bill-search-wrap">
+            <i class="fas fa-magnifying-glass"></i>
+            <input type="text" id="inv-search" class="bill-search" placeholder="Invoice #, patient, PID…">
           </div>
-          <select class="fi" style="width:auto;font-size:var(--text-xs);padding:6px 10px">
-            <option>All statuses</option>
-            <option>✅ Paid</option>
-            <option>⏳ Pending</option>
-            <option>❌ Cancelled</option>
+          <select class="bill-filter" id="inv-filter-status">
+            <option value="">All Statuses</option>
+            <option value="provisional">📝 Provisional</option>
+            <option value="pending">⏳ Pending Payment</option>
+            <option value="partial">💳 Partial</option>
+            <option value="paid">✅ Paid</option>
+            <option value="waived">🆓 Waived</option>
+            <option value="cancelled">❌ Cancelled</option>
           </select>
+          <input type="date" class="bill-filter" id="inv-filter-date" value="{{ today|date:'Y-m-d' }}">
         </div>
-        <div style="overflow-x:auto">
-          <table class="nx-table">
+        <div class="bill-toolbar-right">
+          <span class="bill-count" id="inv-count"></span>
+          <button class="btn btn-ghost btn-sm" id="inv-refresh"><i class="fas fa-arrows-rotate"></i></button>
+        </div>
+      </div>
+
+      <div class="bill-table-wrap">
+        <table class="bill-table">
+          <thead>
+            <tr>
+              <th>📋 Invoice #</th>
+              <th>🧬 Patient</th>
+              <th>🧪 Tests</th>
+              <th>📦 Consumables</th>
+              <th>💰 Total (RWF)</th>
+              <th>🛡️ Insurance</th>
+              <th>💵 Patient Pays</th>
+              <th>Status</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inv-tbody">
+            <tr><td colspan="9"><div class="bill-loading"><i class="fas fa-spinner"></i> Loading…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /pane-invoices -->
+
+    <!-- ════ PHLEBOTOMIST VALIDATION ════ -->
+    <div class="bill-pane" id="pane-validation" style="display:none">
+
+      <div class="val-layout">
+
+        <!-- Left: provisional bills awaiting validation -->
+        <div class="val-queue">
+          <div class="val-queue-hd">
+            <div class="val-queue-title">🩸 Awaiting Consumable Validation</div>
+            <div class="val-queue-sub">Scan barcode or select patient to confirm consumables used</div>
+          </div>
+
+          <!-- Barcode scan for validation -->
+          <div class="val-scan-wrap">
+            <i class="fas fa-barcode"></i>
+            <input type="text" id="val-scan-input" class="val-scan" placeholder="Scan sample barcode…" autocomplete="off">
+          </div>
+
+          <div class="val-list" id="val-list">
+            <div class="bill-loading"><i class="fas fa-spinner"></i> Loading…</div>
+          </div>
+        </div>
+
+        <!-- Right: consumable confirmation panel -->
+        <div class="val-panel" id="val-panel">
+          <div class="val-empty" id="val-empty">
+            <div style="font-size:48px">🩸</div>
+            <h3>Select a patient to validate consumables</h3>
+            <p>The phlebotomist confirms what was actually used — triggering inventory deduction and bill finalization.</p>
+          </div>
+          <div id="val-active" style="display:none">
+            <div class="val-panel-header">
+              <div class="val-patient-name" id="val-patient-name">—</div>
+              <div class="val-meta" id="val-meta"></div>
+              <div class="val-invoice-id" id="val-invoice-id"></div>
+            </div>
+
+            <!-- Consumables checklist -->
+            <div class="val-consumables-section">
+              <div class="val-section-title">📦 Consumables to Confirm</div>
+              <div class="val-consumable-note">
+                <i class="fas fa-circle-info"></i>
+                Confirm exactly what was used. Any adjustments will be logged in the audit trail.
+              </div>
+              <div id="val-consumables-list"></div>
+            </div>
+
+            <!-- Validation footer -->
+            <div class="val-footer">
+              <div class="val-segregation-note">
+                <i class="fas fa-lock"></i>
+                <strong>Segregation of Duties:</strong> You confirm usage only. Prices and discounts are set by receptionist.
+              </div>
+              <div style="display:flex;gap:var(--space-sm)">
+                <button class="btn btn-danger btn-sm" id="val-reject-btn">↩️ Return to Receptionist</button>
+                <button class="btn btn-success" id="val-confirm-btn">
+                  <i class="fas fa-check-double"></i> Confirm &amp; Finalize Bill
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /pane-validation -->
+
+    <!-- ════ PAYMENTS ════ -->
+    <div class="bill-pane" id="pane-payments" style="display:none">
+
+      <div class="pay-layout">
+
+        <!-- Payment processor -->
+        <div class="pay-processor">
+          <div class="pp-title">💳 Process Payment</div>
+
+          <div class="form-group">
+            <label class="form-label">Invoice # or Patient</label>
+            <input type="text" class="form-input" id="pay-invoice-search" placeholder="INV-XXXXX or patient name…">
+          </div>
+          <div class="pay-invoice-info" id="pay-invoice-info" style="display:none"></div>
+
+          <div class="form-group">
+            <label class="form-label">Payment Method</label>
+            <div class="pay-method-grid">
+              <button class="pay-method-btn active" data-method="cash">
+                <span style="font-size:20px">💵</span><span>Cash</span>
+              </button>
+              <button class="pay-method-btn" data-method="mtn_momo">
+                <span style="font-size:20px">📱</span><span>MTN MoMo</span>
+              </button>
+              <button class="pay-method-btn" data-method="airtel_money">
+                <span style="font-size:20px">📲</span><span>Airtel</span>
+              </button>
+              <button class="pay-method-btn" data-method="bank">
+                <span style="font-size:20px">🏦</span><span>Bank</span>
+              </button>
+              <button class="pay-method-btn" data-method="rssb">
+                <span style="font-size:20px">🛡️</span><span>RSSB</span>
+              </button>
+              <button class="pay-method-btn" data-method="mutuelle">
+                <span style="font-size:20px">🌿</span><span>Mutuelle</span>
+              </button>
+            </div>
+          </div>
+          <div class="form-group" id="pay-phone-row" style="display:none">
+            <label class="form-label">Phone Number (MoMo)</label>
+            <input type="tel" class="form-input" id="pay-phone" placeholder="+250 7XX XXX XXX">
+          </div>
+          <div class="form-group" id="pay-ref-row">
+            <label class="form-label">Reference / Receipt No.</label>
+            <input type="text" class="form-input" id="pay-ref" placeholder="Optional reference">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Amount (RWF)</label>
+            <input type="number" class="form-input" id="pay-amount" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Discount (if authorized)</label>
+            <div style="display:flex;gap:var(--space-sm)">
+              <input type="number" class="form-input" id="pay-discount" placeholder="0" min="0" max="100" style="width:80px">
+              <span class="form-input" style="width:40px;display:flex;align-items:center;justify-content:center">%</span>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="pay-submit-btn" style="width:100%;margin-top:var(--space-md)">
+            💳 Process Payment
+          </button>
+        </div>
+
+        <!-- Payment log -->
+        <div class="pay-log">
+          <div class="pp-title">📋 Recent Payments (Today)</div>
+          <table class="bill-table">
             <thead>
-              <tr>
-                <th>🔖 Invoice #</th>
-                <th>🧬 Patient</th>
-                <th>🧪 Tests</th>
-                <th>💰 Amount (RWF)</th>
-                <th>🛡️ Insurance</th>
-                <th>📊 Status</th>
-                <th>🕐 Date</th>
-                <th></th>
-              </tr>
+              <tr><th>⏰ Time</th><th>🧬 Patient</th><th>💰 Amount</th><th>Method</th><th>Status</th></tr>
             </thead>
-            <tbody>
-              <tr><td colspan="8">
-                <div class="empty-state" style="padding:var(--space-2xl)">
-                  <div class="empty-state-icon" style="font-size:32px">💳</div>
-                  <h3>No Invoices Yet</h3>
-                  <p>Create a new invoice or process a lab request to generate billing.</p>
-                </div>
-              </td></tr>
+            <tbody id="pay-log-tbody">
+              <tr><td colspan="5"><div class="bill-loading">Loading…</div></td></tr>
             </tbody>
           </table>
         </div>
-      </div>
-    </div><!-- /invoices-pane -->
 
-    <!-- Payments -->
-    <div class="tab-pane" id="payments-pane">
-      <div class="glass-panel" style="padding:var(--space-3xl);text-align:center">
-        <div style="font-size:64px;margin-bottom:var(--space-md)">💰</div>
-        <h2 style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary)">Payment Processing</h2>
-        <p style="color:var(--text-secondary);font-size:var(--text-sm);max-width:380px;margin:16px auto;line-height:1.7">
-          Cash · Mobile Money (MTN/Airtel) · Bank Transfer · Insurance direct billing.
-          All transactions are logged and reconciled automatically.
-        </p>
-        <div style="display:flex;gap:var(--space-md);justify-content:center;flex-wrap:wrap;margin-top:var(--space-lg)">
-          <div class="epi-badge"><span>📱</span> MoMo Integration</div>
-          <div class="epi-badge"><span>🏦</span> Bank Transfer</div>
-          <div class="epi-badge"><span>💵</span> Cash Register</div>
-          <div class="epi-badge"><span>🛡️</span> RSSB / Insurance</div>
+      </div>
+    </div><!-- /pane-payments -->
+
+    <!-- ════ INSURANCE ════ -->
+    <div class="bill-pane" id="pane-insurance" style="display:none">
+      <div style="padding:var(--space-xl)">
+
+        <div class="ins-kpi-row">
+          <div class="ins-kpi"><div class="ins-kpi-val" id="ins-kpi-total">—</div><div class="ins-kpi-lbl">Total Claims</div></div>
+          <div class="ins-kpi"><div class="ins-kpi-val ins-green" id="ins-kpi-approved">—</div><div class="ins-kpi-lbl">Approved</div></div>
+          <div class="ins-kpi"><div class="ins-kpi-val ins-yellow" id="ins-kpi-pending">—</div><div class="ins-kpi-lbl">Pending</div></div>
+          <div class="ins-kpi"><div class="ins-kpi-val ins-red" id="ins-kpi-rejected">—</div><div class="ins-kpi-lbl">Rejected</div></div>
+          <div class="ins-kpi"><div class="ins-kpi-val ins-cyan" id="ins-kpi-amount">—</div><div class="ins-kpi-lbl">Claimed Amount</div></div>
+        </div>
+
+        <table class="bill-table" style="margin-top:var(--space-lg)">
+          <thead>
+            <tr>
+              <th>🔖 Claim #</th><th>🧬 Patient</th><th>🛡️ Provider</th>
+              <th>💰 Claimed</th><th>💸 Approved</th><th>Status</th><th>📅 Date</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="ins-tbody">
+            <tr><td colspan="8"><div class="bill-loading"><i class="fas fa-spinner"></i> Loading…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /pane-insurance -->
+
+    <!-- ════ DAILY SUMMARY ════ -->
+    <div class="bill-pane" id="pane-summary" style="display:none">
+      <div style="padding:var(--space-xl);display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-lg)">
+
+        <!-- Revenue chart -->
+        <div class="glass-panel bill-chart-card" style="grid-column:span 2;padding:var(--space-lg)">
+          <div class="bill-card-title">📈 Revenue Trend (7 days)</div>
+          <div style="height:200px"><canvas id="revenue-chart"></canvas></div>
+        </div>
+
+        <!-- Payment methods -->
+        <div class="glass-panel bill-chart-card" style="padding:var(--space-lg)">
+          <div class="bill-card-title">💳 Payment Methods</div>
+          <div style="height:180px"><canvas id="method-chart"></canvas></div>
+        </div>
+
+        <!-- Shift summary -->
+        <div class="glass-panel" style="padding:var(--space-lg)">
+          <div class="bill-card-title">🕐 Current Shift Summary</div>
+          <div id="shift-summary"></div>
+        </div>
+
+        <!-- Top tests billed -->
+        <div class="glass-panel" style="padding:var(--space-lg)">
+          <div class="bill-card-title">🧪 Top Tests Billed Today</div>
+          <div id="top-tests-billed"></div>
+        </div>
+
+        <!-- Insurance breakdown -->
+        <div class="glass-panel" style="padding:var(--space-lg)">
+          <div class="bill-card-title">🛡️ Insurance vs. Self-Pay</div>
+          <div style="height:160px"><canvas id="ins-split-chart"></canvas></div>
+        </div>
+
+      </div>
+    </div><!-- /pane-summary -->
+
+  </div><!-- /bill-pane-body -->
+</div><!-- /bill-shell -->
+
+<!-- ══ NEW INVOICE MODAL ════════════════════════════════════════ -->
+<div class="modal-overlay" id="new-inv-modal" style="display:none" role="dialog">
+  <div class="modal glass-card" style="max-width:680px;width:96%">
+    <div class="modal-header">
+      <h3 class="modal-title">👩‍💼 New Invoice — Receptionist (Creator)</h3>
+      <button class="btn-icon" id="new-inv-close"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:var(--space-lg)">
+
+      <!-- Patient search -->
+      <div class="form-group">
+        <label class="form-label required">Patient</label>
+        <div class="nim-patient-search-wrap">
+          <i class="fas fa-magnifying-glass"></i>
+          <input type="text" class="form-input" id="nim-patient-search" placeholder="Search PID, name…" autocomplete="off">
+          <div class="nim-patient-drop" id="nim-patient-drop"></div>
+        </div>
+        <div class="nim-patient-selected" id="nim-patient-selected" style="display:none"></div>
+      </div>
+
+      <!-- Test selection -->
+      <div class="form-group">
+        <label class="form-label required">Tests Requested by Doctor</label>
+        <div class="nim-test-search-wrap">
+          <i class="fas fa-flask"></i>
+          <input type="text" id="nim-test-search" class="form-input" placeholder="Search test name…" autocomplete="off">
+          <div class="nim-test-drop" id="nim-test-drop"></div>
+        </div>
+        <div class="nim-selected-tests" id="nim-selected-tests"></div>
+      </div>
+
+      <!-- Consumables (auto-populated) -->
+      <div id="nim-consumables-section" style="display:none">
+        <div class="nim-section-title">📦 Suggested Consumables (Auto-Mapped)</div>
+        <div class="nim-consumable-note">
+          <i class="fas fa-robot"></i>
+          These consumables are automatically mapped based on selected tests. Receptionist can review but not modify inventory quantities.
+        </div>
+        <div id="nim-consumables-list"></div>
+      </div>
+
+      <!-- Billing summary -->
+      <div id="nim-billing-summary" style="display:none">
+        <div class="nim-section-title">💰 Billing Summary</div>
+        <div class="nim-bill-rows" id="nim-bill-rows"></div>
+        <div class="nim-bill-total-row">
+          <div class="form-group" style="flex:1">
+            <label class="form-label">Payment Type</label>
+            <select class="form-input" id="nim-payment-type">
+              <option value="private">💵 Private (Self-pay)</option>
+              <option value="insurance">🛡️ Insurance</option>
+              <option value="mutuelle">🌿 Mutuelle de Santé</option>
+              <option value="rssb">🛡️ RSSB</option>
+              <option value="free">🆓 Free / Subsidized</option>
+            </select>
+          </div>
+          <div class="form-group" style="width:140px">
+            <label class="form-label">Discount %</label>
+            <input type="number" class="form-input" id="nim-discount" value="0" min="0" max="100">
+          </div>
+          <div class="nim-grand-total" id="nim-grand-total">
+            <div class="ngt-label">Total</div>
+            <div class="ngt-val" id="ngt-val">0 RWF</div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Insurance -->
-    <div class="tab-pane" id="insurance-pane">
-      <div class="glass-panel" style="padding:var(--space-3xl);text-align:center">
-        <div style="font-size:64px;margin-bottom:var(--space-md)">🛡️</div>
-        <h2 style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary)">Insurance Claims</h2>
-        <p style="color:var(--text-secondary);font-size:var(--text-sm);max-width:380px;margin:16px auto;line-height:1.7">
-          RSSB · Mutuelle de Santé · Private insurance claims processing and real-time eligibility verification.
-        </p>
-      </div>
     </div>
-
-    <!-- Summary -->
-    <div class="tab-pane" id="summary-pane">
-      <div class="glass-panel" style="padding:var(--space-3xl);text-align:center">
-        <div style="font-size:64px;margin-bottom:var(--space-md)">📊</div>
-        <h2 style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary)">Daily Summary</h2>
-        <p style="color:var(--text-secondary);font-size:var(--text-sm);max-width:380px;margin:16px auto;line-height:1.7">
-          End-of-day reconciliation, shift summary, and financial close reports.
-        </p>
-      </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="new-inv-cancel">Cancel</button>
+      <button class="btn btn-ghost" id="new-inv-draft">💾 Save Draft</button>
+      <button class="btn btn-primary" id="new-inv-submit">📋 Create Provisional Invoice</button>
     </div>
-
-  </div><!-- /billing-body -->
+  </div>
 </div>
+
+<!-- ══ INVOICE DETAIL MODAL ═══════════════════════════════════ -->
+<div class="modal-overlay" id="inv-detail-modal" style="display:none" role="dialog">
+  <div class="modal glass-card" style="max-width:580px">
+    <div class="modal-header">
+      <h3 class="modal-title" id="inv-detail-title">Invoice Detail</h3>
+      <button class="btn-icon" id="inv-detail-close"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" id="inv-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" id="inv-detail-print">🖨️ Print Invoice</button>
+      <button class="btn btn-primary btn-sm" id="inv-detail-pay">💳 Process Payment</button>
+      <button class="btn btn-secondary btn-sm" id="inv-detail-close2">Close</button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
-{% block extra_scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.billing-tab-nav .tab-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.billing-tab-nav .tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('#billing-main .tab-pane, .billing-body .tab-pane').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      var pane = document.getElementById(btn.dataset.pane);
-      if (pane) pane.classList.add('active');
-    });
-  });
-});
-</script>
+{% block module_scripts %}
+<script src="{% static 'modules/billing/js/billing.js' %}" defer></script>
 {% endblock %}

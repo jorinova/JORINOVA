@@ -1,7 +1,7 @@
 {% extends "shared/html/base.html" %}
 {% load static %}
 
-{% block title %}Laboratory — NEXUS ALIS-X{% endblock %}
+{% block title %}⚗️ Laboratory Workflow — NEXUS ALIS-X{% endblock %}
 {% block module_id %}laboratory{% endblock %}
 {% block nav_active_lab %}active{% endblock %}
 
@@ -10,152 +10,519 @@
 {% endblock %}
 
 {% block content %}
-<div class="lab-main">
+<div class="lab-shell">
 
-  <!-- ── Header ── -->
+  <!-- ══ HEADER ══════════════════════════════════════════════════ -->
   <header class="lab-header">
     <div class="lab-header-left">
-      <div class="page-icon-wrap"><i class="fas fa-flask"></i></div>
+      <div class="lab-module-icon">⚗️</div>
       <div>
-        <h1 class="lab-title">⚗️ Laboratory Worklist</h1>
-        <div class="lab-subtitle">{{ today|date:"l, d F Y" }} · NEXUS ALIS-X</div>
+        <h1 class="lab-title">Laboratory Workflow Engine</h1>
+        <div class="lab-sub">{{ today|date:"l, d F Y" }} · NEXUS ALIS-X · ISO 15189</div>
       </div>
     </div>
+
+    <!-- Department quick-filter tabs -->
+    <div class="dept-strip" id="dept-strip">
+      <button class="dept-chip active" data-dept="all">All</button>
+      {% for dept in departments %}
+      <button class="dept-chip" data-dept="{{ dept.id }}" style="--dept-color:{{ dept.color_hex }}">
+        <span class="dept-chip-dot"></span>{{ dept.abbreviation }}
+        <span class="dept-chip-count" id="dc-{{ dept.id }}">—</span>
+      </button>
+      {% endfor %}
+    </div>
+
     <div class="lab-header-right">
+      <!-- TAT alert pulse -->
+      <div class="tat-alert-pill" id="tat-alert-pill" title="Samples approaching TAT breach" style="display:none">
+        <i class="fas fa-triangle-exclamation"></i>
+        <span id="tat-alert-count">0</span> overdue
+      </div>
       <a href="/laboratory/new-request/" class="btn btn-primary btn-sm">
         <i class="fas fa-plus"></i> New Request
       </a>
-      <div class="user-chip" title="{{ request.user.get_full_name }}">
-        <div class="user-avatar">{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}</div>
-        <span class="user-name">{{ request.user.get_full_name }}</span>
-      </div>
     </div>
   </header>
 
-  <!-- ── Department tabs ── -->
-  <div class="dept-tabs-bar" id="dept-tabs-bar" role="tablist">
-    <button class="dept-tab active" data-dept="all" role="tab">
-      <span>All Departments</span>
-      <span class="dept-tab-count" id="count-all">—</span>
+  <!-- ══ WORKFLOW NAV ════════════════════════════════════════════ -->
+  <nav class="workflow-nav" role="tablist">
+    <button class="wf-tab active" data-pane="pane-worklist" data-mode="worklist">
+      <i class="fas fa-list-check"></i>
+      <span>Worklist</span>
+      <span class="wf-badge" id="badge-worklist">—</span>
     </button>
-    {% for dept in departments %}
-    <button class="dept-tab" data-dept="{{ dept.id }}" role="tab">
-      <span class="dept-tab-dot" style="background:{{ dept.color_hex }}"></span>
-      <span>{{ dept.abbreviation }}</span>
-      <span class="dept-tab-count">—</span>
+    <button class="wf-tab" data-pane="pane-reception" data-mode="reception">
+      <i class="fas fa-barcode"></i>
+      <span>Reception</span>
+      <span class="wf-badge wf-badge-orange" id="badge-reception">—</span>
     </button>
-    {% endfor %}
-  </div>
+    <button class="wf-tab" data-pane="pane-analysis" data-mode="analysis">
+      <i class="fas fa-flask-vial"></i>
+      <span>Analysis</span>
+      <span class="wf-badge wf-badge-blue" id="badge-analysis">—</span>
+    </button>
+    <button class="wf-tab" data-pane="pane-validation" data-mode="validation">
+      <i class="fas fa-check-double"></i>
+      <span>Validation</span>
+      <span class="wf-badge wf-badge-green" id="badge-validation">—</span>
+    </button>
+    <button class="wf-tab" data-pane="pane-tat" data-mode="tat">
+      <i class="fas fa-gauge-high"></i>
+      <span>TAT Monitor</span>
+    </button>
+  </nav>
 
-  <!-- ── Toolbar ── -->
-  <div class="worklist-toolbar">
-    <div class="toolbar-left">
-      <!-- Search -->
-      <div class="worklist-search-wrap">
-        <i class="fas fa-magnifying-glass"></i>
-        <input type="text" id="worklist-search" class="worklist-search"
-               placeholder="Lab ID, patient name, PID…"
-               autocomplete="off" spellcheck="false">
-      </div>
-      <!-- Status filter -->
-      <select id="filter-status" class="filter-select">
-        <option value="submitted,received,processing">Pending</option>
-        <option value="submitted">Submitted</option>
-        <option value="received">Received</option>
-        <option value="processing">Processing</option>
-        <option value="validated">Validated</option>
-        <option value="">All statuses</option>
-      </select>
-      <!-- Emergency filter -->
-      <select id="filter-emerg" class="filter-select">
-        <option value="">All priorities</option>
-        <option value="emergency">STAT</option>
-        <option value="urgent">Urgent</option>
-        <option value="routine">Routine</option>
-      </select>
-      <!-- Date filter -->
-      <input type="date" id="filter-date" class="filter-select" value="{{ today|date:'Y-m-d' }}" title="Filter by request date">
-    </div>
-    <div class="toolbar-right">
-      <span class="result-count" id="result-count"></span>
-      <button class="btn btn-ghost btn-sm" id="refresh-worklist-btn" type="button" title="Refresh">
-        <i class="fas fa-arrows-rotate"></i>
-      </button>
-    </div>
-  </div>
+  <!-- ══ PANES ═══════════════════════════════════════════════════ -->
+  <div class="pane-body">
 
-  <!-- ── Worklist table ── -->
-  <div class="worklist-area">
-    <table class="worklist-table" role="grid" aria-label="Laboratory worklist">
-      <thead>
-        <tr>
-          <th>Patient <i class="fas fa-sort"></i></th>
-          <th>Lab ID</th>
-          <th>Tests</th>
-          <th>TAT</th>
-          <th>Priority</th>
-          <th>Status</th>
-          <th>Doctor / Ward</th>
-          <th style="text-align:right">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="worklist-tbody">
-        <tr><td colspan="8">
-          <div class="worklist-loading">
-            <i class="fas fa-spinner"></i> Loading…
+    <!-- ────────── PANE: WORKLIST ──────────── -->
+    <div class="wf-pane active" id="pane-worklist">
+      <div class="worklist-toolbar">
+        <div class="toolbar-left">
+          <div class="worklist-search-wrap">
+            <i class="fas fa-magnifying-glass"></i>
+            <input type="text" id="worklist-search" class="worklist-search" placeholder="Lab ID, patient, PID…" autocomplete="off">
           </div>
-        </td></tr>
-      </tbody>
-    </table>
-  </div>
-
-</div><!-- /lab-main -->
-
-<!-- ══════════════ RESULT ENTRY MODAL ══════════════ -->
-<div class="result-modal-overlay" id="result-modal-overlay" role="dialog" aria-modal="true" aria-label="Result entry">
-  <div class="result-modal glass-card" id="result-modal">
-
-    <div class="result-modal-header">
-      <div class="result-patient-line">
-        <div class="result-patient-name" id="rm-patient-name">—</div>
-        <div class="result-patient-meta" id="rm-patient-meta"></div>
+          <select id="filter-status" class="filter-select">
+            <option value="submitted,received,processing">🔵 Pending</option>
+            <option value="submitted">Submitted</option>
+            <option value="received">Received</option>
+            <option value="processing">Processing</option>
+            <option value="validated">Validated</option>
+            <option value="">All statuses</option>
+          </select>
+          <select id="filter-emerg" class="filter-select">
+            <option value="">All priorities</option>
+            <option value="emergency">🚨 STAT</option>
+            <option value="urgent">⚡ Urgent</option>
+            <option value="routine">Routine</option>
+          </select>
+          <input type="date" id="filter-date" class="filter-select" value="{{ today|date:'Y-m-d' }}">
+        </div>
+        <div class="toolbar-right">
+          <span class="result-count" id="result-count"></span>
+          <button class="btn btn-ghost btn-sm" id="refresh-btn" title="Refresh"><i class="fas fa-arrows-rotate"></i></button>
+        </div>
       </div>
-      <button class="btn-icon" id="rm-close-btn" type="button" aria-label="Close"><i class="fas fa-xmark"></i></button>
-    </div>
 
-    <div class="result-modal-body">
-      <div id="rm-tests-list">
-        <!-- Populated by JS -->
+      <div class="worklist-area">
+        <table class="worklist-table" role="grid">
+          <thead>
+            <tr>
+              <th>🧬 Patient</th>
+              <th>🔖 Lab ID</th>
+              <th>🧪 Tests</th>
+              <th>⏱️ TAT</th>
+              <th>⚡ Priority</th>
+              <th>📊 Status</th>
+              <th>👨‍⚕️ Doctor</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="worklist-tbody">
+            <tr><td colspan="8"><div class="worklist-loading"><i class="fas fa-spinner"></i> Loading…</div></td></tr>
+          </tbody>
+        </table>
       </div>
-    </div>
+    </div><!-- /pane-worklist -->
 
-    <div class="result-modal-footer">
-      <div style="display:flex;align-items:center;gap:var(--space-sm)">
-        <i class="fas fa-shield-halved" style="color:var(--text-muted);font-size:13px"></i>
-        <span class="text-xs text-muted-c">Results are audit-logged with your identity and shift</span>
-      </div>
-      <div style="display:flex;gap:var(--space-sm)">
-        <button class="btn btn-success" id="rm-validate-btn" type="button" style="display:none">
-          <i class="fas fa-check-double"></i> Validate All
-        </button>
-        <button class="btn btn-primary" id="rm-save-btn" type="button">
-          <i class="fas fa-floppy-disk"></i> Save Results
-        </button>
-      </div>
-    </div>
+    <!-- ────────── PANE: RECEPTION ──────────── -->
+    <div class="wf-pane" id="pane-reception" style="display:none">
+      <div class="reception-layout">
 
-  </div>
-</div>
+        <!-- Barcode scanner area -->
+        <div class="scan-panel">
+          <div class="scan-header">
+            <div class="scan-icon">📦</div>
+            <div>
+              <div class="scan-title">Sample Reception</div>
+              <div class="scan-sub">Scan barcode or enter Lab ID to receive sample and start TAT</div>
+            </div>
+          </div>
+
+          <div class="scan-input-wrap">
+            <i class="fas fa-barcode scan-input-icon"></i>
+            <input type="text" id="scan-barcode-input" class="scan-input" placeholder="Scan barcode or type Lab ID…" autocomplete="off" autofocus>
+            <button class="btn btn-primary" id="scan-lookup-btn">🔍 Lookup</button>
+          </div>
+
+          <!-- Scan result card -->
+          <div class="scan-result-card" id="scan-result-card" style="display:none">
+            <div class="src-header">
+              <div class="src-patient" id="src-patient-name">—</div>
+              <div class="src-meta" id="src-patient-meta"></div>
+            </div>
+            <div class="src-body">
+              <div class="src-info-grid">
+                <div class="src-info-item"><div class="src-lbl">Lab ID</div><div class="src-val" id="src-lab-id">—</div></div>
+                <div class="src-info-item"><div class="src-lbl">LID</div><div class="src-val src-lid" id="src-lid">—</div></div>
+                <div class="src-info-item"><div class="src-lbl">Priority</div><div class="src-val" id="src-priority">—</div></div>
+                <div class="src-info-item"><div class="src-lbl">Doctor</div><div class="src-val" id="src-doctor">—</div></div>
+                <div class="src-info-item"><div class="src-lbl">Ward / Bed</div><div class="src-val" id="src-ward">—</div></div>
+                <div class="src-info-item"><div class="src-lbl">Clinical Info</div><div class="src-val" id="src-clinical">—</div></div>
+              </div>
+              <!-- Samples list -->
+              <div class="src-samples-title">📦 Samples</div>
+              <div id="src-samples-list"></div>
+              <!-- Rejection reason -->
+              <div class="src-rejection-row" id="src-rejection-row" style="display:none">
+                <select class="form-input" id="src-reject-reason">
+                  <option value="">Select rejection reason…</option>
+                  <option value="haemolysed">🔴 Haemolysed</option>
+                  <option value="clotted">🩸 Clotted</option>
+                  <option value="insufficient">📉 Insufficient Volume</option>
+                  <option value="wrong_tube">🧪 Wrong Tube Type</option>
+                  <option value="unlabeled">🏷️ Unlabeled / Mislabeled</option>
+                  <option value="contaminated">☣️ Contaminated</option>
+                  <option value="expired">⏰ Expired / Delayed</option>
+                  <option value="lipemic">🍥 Lipemic</option>
+                  <option value="temp_deviation">🌡️ Temperature Deviation</option>
+                  <option value="wrong_patient">⚠️ Patient ID Mismatch</option>
+                </select>
+                <textarea class="form-input fi-ta" id="src-reject-detail" placeholder="Additional details…" style="min-height:60px"></textarea>
+              </div>
+            </div>
+            <div class="src-footer">
+              <button class="btn btn-danger btn-sm" id="src-reject-btn">❌ Reject Sample</button>
+              <button class="btn btn-primary" id="src-receive-btn">
+                ✅ Receive &amp; Start TAT
+              </button>
+            </div>
+          </div>
+
+          <!-- TAT start confirmation -->
+          <div class="tat-start-confirm" id="tat-start-confirm" style="display:none">
+            <div class="tsc-icon">⏱️</div>
+            <div class="tsc-title">TAT Started</div>
+            <div class="tsc-lab-id" id="tsc-lab-id">—</div>
+            <div class="tsc-msg">Sample received. TAT clock is running.</div>
+            <div class="tsc-deadline" id="tsc-deadline"></div>
+            <button class="btn btn-ghost btn-sm" id="tsc-scan-next">📦 Scan Next</button>
+          </div>
+        </div>
+
+        <!-- Recent receptions -->
+        <div class="recent-receptions-panel">
+          <div class="rrp-title">📋 Recent Receptions (today)</div>
+          <div id="recent-receptions-list">
+            <div class="tab-hint"><i class="fas fa-box-open" style="font-size:28px;opacity:.2"></i><p>No samples received yet today</p></div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /pane-reception -->
+
+    <!-- ────────── PANE: ANALYSIS (Result Entry) ──────────── -->
+    <div class="wf-pane" id="pane-analysis" style="display:none">
+
+      <!-- Result entry split layout -->
+      <div class="analysis-layout" id="analysis-layout">
+
+        <!-- Left: Sample queue -->
+        <div class="analysis-queue-panel">
+          <div class="aqp-header">
+            <div class="aqp-title">🧪 Analysis Queue</div>
+            <select class="fi aqp-filter" id="aqp-dept-filter" style="width:140px">
+              <option value="">All Departments</option>
+              {% for dept in departments %}
+              <option value="{{ dept.id }}">{{ dept.abbreviation }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="aqp-list" id="aqp-list">
+            <div class="tab-hint"><i class="fas fa-flask-vial" style="font-size:28px;opacity:.2"></i><p>Loading analysis queue…</p></div>
+          </div>
+        </div>
+
+        <!-- Right: Result entry panel -->
+        <div class="result-entry-panel" id="result-entry-panel">
+          <div class="rep-empty" id="rep-empty">
+            <div style="font-size:48px">⚗️</div>
+            <h3>Select a sample to enter results</h3>
+            <p>Choose from the queue on the left or scan a barcode</p>
+          </div>
+          <div id="rep-active" style="display:none">
+
+            <!-- Patient + Sample header -->
+            <div class="rep-header">
+              <div class="rep-patient-info">
+                <div class="rep-patient-name" id="rep-patient-name">—</div>
+                <div class="rep-patient-meta" id="rep-patient-meta"></div>
+                <div class="rep-ids">
+                  <span class="rep-id-chip rep-pid" id="rep-pid">—</span>
+                  <span class="rep-id-chip rep-lid" id="rep-lid">—</span>
+                </div>
+              </div>
+              <div class="rep-sample-info">
+                <div class="rep-lab-id" id="rep-lab-id">—</div>
+                <div id="rep-tat-bar-wrap" class="rep-tat-wrap">
+                  <div class="rep-tat-label">TAT <span id="rep-tat-elapsed">—</span></div>
+                  <div class="rep-tat-bar-bg"><div class="rep-tat-bar-fill" id="rep-tat-bar-fill"></div></div>
+                  <div class="rep-tat-deadline" id="rep-tat-deadline">Deadline: —</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Result source + mode bar -->
+            <div class="result-source-bar">
+              <div class="rsb-left">
+                <div class="rsb-label">Result Source</div>
+                <div class="source-toggle">
+                  <button class="src-btn active" id="src-manual-btn" data-src="MANUAL">
+                    👤 Manual
+                  </button>
+                  <button class="src-btn" id="src-auto-btn" data-src="AUTOMATED">
+                    🤖 Automated
+                  </button>
+                </div>
+              </div>
+              <div class="rsb-center">
+                <div class="rsb-label">Entry Mode</div>
+                <select class="fi rsb-mode" id="entry-mode-sel">
+                  <option value="SINGLE">⚡ Single Entry</option>
+                  <option value="RAPID_ENTRY">🚀 Rapid Entry</option>
+                </select>
+              </div>
+              <div class="rsb-right" id="instrument-row" style="display:none">
+                <div class="rsb-label">Instrument</div>
+                <select class="fi rsb-instrument" id="instrument-sel">
+                  <option value="">Select analyzer…</option>
+                  <option>Sysmex XN-1000</option>
+                  <option>Mindray BS-480</option>
+                  <option>Roche Cobas e411</option>
+                  <option>GeneXpert</option>
+                  <option>Tosoh G8</option>
+                  <option>Werfen ACL 700</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Result entries -->
+            <div class="result-entries-wrap" id="result-entries-wrap">
+              <!-- Populated per test -->
+            </div>
+
+            <!-- Footer -->
+            <div class="rep-footer">
+              <div class="rep-audit-note">
+                <i class="fas fa-shield-halved"></i>
+                Results are immutably logged with your identity, shift, and source type.
+              </div>
+              <div class="rep-footer-btns">
+                <button class="btn btn-secondary btn-sm" id="rep-clear-btn">🗑️ Clear</button>
+                <button class="btn btn-success btn-sm" id="rep-validate-btn">
+                  <i class="fas fa-check-double"></i> Save &amp; Validate
+                </button>
+                <button class="btn btn-primary" id="rep-save-btn">
+                  <i class="fas fa-floppy-disk"></i> Save Results
+                </button>
+              </div>
+            </div>
+
+            <!-- ══ CRITICAL RESULT DOCUMENTATION (auto-shown on critical flag) ══ -->
+            <div class="critical-doc-panel" id="critical-doc-panel" style="display:none">
+              <div class="cdp-header">
+                <div class="cdp-icon">🚨</div>
+                <div>
+                  <div class="cdp-title">Critical Result — Document Required</div>
+                  <div class="cdp-sub">ISO 15189 · Spec: critical values MUST have supporting documentation before release</div>
+                </div>
+              </div>
+              <div class="cdp-body">
+                <div class="cdp-critical-values" id="cdp-critical-values"></div>
+                <div class="cdp-form">
+                  <div class="form-group">
+                    <label class="form-label">Document Type</label>
+                    <select class="form-input" id="cdp-doc-type">
+                      <option value="pdf_report">📄 PDF Lab Report</option>
+                      <option value="smear_image">🔬 Microscope / Smear Image</option>
+                      <option value="annotated">✏️ Annotated Result Image</option>
+                      <option value="analyzer_print">🖨️ Analyzer Printout</option>
+                      <option value="referral">📋 External Referral Document</option>
+                      <option value="other">📎 Other Supporting Document</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Upload Document <span style="color:var(--alert-red)">*</span></label>
+                    <div class="cdp-upload-zone" id="cdp-upload-zone">
+                      <input type="file" id="cdp-file-input" accept=".pdf,.jpg,.jpeg,.png,.tiff" style="display:none">
+                      <div class="cdp-upload-inner" id="cdp-upload-inner">
+                        <span style="font-size:28px">📎</span>
+                        <span>Click to upload or drag &amp; drop</span>
+                        <small>PDF · JPG · PNG · TIFF — max 10 MB</small>
+                      </div>
+                      <div class="cdp-file-selected" id="cdp-file-selected" style="display:none">
+                        <span style="color:var(--alert-green)">✅</span>
+                        <span id="cdp-file-name"></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Clinical Reason / Justification <span style="color:var(--alert-red)">*</span></label>
+                    <textarea class="form-input fi-ta" id="cdp-reason" style="min-height:60px"
+                      placeholder="e.g. Critical HGB 4.2 g/dL — acute haemorrhage suspected. Peripheral smear attached showing microcytic hypochromic anaemia."></textarea>
+                  </div>
+                  <div class="cdp-notification-row">
+                    <div class="cdp-notif-label">📞 Clinician Notification Required</div>
+                    <div class="form-group">
+                      <label class="form-label">Clinician Name</label>
+                      <input type="text" class="form-input" id="cdp-clinician-name" placeholder="Dr. name who was notified">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Notification Method</label>
+                      <select class="form-input" id="cdp-notif-method">
+                        <option value="phone">📞 Phone</option>
+                        <option value="sms">📱 SMS</option>
+                        <option value="portal">💻 Doctor Portal</option>
+                        <option value="verbal">🗣️ Verbal (in-person)</option>
+                      </select>
+                    </div>
+                    <label class="toggle-row cdp-readback">
+                      <input type="checkbox" id="cdp-readback-check">
+                      <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                      <span>✅ Read-back confirmed (ISO 15189 — critical value read back by clinician)</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="cdp-footer">
+                <div class="cdp-iso-note">
+                  <i class="fas fa-certificate"></i>
+                  This document will be permanently linked to the patient's critical result record. Immutable audit trail.
+                </div>
+                <button class="btn btn-danger" id="cdp-submit-btn">
+                  <i class="fas fa-file-medical"></i> Submit Critical Documentation
+                </button>
+              </div>
+            </div>
+
+          </div><!-- /rep-active -->
+        </div><!-- /result-entry-panel -->
+
+      </div>
+    </div><!-- /pane-analysis -->
+
+    <!-- ────────── PANE: VALIDATION QUEUE ──────────── -->
+    <div class="wf-pane" id="pane-validation" style="display:none">
+      <div class="validation-layout">
+
+        <!-- Validation list -->
+        <div class="val-list-panel">
+          <div class="val-list-header">
+            <div class="val-list-title">✅ Pending Validation</div>
+            <select class="fi" id="val-dept-filter" style="width:150px">
+              <option value="">All Departments</option>
+              {% for dept in departments %}
+              <option value="{{ dept.id }}">{{ dept.abbreviation }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="val-list" id="val-list">
+            <div class="tab-hint"><i class="fas fa-check-double" style="font-size:28px;opacity:.2"></i><p>Loading validation queue…</p></div>
+          </div>
+        </div>
+
+        <!-- Validation review panel -->
+        <div class="val-review-panel" id="val-review-panel">
+          <div class="val-empty" id="val-empty">
+            <div style="font-size:48px">✅</div>
+            <h3>Select a result to validate</h3>
+            <p>Validated results are released to the patient portal and doctor's view</p>
+          </div>
+          <div id="val-active" style="display:none">
+            <div class="val-review-header">
+              <div class="val-patient-name" id="val-patient-name">—</div>
+              <div class="val-meta" id="val-meta"></div>
+            </div>
+            <div class="val-results-list" id="val-results-list"></div>
+            <div class="val-footer">
+              <div class="val-iso-note">
+                <i class="fas fa-certificate"></i>
+                ISO 15189 — Validation by certified laboratory professional. Your identity and timestamp will be permanently logged.
+              </div>
+              <div class="val-footer-btns">
+                <button class="btn btn-danger btn-sm" id="val-return-btn">↩️ Return for Correction</button>
+                <button class="btn btn-success" id="val-authorize-btn">
+                  <i class="fas fa-certificate"></i> Validate &amp; Release
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /pane-validation -->
+
+    <!-- ────────── PANE: TAT MONITOR ──────────── -->
+    <div class="wf-pane" id="pane-tat" style="display:none">
+      <div class="tat-monitor-layout">
+
+        <!-- KPI strip -->
+        <div class="tat-kpi-strip">
+          <div class="tat-kpi-card">
+            <div class="tat-kpi-icon">🟢</div>
+            <div class="tat-kpi-val" id="tat-kpi-ontime" style="color:var(--alert-green)">—</div>
+            <div class="tat-kpi-lbl">On-Time</div>
+          </div>
+          <div class="tat-kpi-card">
+            <div class="tat-kpi-icon">🟡</div>
+            <div class="tat-kpi-val" id="tat-kpi-warning" style="color:var(--alert-yellow)">—</div>
+            <div class="tat-kpi-lbl">Warning (&gt;80%)</div>
+          </div>
+          <div class="tat-kpi-card">
+            <div class="tat-kpi-icon">🔴</div>
+            <div class="tat-kpi-val" id="tat-kpi-breach" style="color:var(--alert-red)">—</div>
+            <div class="tat-kpi-lbl">TAT Breach</div>
+          </div>
+          <div class="tat-kpi-card">
+            <div class="tat-kpi-icon">⏱️</div>
+            <div class="tat-kpi-val" id="tat-kpi-avg">—</div>
+            <div class="tat-kpi-lbl">Avg TAT (min)</div>
+          </div>
+          <div class="tat-kpi-card">
+            <div class="tat-kpi-icon">🧪</div>
+            <div class="tat-kpi-val" id="tat-kpi-active">—</div>
+            <div class="tat-kpi-lbl">Active Samples</div>
+          </div>
+        </div>
+
+        <!-- Active samples TAT table -->
+        <div class="tat-table-wrap">
+          <div class="tat-table-header">
+            <div class="tat-table-title">⏱️ Active Sample TAT Tracker (Auto-refresh 30s)</div>
+            <div class="tat-last-updated" id="tat-last-updated">—</div>
+          </div>
+          <table class="worklist-table" role="grid">
+            <thead>
+              <tr>
+                <th>🧬 Patient</th>
+                <th>🔖 Lab ID</th>
+                <th>🏷️ Sample</th>
+                <th>📍 Department</th>
+                <th>⚡ Priority</th>
+                <th style="width:200px">⏱️ TAT Progress</th>
+                <th>Elapsed</th>
+                <th>Deadline</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tat-table-body">
+              <tr><td colspan="9"><div class="worklist-loading"><i class="fas fa-spinner"></i> Loading TAT data…</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Department TAT breakdown -->
+        <div class="tat-dept-breakdown" id="tat-dept-breakdown"></div>
+
+      </div>
+    </div><!-- /pane-tat -->
+
+  </div><!-- /pane-body -->
+</div><!-- /lab-shell -->
 {% endblock %}
 
 {% block module_scripts %}
 <script src="{% static 'modules/laboratory/js/lab.js' %}" defer></script>
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-document.getElementById('refresh-worklist-btn')?.addEventListener('click', () => {
-  if (window._labReload) window._labReload();
-});
-</script>
 {% endblock %}

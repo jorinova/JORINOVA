@@ -61,7 +61,7 @@ class Invoice(models.Model):
     insurance_coverage = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
 
     notes          = models.TextField(blank=True)
-    created_by     = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True, related_name='created_invoices')
+    created_by     = models.ForeignKey('authentication.NexusUser', on_delete=models.SET_NULL, null=True, related_name='created_invoices')
     created_at     = models.DateTimeField(auto_now_add=True)
     updated_at     = models.DateTimeField(auto_now=True)
     due_date       = models.DateField(null=True, blank=True)
@@ -112,7 +112,7 @@ class Payment(models.Model):
     amount        = models.DecimalField(max_digits=12, decimal_places=2)
     method        = models.CharField(max_length=20, choices=PaymentMethod.choices)
     reference_no  = models.CharField(max_length=80, blank=True)
-    received_by   = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True)
+    received_by   = models.ForeignKey('authentication.NexusUser', on_delete=models.SET_NULL, null=True)
     received_at   = models.DateTimeField(default=timezone.now)
     notes         = models.TextField(blank=True)
 

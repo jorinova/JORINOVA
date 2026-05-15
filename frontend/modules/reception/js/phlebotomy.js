@@ -114,7 +114,11 @@
       btn.addEventListener('click', () => markCollected(btn.dataset.id));
     });
     tbody.querySelectorAll('.btn-labels').forEach(btn => {
-      btn.addEventListener('click', () => openLabelModal(btn.dataset.id));
+      btn.addEventListener('click', () => {
+        const req = queue.find(r => r.id == btn.dataset.id);
+        if (req) window.location.href = `/laboratory/labels/?lab_id=${req.lab_id}`;
+        else openLabelModal(btn.dataset.id);
+      });
     });
   }
 
@@ -159,6 +163,18 @@
 
     if (success === samples.length) {
       Toast.success('Samples Collected', `${success} tube${success > 1 ? 's' : ''} marked — ${req.patient_name}`);
+
+      // Offer label print
+      const printNow = await Confirm.show(
+        `Print tube labels for ${req.patient_name} now?`,
+        '🏷️ Print Labels',
+        'Print Labels',
+        false
+      );
+      if (printNow) {
+        window.location.href = `/laboratory/labels/?lab_id=${req.lab_id}`;
+        return;
+      }
       loadQueue();
     }
   }

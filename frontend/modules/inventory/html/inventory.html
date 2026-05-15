@@ -1,7 +1,7 @@
 {% extends "shared/html/base.html" %}
 {% load static %}
 
-{% block title %}🗂️ Inventory — NEXUS ALIS-X{% endblock %}
+{% block title %}🗂️ Inventory Intelligence — NEXUS ALIS-X{% endblock %}
 {% block module_id %}inventory{% endblock %}
 {% block nav_active_inventory %}active{% endblock %}
 
@@ -9,166 +9,622 @@
 <link rel="stylesheet" href="{% static 'modules/inventory/css/inventory.css' %}">
 {% endblock %}
 
-{% block content %}
-<div class="inv-main">
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+{% endblock %}
 
-  <header class="page-header">
-    <div class="page-header-left">
-      <div class="page-icon-wrap" style="background:rgba(255,109,0,0.08);border-color:rgba(255,109,0,0.18);color:var(--alert-orange)">
-        <span style="font-size:20px">🗂️</span>
-      </div>
+{% block content %}
+<div class="inv-shell">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════ -->
+  <header class="inv-header">
+    <div class="inv-header-left">
+      <div class="inv-icon">🗂️</div>
       <div>
-        <h1 class="page-title">Inventory &amp; Stock</h1>
-        <div class="page-subtitle">{{ today|date:"l, d F Y" }} · Supply Chain Management</div>
+        <h1 class="inv-title">Inventory Intelligence</h1>
+        <div class="inv-sub">{{ today|date:"l, d F Y" }} · NEXUS ALIS-X · FIFO/FEFO</div>
       </div>
     </div>
-    <div class="page-header-right">
-      <button class="btn btn-warning btn-sm" id="low-stock-btn">
-        <span>⚠️</span> Low Stock
-        <span class="badge badge-orange" id="low-stock-count" style="margin-left:4px">—</span>
-      </button>
-      <button class="btn btn-primary btn-sm">
-        <span>➕</span> Add Item
+
+    <!-- Barcode scan -->
+    <div class="inv-scan-wrap">
+      <i class="fas fa-barcode inv-scan-icon"></i>
+      <input type="text" id="inv-scan-input" class="inv-scan-input"
+             placeholder="Scan barcode to find item…" autocomplete="off">
+    </div>
+
+    <div class="inv-header-right">
+      <div class="inv-alerts-pill" id="inv-alerts-pill" style="display:none">
+        <i class="fas fa-triangle-exclamation"></i>
+        <span id="inv-alerts-count">0</span> alerts
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-add-item">
+        <i class="fas fa-plus"></i> Add Item
       </button>
     </div>
   </header>
 
-  <!-- Tab nav -->
-  <div class="tab-nav inv-tab-nav" role="tablist">
-    <button class="tab-btn active" data-pane="stock-pane">📦 Stock Overview</button>
-    <button class="tab-btn" data-pane="reagents-pane">🧪 Reagents</button>
-    <button class="tab-btn" data-pane="equipment-pane">🔭 Equipment</button>
-    <button class="tab-btn" data-pane="orders-pane">📝 Purchase Orders</button>
-    <button class="tab-btn" data-pane="expiry-pane">⏰ Expiry Tracker</button>
-  </div>
+  <!-- ══ WORKFLOW TABS ═══════════════════════════════════════════ -->
+  <nav class="inv-tab-nav" role="tablist">
+    <button class="inv-tab active" data-pane="pane-dashboard">
+      <i class="fas fa-chart-pie"></i> Dashboard
+    </button>
+    <button class="inv-tab" data-pane="pane-ledger">
+      <i class="fas fa-boxes-stacked"></i> Stock Ledger
+      <span class="inv-tab-badge" id="badge-ledger">—</span>
+    </button>
+    <button class="inv-tab" data-pane="pane-reagents">
+      <i class="fas fa-flask"></i> Reagents
+      <span class="inv-tab-badge inv-badge-blue" id="badge-reagents">—</span>
+    </button>
+    <button class="inv-tab" data-pane="pane-orders">
+      <i class="fas fa-file-invoice"></i> Purchase Orders
+      <span class="inv-tab-badge inv-badge-orange" id="badge-orders">—</span>
+    </button>
+    <button class="inv-tab" data-pane="pane-expiry">
+      <i class="fas fa-clock"></i> Expiry Tracker
+      <span class="inv-tab-badge inv-badge-red" id="badge-expiry">—</span>
+    </button>
+    <button class="inv-tab" data-pane="pane-movements">
+      <i class="fas fa-arrows-up-down"></i> Movements
+    </button>
+  </nav>
 
-  <div class="inv-body">
+  <!-- ══ PANES ═══════════════════════════════════════════════════ -->
+  <div class="inv-pane-body">
 
-    <!-- Stock Overview -->
-    <div class="tab-pane active" id="stock-pane">
-      <div class="inv-stat-row">
-        <div class="inv-stat-card inv-card-blue">
-          <span class="inv-stat-emoji">📦</span>
-          <div class="inv-stat-val" id="inv-total-items">—</div>
-          <div class="inv-stat-lbl">Total Items</div>
+    <!-- ════════ PANE: DASHBOARD ════════ -->
+    <div class="inv-pane active" id="pane-dashboard">
+
+      <!-- KPI Strip -->
+      <div class="inv-kpi-strip">
+        <div class="inv-kpi-card">
+          <div class="inv-kpi-icon">📦</div>
+          <div class="inv-kpi-val" id="kpi-total">—</div>
+          <div class="inv-kpi-lbl">Total Items</div>
         </div>
-        <div class="inv-stat-card inv-card-orange">
-          <span class="inv-stat-emoji">⚠️</span>
-          <div class="inv-stat-val" id="inv-low-stock">—</div>
-          <div class="inv-stat-lbl">Low Stock</div>
+        <div class="inv-kpi-card inv-kpi-orange">
+          <div class="inv-kpi-icon">⚠️</div>
+          <div class="inv-kpi-val" id="kpi-low">—</div>
+          <div class="inv-kpi-lbl">Low / Out of Stock</div>
         </div>
-        <div class="inv-stat-card inv-card-red">
-          <span class="inv-stat-emoji">⏰</span>
-          <div class="inv-stat-val" id="inv-expiring">—</div>
-          <div class="inv-stat-lbl">Expiring Soon</div>
+        <div class="inv-kpi-card inv-kpi-red">
+          <div class="inv-kpi-icon">⏰</div>
+          <div class="inv-kpi-val" id="kpi-expiring">—</div>
+          <div class="inv-kpi-lbl">Expiring ≤30 days</div>
         </div>
-        <div class="inv-stat-card inv-card-green">
-          <span class="inv-stat-emoji">📋</span>
-          <div class="inv-stat-val" id="inv-orders">—</div>
-          <div class="inv-stat-lbl">Open Orders</div>
+        <div class="inv-kpi-card inv-kpi-blue">
+          <div class="inv-kpi-icon">📝</div>
+          <div class="inv-kpi-val" id="kpi-orders">—</div>
+          <div class="inv-kpi-lbl">Open POs</div>
+        </div>
+        <div class="inv-kpi-card inv-kpi-green">
+          <div class="inv-kpi-icon">💰</div>
+          <div class="inv-kpi-val" id="kpi-value">—</div>
+          <div class="inv-kpi-lbl">Stock Value (RWF)</div>
         </div>
       </div>
 
-      <div class="glass-panel" style="overflow:hidden;margin-top:var(--space-md)">
-        <div class="chart-header">
-          <div class="chart-title"><span>📦</span> Current Stock Levels</div>
-          <div style="display:flex;gap:var(--space-sm);align-items:center;margin-left:auto">
-            <div class="search-wrap" style="max-width:200px">
-              <i class="fas fa-magnifying-glass search-icon"></i>
-              <input type="text" class="fi" placeholder="🔍 Search item…">
-            </div>
-            <select class="fi" style="width:auto;font-size:var(--text-xs);padding:6px 10px">
-              <option>All categories</option>
-              <option>🧪 Reagents</option>
-              <option>🔭 Equipment</option>
-              <option>🩸 Consumables</option>
-            </select>
+      <div class="inv-dash-grid">
+
+        <!-- Stock by Category chart -->
+        <div class="glass-panel inv-chart-card">
+          <div class="inv-card-title">📊 Stock Level by Category</div>
+          <div style="height:200px"><canvas id="cat-chart"></canvas></div>
+        </div>
+
+        <!-- Consumption trend -->
+        <div class="glass-panel inv-chart-card">
+          <div class="inv-card-title">📈 Consumption Trend (7 days)</div>
+          <div style="height:200px"><canvas id="consumption-chart"></canvas></div>
+        </div>
+
+        <!-- Low stock alerts -->
+        <div class="glass-panel inv-alert-card">
+          <div class="inv-card-title">⚠️ Low Stock Alerts</div>
+          <div id="low-stock-list" class="inv-alert-list">
+            <div class="inv-hint"><i class="fas fa-spinner fa-spin"></i></div>
           </div>
         </div>
-        <div style="overflow-x:auto">
-          <table class="nx-table">
-            <thead>
-              <tr>
-                <th>🔖 Item Code</th>
-                <th>📦 Item Name</th>
-                <th>🧩 Category</th>
-                <th>🔢 Current Stock</th>
-                <th>📏 Min Level</th>
-                <th>📊 Status</th>
-                <th>⏰ Expiry</th>
-                <th>🏭 Supplier</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td colspan="9">
-                <div class="empty-state" style="padding:var(--space-2xl)">
-                  <div class="empty-state-icon" style="font-size:32px">📦</div>
-                  <h3>No Inventory Items</h3>
-                  <p>Add reagents and equipment to begin stock management.</p>
-                </div>
-              </td></tr>
-            </tbody>
-          </table>
+
+        <!-- Expiry alerts -->
+        <div class="glass-panel inv-alert-card">
+          <div class="inv-card-title">⏰ Expiry Alerts</div>
+          <div id="expiry-alert-list" class="inv-alert-list">
+            <div class="inv-hint"><i class="fas fa-spinner fa-spin"></i></div>
+          </div>
+        </div>
+
+        <!-- Recent movements -->
+        <div class="glass-panel inv-recent-card">
+          <div class="inv-card-title">🔄 Recent Movements</div>
+          <div id="recent-movements-list"></div>
+        </div>
+
+        <!-- Top consumed items -->
+        <div class="glass-panel inv-top-card">
+          <div class="inv-card-title">🔥 Top Consumed (30 days)</div>
+          <div id="top-consumed-list"></div>
+        </div>
+
+      </div>
+    </div><!-- /pane-dashboard -->
+
+    <!-- ════════ PANE: STOCK LEDGER ════════ -->
+    <div class="inv-pane" id="pane-ledger" style="display:none">
+
+      <div class="inv-toolbar">
+        <div class="inv-toolbar-left">
+          <div class="inv-search-wrap">
+            <i class="fas fa-magnifying-glass"></i>
+            <input type="text" id="ledger-search" class="inv-search"
+                   placeholder="Code, name, brand, batch…" autocomplete="off">
+          </div>
+          <select class="inv-filter" id="ledger-filter-cat">
+            <option value="">All Categories</option>
+            <option value="reagent">🧪 Reagent</option>
+            <option value="consumable">📦 Consumable</option>
+            <option value="qc_control">🎯 QC Control</option>
+            <option value="equipment">🔭 Equipment</option>
+            <option value="stain">🎨 Stain</option>
+            <option value="culture_media">🦠 Culture Media</option>
+            <option value="ppe">🧤 PPE</option>
+          </select>
+          <select class="inv-filter" id="ledger-filter-status">
+            <option value="">All Statuses</option>
+            <option value="in_stock">✅ In Stock</option>
+            <option value="low_stock">⚠️ Low Stock</option>
+            <option value="out_of_stock">❌ Out of Stock</option>
+            <option value="expiring_soon">⏰ Expiring Soon</option>
+            <option value="expired">🚫 Expired</option>
+          </select>
+          <select class="inv-filter" id="ledger-filter-dept">
+            <option value="">All Departments</option>
+            {% for dept in departments %}
+            <option value="{{ dept.id }}">{{ dept.abbreviation }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="inv-toolbar-right">
+          <span class="inv-count" id="ledger-count"></span>
+          <button class="btn btn-ghost btn-sm" id="ledger-refresh"><i class="fas fa-arrows-rotate"></i></button>
         </div>
       </div>
-    </div>
 
-    <!-- Reagents, Equipment, Orders, Expiry — placeholders -->
-    <div class="tab-pane" id="reagents-pane">
-      <div class="glass-panel" style="padding:var(--space-3xl);text-align:center">
-        <div style="font-size:64px;margin-bottom:var(--space-md)">🧪</div>
-        <h2 style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary)">Reagent Management</h2>
-        <p style="color:var(--text-secondary);font-size:var(--text-sm);max-width:380px;margin:16px auto;line-height:1.7">
-          Track reagent kits, lot numbers, calibrators, controls, and QC materials.
-          Automated reorder alerts when below minimum threshold.
-        </p>
+      <div class="inv-table-wrap">
+        <table class="inv-table" role="grid">
+          <thead>
+            <tr>
+              <th>🔖 Code</th>
+              <th>📦 Item Name</th>
+              <th>🏷️ Category</th>
+              <th>🏢 Dept</th>
+              <th style="width:160px">📊 Stock Level</th>
+              <th>🔢 Current</th>
+              <th>📏 Min</th>
+              <th>⏰ Expiry</th>
+              <th>🏭 Supplier</th>
+              <th>Status</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="ledger-tbody">
+            <tr><td colspan="11"><div class="inv-loading"><i class="fas fa-spinner"></i> Loading…</div></td></tr>
+          </tbody>
+        </table>
       </div>
-    </div>
-    <div class="tab-pane" id="equipment-pane">
-      <div class="glass-panel" style="padding:var(--space-3xl);text-align:center">
-        <div style="font-size:64px;margin-bottom:var(--space-md)">🔭</div>
-        <h2 style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary)">Equipment Registry</h2>
-        <p style="color:var(--text-secondary);font-size:var(--text-sm);max-width:380px;margin:16px auto;line-height:1.7">
-          Analyzer maintenance schedules, calibration records, service logs, and QC tracking for all laboratory instruments.
-        </p>
-      </div>
-    </div>
-    <div class="tab-pane" id="orders-pane">
-      <div class="glass-panel" style="padding:var(--space-3xl);text-align:center">
-        <div style="font-size:64px;margin-bottom:var(--space-md)">📝</div>
-        <h2 style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary)">Purchase Orders</h2>
-        <p style="color:var(--text-secondary);font-size:var(--text-sm);max-width:380px;margin:16px auto;line-height:1.7">
-          Manage supplier orders, track deliveries, and reconcile invoices against POs.
-        </p>
-      </div>
-    </div>
-    <div class="tab-pane" id="expiry-pane">
-      <div class="glass-panel" style="padding:var(--space-3xl);text-align:center">
-        <div style="font-size:64px;margin-bottom:var(--space-md)">⏰</div>
-        <h2 style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary)">Expiry Tracker</h2>
-        <p style="color:var(--text-secondary);font-size:var(--text-sm);max-width:380px;margin:16px auto;line-height:1.7">
-          Automated alerts 30/14/7 days before reagent or consumable expiry. Prevent use of expired materials.
-        </p>
-      </div>
-    </div>
 
-  </div><!-- /inv-body -->
+      <!-- Pagination -->
+      <div class="inv-pagination" id="ledger-pagination"></div>
+    </div><!-- /pane-ledger -->
+
+    <!-- ════════ PANE: REAGENTS ════════ -->
+    <div class="inv-pane" id="pane-reagents" style="display:none">
+
+      <div class="inv-toolbar">
+        <div class="inv-toolbar-left">
+          <div class="inv-search-wrap">
+            <i class="fas fa-magnifying-glass"></i>
+            <input type="text" id="reagent-search" class="inv-search" placeholder="Name, catalog, lot…">
+          </div>
+          <select class="inv-filter" id="reagent-filter-dept">
+            <option value="">All Departments</option>
+            {% for dept in departments %}
+            <option value="{{ dept.id }}">{{ dept.abbreviation }}</option>
+            {% endfor %}
+          </select>
+          <select class="inv-filter" id="reagent-filter-fefo">
+            <option value="">All</option>
+            <option value="fefo">🔄 FEFO View (soonest expiry first)</option>
+            <option value="fifo">🔄 FIFO View (oldest batch first)</option>
+          </select>
+        </div>
+        <div class="inv-toolbar-right">
+          <div class="fifo-fefo-badge">
+            <i class="fas fa-rotate"></i> FIFO/FEFO Active
+          </div>
+        </div>
+      </div>
+
+      <!-- Reagent cards grid -->
+      <div class="reagent-grid" id="reagent-grid">
+        <div class="inv-loading" style="grid-column:1/-1"><i class="fas fa-spinner"></i> Loading reagents…</div>
+      </div>
+    </div><!-- /pane-reagents -->
+
+    <!-- ════════ PANE: PURCHASE ORDERS ════════ -->
+    <div class="inv-pane" id="pane-orders" style="display:none">
+
+      <div class="inv-toolbar">
+        <div class="inv-toolbar-left">
+          <select class="inv-filter" id="po-filter-status">
+            <option value="">All Statuses</option>
+            <option value="draft">📝 Draft</option>
+            <option value="submitted">📤 Submitted</option>
+            <option value="approved">✅ Approved</option>
+            <option value="received">📦 Received</option>
+            <option value="cancelled">❌ Cancelled</option>
+          </select>
+        </div>
+        <div class="inv-toolbar-right">
+          <button class="btn btn-primary btn-sm" id="btn-new-po">
+            <i class="fas fa-plus"></i> New Purchase Order
+          </button>
+        </div>
+      </div>
+
+      <div class="inv-table-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>📋 PO Number</th>
+              <th>🏭 Supplier</th>
+              <th>💰 Total (RWF)</th>
+              <th>📅 Expected</th>
+              <th>👤 Requested By</th>
+              <th>Status</th>
+              <th>📅 Created</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="po-tbody">
+            <tr><td colspan="8"><div class="inv-loading"><i class="fas fa-spinner"></i> Loading…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /pane-orders -->
+
+    <!-- ════════ PANE: EXPIRY TRACKER ════════ -->
+    <div class="inv-pane" id="pane-expiry" style="display:none">
+
+      <!-- Alert tiers -->
+      <div class="expiry-tier-strip">
+        <div class="expiry-tier expiry-red">
+          <div class="et-icon">🚨</div>
+          <div class="et-count" id="et-expired">—</div>
+          <div class="et-lbl">Expired</div>
+        </div>
+        <div class="expiry-tier expiry-orange">
+          <div class="et-icon">⚠️</div>
+          <div class="et-count" id="et-7">—</div>
+          <div class="et-lbl">≤7 days</div>
+        </div>
+        <div class="expiry-tier expiry-yellow">
+          <div class="et-icon">⏰</div>
+          <div class="et-count" id="et-14">—</div>
+          <div class="et-lbl">≤14 days</div>
+        </div>
+        <div class="expiry-tier expiry-blue">
+          <div class="et-icon">📅</div>
+          <div class="et-count" id="et-30">—</div>
+          <div class="et-lbl">≤30 days</div>
+        </div>
+        <div class="expiry-tier expiry-green">
+          <div class="et-icon">✅</div>
+          <div class="et-count" id="et-ok">—</div>
+          <div class="et-lbl">OK</div>
+        </div>
+      </div>
+
+      <div class="inv-table-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>📦 Item</th>
+              <th>🏢 Department</th>
+              <th>🏷️ Batch / Lot</th>
+              <th>🔢 Stock</th>
+              <th>⏰ Expiry Date</th>
+              <th>📅 Days Left</th>
+              <th>🚦 Alert Level</th>
+              <th style="text-align:right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="expiry-tbody">
+            <tr><td colspan="8"><div class="inv-loading"><i class="fas fa-spinner"></i> Loading…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /pane-expiry -->
+
+    <!-- ════════ PANE: MOVEMENTS ════════ -->
+    <div class="inv-pane" id="pane-movements" style="display:none">
+
+      <div class="inv-toolbar">
+        <div class="inv-toolbar-left">
+          <div class="inv-search-wrap">
+            <i class="fas fa-magnifying-glass"></i>
+            <input type="text" id="mov-search" class="inv-search" placeholder="Item code, name…">
+          </div>
+          <select class="inv-filter" id="mov-filter-type">
+            <option value="">All Types</option>
+            <option value="restock">⬆️ Restock</option>
+            <option value="issue">⬇️ Issue</option>
+            <option value="adjust">🔧 Adjustment</option>
+            <option value="transfer">↗️ Transfer</option>
+            <option value="expired">🗑️ Expired Disposal</option>
+          </select>
+          <input type="date" class="inv-filter" id="mov-filter-date">
+        </div>
+      </div>
+
+      <div class="inv-table-wrap">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>📅 Date/Time</th>
+              <th>📦 Item</th>
+              <th>🔄 Type</th>
+              <th>🔢 Qty</th>
+              <th>⚖️ Balance After</th>
+              <th>🏢 Department</th>
+              <th>👤 By</th>
+              <th>📝 Notes</th>
+            </tr>
+          </thead>
+          <tbody id="movements-tbody">
+            <tr><td colspan="8"><div class="inv-loading"><i class="fas fa-spinner"></i> Loading…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /pane-movements -->
+
+  </div><!-- /inv-pane-body -->
+</div><!-- /inv-shell -->
+
+<!-- ══ ADD ITEM MODAL ══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="add-item-modal" style="display:none" role="dialog">
+  <div class="modal glass-card" style="max-width:620px;width:95%">
+    <div class="modal-header">
+      <h3 class="modal-title">➕ Add Inventory Item</h3>
+      <button class="btn-icon" id="add-item-close"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md)">
+      <div class="form-group fg-full">
+        <label class="form-label">Item Category</label>
+        <select class="form-input" id="ai-category" required>
+          <option value="reagent">🧪 Reagent</option>
+          <option value="consumable">📦 Consumable</option>
+          <option value="qc_control">🎯 QC Control</option>
+          <option value="equipment">🔭 Equipment</option>
+          <option value="stain">🎨 Stain</option>
+          <option value="culture_media">🦠 Culture Media</option>
+          <option value="ppe">🧤 PPE</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Item Code</label>
+        <input type="text" class="form-input" id="ai-code" placeholder="e.g. HEM-001">
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Item Name</label>
+        <input type="text" class="form-input" id="ai-name" placeholder="e.g. EDTA Tubes 3mL">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Brand / Manufacturer</label>
+        <input type="text" class="form-input" id="ai-brand" placeholder="e.g. BD Vacutainer">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Catalog Number</label>
+        <input type="text" class="form-input" id="ai-catalog" placeholder="Manufacturer catalog #">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Department</label>
+        <select class="form-input" id="ai-dept">
+          <option value="">— Not department-specific —</option>
+          {% for dept in departments %}
+          <option value="{{ dept.id }}">{{ dept.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Supplier</label>
+        <select class="form-input" id="ai-supplier">
+          <option value="">Select supplier…</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Unit</label>
+        <input type="text" class="form-input" id="ai-unit" placeholder="tube, box, bottle, test…">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Opening Stock</label>
+        <input type="number" step="0.01" class="form-input" id="ai-stock" value="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Min Stock Level</label>
+        <input type="number" step="0.01" class="form-input" id="ai-min" value="10">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reorder Level</label>
+        <input type="number" step="0.01" class="form-input" id="ai-reorder" value="20">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Max Stock</label>
+        <input type="number" step="0.01" class="form-input" id="ai-max" value="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Batch / Lot Number</label>
+        <input type="text" class="form-input" id="ai-batch">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Expiry Date</label>
+        <input type="date" class="form-input" id="ai-expiry">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Unit Cost (RWF)</label>
+        <input type="number" step="0.01" class="form-input" id="ai-cost" value="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Storage Temperature</label>
+        <select class="form-input" id="ai-storage">
+          <option>Room temperature (15–25°C)</option>
+          <option>Refrigerated (2–8°C)</option>
+          <option>Frozen (-20°C)</option>
+          <option>Deep frozen (-80°C)</option>
+          <option>Incubator (37°C)</option>
+        </select>
+      </div>
+      <div class="form-group fg-full">
+        <label class="toggle-row">
+          <input type="checkbox" id="ai-cold-chain">
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span>Requires cold chain monitoring</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="add-item-cancel">Cancel</button>
+      <button class="btn btn-primary" id="add-item-submit">➕ Add Item</button>
+    </div>
+  </div>
 </div>
+
+<!-- ══ STOCK MOVEMENT MODAL ═══════════════════════════════════════ -->
+<div class="modal-overlay" id="move-modal" style="display:none" role="dialog">
+  <div class="modal glass-card" style="max-width:480px">
+    <div class="modal-header">
+      <h3 class="modal-title" id="move-modal-title">📦 Stock Movement</h3>
+      <button class="btn-icon" id="move-modal-close"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:var(--space-md)">
+      <div class="move-item-info" id="move-item-info"></div>
+      <div class="form-group">
+        <label class="form-label">Movement Type</label>
+        <select class="form-input" id="move-type">
+          <option value="restock">⬆️ Restock (Receive)</option>
+          <option value="issue">⬇️ Issue (Use/Dispense)</option>
+          <option value="adjust">🔧 Adjust Stock Level</option>
+          <option value="transfer">↗️ Transfer to Dept</option>
+          <option value="expired">🗑️ Dispose Expired</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quantity</label>
+        <input type="number" step="0.01" class="form-input" id="move-qty" placeholder="0.00" min="0.01">
+      </div>
+      <div class="form-group" id="move-batch-row">
+        <label class="form-label">Batch / Lot Number</label>
+        <input type="text" class="form-input" id="move-batch">
+      </div>
+      <div class="form-group" id="move-expiry-row">
+        <label class="form-label">Expiry Date</label>
+        <input type="date" class="form-input" id="move-expiry">
+      </div>
+      <div class="form-group" id="move-dept-row">
+        <label class="form-label">Department (for issue/transfer)</label>
+        <select class="form-input" id="move-dept">
+          <option value="">— General —</option>
+          {% for dept in departments %}
+          <option value="{{ dept.id }}">{{ dept.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group" id="move-cost-row">
+        <label class="form-label">Unit Cost (RWF) — for restock</label>
+        <input type="number" step="0.01" class="form-input" id="move-cost" value="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-input fi-ta" id="move-notes" style="min-height:60px"
+                  placeholder="Reason, supplier reference, etc.…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="move-cancel">Cancel</button>
+      <button class="btn btn-primary" id="move-submit">✅ Confirm Movement</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NEW PO MODAL ════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="po-modal" style="display:none" role="dialog">
+  <div class="modal glass-card" style="max-width:560px">
+    <div class="modal-header">
+      <h3 class="modal-title">📝 New Purchase Order</h3>
+      <button class="btn-icon" id="po-modal-close"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:var(--space-md)">
+      <div class="form-group">
+        <label class="form-label">Supplier</label>
+        <select class="form-input" id="po-supplier" required>
+          <option value="">Select supplier…</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Expected Delivery Date</label>
+        <input type="date" class="form-input" id="po-expected">
+      </div>
+      <div class="po-items-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-sm)">
+          <label class="form-label" style="margin:0">Order Items</label>
+          <button class="btn btn-ghost btn-sm" id="po-add-line">➕ Add Line</button>
+        </div>
+        <div id="po-lines"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-input fi-ta" id="po-notes" style="min-height:60px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="po-cancel">Cancel</button>
+      <button class="btn btn-ghost" id="po-save-draft">💾 Save Draft</button>
+      <button class="btn btn-primary" id="po-submit">📤 Submit PO</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ITEM DETAIL / HISTORY MODAL ═══════════════════════════════ -->
+<div class="modal-overlay" id="item-detail-modal" style="display:none" role="dialog">
+  <div class="modal glass-card" style="max-width:680px">
+    <div class="modal-header">
+      <h3 class="modal-title" id="item-detail-title">📦 Item Details</h3>
+      <button class="btn-icon" id="item-detail-close"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="item-detail-grid" id="item-detail-grid"></div>
+      <div style="margin-top:var(--space-lg)">
+        <div class="inv-card-title">🔄 Movement History</div>
+        <table class="inv-table" style="margin-top:var(--space-sm)">
+          <thead><tr>
+            <th>📅 Date</th><th>🔄 Type</th><th>🔢 Qty</th>
+            <th>⚖️ Balance</th><th>👤 By</th><th>📝 Notes</th>
+          </tr></thead>
+          <tbody id="item-history-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-sm" id="item-detail-restock">⬆️ Add Stock</button>
+      <button class="btn btn-secondary btn-sm" id="item-detail-issue">⬇️ Issue Stock</button>
+      <button class="btn btn-ghost btn-sm" id="item-detail-close2">Close</button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
-{% block extra_scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.inv-tab-nav .tab-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.inv-tab-nav .tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.inv-body .tab-pane').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      var pane = document.getElementById(btn.dataset.pane);
-      if (pane) pane.classList.add('active');
-    });
-  });
-});
-</script>
+{% block module_scripts %}
+<script src="{% static 'modules/inventory/js/inventory.js' %}" defer></script>
 {% endblock %}

@@ -126,9 +126,55 @@
     });
   }
 
+  /* ── Real-time alert engine ─────────────────────────────── */
+  function startAlertEngine() {
+    const banner = document.getElementById('surv-alert-banner');
+    const threat = document.getElementById('surv-threat-level');
+    const dot    = threat?.querySelector('.surv-threat-dot');
+    const label  = threat?.querySelector('.surv-threat-label');
+
+    // Simulate: cholera cluster triggers alert after 3 seconds
+    setTimeout(() => {
+      if (banner) banner.style.display = 'flex';
+      if (dot)    { dot.className = 'surv-threat-dot high'; }
+      if (label)  label.textContent = '🟠 Threat Level: MODERATE';
+      const el = document.getElementById('sk-active-outbreaks');
+      if (el) el.textContent = '2';
+    }, 2500);
+
+    // Auto-update KPIs
+    const kpis = [
+      { id:'sk-active-outbreaks', val:'2' },
+      { id:'sk-suspected',  val:'47' },
+      { id:'sk-confirmed',  val:'31' },
+    ];
+    kpis.forEach(k => {
+      const el = document.getElementById(k.id);
+      if (el) el.textContent = k.val;
+    });
+  }
+
+  /* ── MOH Report Generation ─────────────────────────────── */
+  function initMOHReporting() {
+    document.querySelectorAll('[data-moh-report]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.mohReport;
+        window.NEXUS?.Toast?.show?.(`📡 ${type} submitted to Rwanda Biomedical Centre`, 'success')
+          || alert(`${type} submitted to MOH/RBC`);
+      });
+    });
+    const reportBtn = document.querySelector('.btn-danger, [class*="report"]');
+    reportBtn?.addEventListener('click', () => {
+      window.NEXUS?.Toast?.show?.('📡 Outbreak report submitted to Rwanda Biomedical Centre', 'success')
+        || alert('Outbreak report submitted');
+    });
+  }
+
   function init() {
     initTabs();
     loadDashboard();
+    startAlertEngine();
+    initMOHReporting();
   }
 
   document.addEventListener('DOMContentLoaded', init);

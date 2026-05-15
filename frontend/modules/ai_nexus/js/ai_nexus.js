@@ -88,6 +88,55 @@
     });
   }
 
-  function init() { initTabs(); loadDashboard(); }
+  /* ── Anomaly detection feed ─────────────────────────────── */
+  function loadAnomalyFeed() {
+    const feed = document.getElementById('ai-anomaly-feed');
+    if (!feed) return;
+    const ANOMALIES = [
+      { time:'09:42', type:'🧪 Lab Pattern', msg:'Unusual spike in malaria positivity rate — 3× baseline (Eastern District cluster)', severity:'high' },
+      { time:'09:15', type:'📦 Inventory',   msg:'Glucose reagent consumption +40% vs 7-day avg — possible analyzer calibration drift', severity:'warning' },
+      { time:'08:51', type:'⏱️ TAT Alert',   msg:'Microbiology dept avg TAT: 108 min (threshold: 90 min) — workload peak detected', severity:'warning' },
+      { time:'08:22', type:'🩸 Blood Bank',  msg:'B+ blood group stock critically low — 2 units remaining, reorder threshold breached', severity:'high' },
+      { time:'07:44', type:'🔐 Security',    msg:'Unusual login pattern: user accessed 47 patient records in 4 minutes (baseline: 5)', severity:'critical' },
+    ];
+    const sevColors = { critical:'rgba(255,23,68,.1)', high:'rgba(255,109,0,.08)', warning:'rgba(255,214,0,.06)' };
+    const sevBorder = { critical:'rgba(255,23,68,.3)', high:'rgba(255,109,0,.25)', warning:'rgba(255,214,0,.2)' };
+    feed.innerHTML = ANOMALIES.map(a => `
+      <div style="padding:var(--space-sm) var(--space-md);background:${sevColors[a.severity]};border:1px solid ${sevBorder[a.severity]};border-radius:var(--radius-md);margin-bottom:var(--space-sm)">
+        <div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:3px">
+          <span style="font-size:11px;font-weight:700;color:var(--text-primary)">${esc(a.type)}</span>
+          <span style="font-size:10px;color:var(--text-muted);margin-left:auto">${esc(a.time)}</span>
+          <span class="badge ${a.severity==='critical'?'badge-red':a.severity==='high'?'badge-orange':'badge-yellow'}" style="font-size:8px">${a.severity}</span>
+        </div>
+        <div style="font-size:var(--text-xs);color:var(--text-secondary);line-height:1.5">${esc(a.msg)}</div>
+      </div>`).join('');
+  }
+
+  /* ── Predictions feed ───────────────────────────────────── */
+  function loadPredictionsFeed() {
+    const feed = document.getElementById('ai-predictions-feed');
+    if (!feed) return;
+    const PREDS = [
+      { model:'Sepsis Early Warning', patient:'HABIMANA Eric (ICU-03)', prediction:'HIGH RISK — Septic shock progression 78%', action:'Escalate vasopressors', time:'09:44' },
+      { model:'CBC Anemia Classifier', patient:'KAMANZI Jean', prediction:'Severe Iron Deficiency Anemia — transfusion threshold', action:'Haematology review', time:'09:28' },
+      { model:'Drug Interaction', patient:'MUKAMANA Rose', prediction:'Potential Cisplatin + Metronidazole interaction (low risk)', action:'Monitor renal function', time:'08:55' },
+    ];
+    feed.innerHTML = PREDS.map(p => `
+      <div style="padding:var(--space-md);background:var(--bg-glass);border:1px solid var(--border-dim);border-radius:var(--radius-md);margin-bottom:var(--space-sm)">
+        <div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:4px">
+          <span style="font-size:11px;font-weight:700;color:var(--blue-glow)">${esc(p.model)}</span>
+          <span style="font-size:10px;color:var(--text-muted);margin-left:auto">${esc(p.time)}</span>
+        </div>
+        <div style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:3px">👤 ${esc(p.patient)}</div>
+        <div style="font-size:var(--text-xs);font-weight:600;color:var(--text-primary);margin-bottom:3px">${esc(p.prediction)}</div>
+        <div style="font-size:10px;color:var(--cyan)">→ Suggested: ${esc(p.action)}</div>
+      </div>`).join('');
+  }
+
+  function init() {
+    initTabs();
+    loadDashboard();
+    setTimeout(() => { loadAnomalyFeed(); loadPredictionsFeed(); }, 100);
+  }
   document.addEventListener('DOMContentLoaded', init);
 })();

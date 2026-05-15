@@ -1,7 +1,7 @@
 {% extends "shared/html/base.html" %}
 {% load static %}
 
-{% block title %}Patient Hub — NEXUS ALIS-X{% endblock %}
+{% block title %}🧬 Patient Hub — NEXUS ALIS-X{% endblock %}
 {% block module_id %}patients{% endblock %}
 {% block nav_active_patients %}active{% endblock %}
 
@@ -12,224 +12,419 @@
 {% block content %}
 <div class="hub-main">
 
-  <!-- ── Header ── -->
+  <!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
   <header class="hub-header">
-    <div class="header-left">
-      <div class="module-icon-wrap"><i class="fas fa-user-injured"></i></div>
+    <div class="hub-header-left">
+      <div class="hub-module-icon">🧬</div>
       <div>
-        <h1 class="module-title">🧬 Patient Hub</h1>
-        <span class="module-sub">JORINOVA NEXUS ALIS-X</span>
+        <h1 class="hub-title">Patient Hub</h1>
+        <div class="hub-sub">JORINOVA NEXUS ALIS-X · Clinical Identity Gateway</div>
       </div>
     </div>
 
-    <div class="header-center">
-      <div class="global-search-wrap" id="global-search-wrap">
-        <i class="fas fa-magnifying-glass search-icon"></i>
-        <input type="text" id="global-search" class="global-search-input"
-               placeholder="Search name, PID, Lab ID, National ID, Phone…"
-               autocomplete="off" spellcheck="false"
-               aria-label="Search patients" aria-autocomplete="list" aria-controls="search-dropdown">
-        <button class="voice-btn" id="voice-btn" type="button" title="Voice Search" aria-label="Voice search">
+    <div class="hub-header-center">
+      <div class="hub-search-wrap" id="hub-search-wrap">
+        <i class="fas fa-magnifying-glass hub-search-icon"></i>
+        <input type="text" id="hub-search" class="hub-search-input"
+               placeholder="Search name, PID, LID (RW-…), National ID, Phone…"
+               autocomplete="off" spellcheck="false">
+        <button class="hub-voice-btn" id="hub-voice-btn" type="button" title="Voice search">
           <i class="fas fa-microphone"></i>
         </button>
-        <div class="search-dropdown" id="search-dropdown" role="listbox" aria-live="polite"></div>
+        <div class="hub-search-drop" id="hub-search-drop"></div>
       </div>
     </div>
 
-    <div class="header-right">
-      <button class="btn-new-patient" id="btn-new-patient" type="button">
-        <i class="fas fa-user-plus"></i>
-        <span>Register Patient</span>
+    <div class="hub-header-right">
+      <button class="btn btn-primary btn-sm" id="btn-new-patient" type="button">
+        <i class="fas fa-user-plus"></i> Register Patient
       </button>
-      <div class="user-chip" title="{{ request.user.get_full_name }}">
-        <div class="user-avatar">{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}</div>
-        <span class="user-name">{{ request.user.get_full_name }}</span>
-      </div>
     </div>
   </header>
 
-  <!-- ── Content ── -->
-  <div class="hub-content">
+  <!-- ══ BODY ════════════════════════════════════════════════════════════════ -->
+  <div class="hub-body">
 
-    <!-- Search / Results Panel (left) -->
-    <aside class="search-panel" aria-label="Patient results">
-      <div class="sp-header">
-        <span class="sp-label">Results</span>
-        <span class="sp-count" id="sp-count"></span>
+    <!-- Left sidebar: results list -->
+    <aside class="hub-sidebar">
+      <div class="sidebar-hd">
+        <span class="sidebar-hd-label">Patients</span>
+        <span class="sidebar-hd-count" id="sidebar-count"></span>
       </div>
-
-      <div class="sp-body" id="sp-body">
-        <div class="sp-hint" id="sp-hint">
-          <i class="fas fa-magnifying-glass"></i>
-          <p>Search above or register<br>a new patient</p>
+      <div class="sidebar-body" id="sidebar-body">
+        <div class="sidebar-hint" id="sidebar-hint">
+          <i class="fas fa-hospital-user" style="font-size:28px;opacity:.25"></i>
+          <p>Search above to find a patient or register a new one</p>
         </div>
-        <div class="sp-list" id="sp-list" style="display:none" role="listbox"></div>
+        <div class="sidebar-list" id="sidebar-list" style="display:none"></div>
       </div>
-
-      <div class="sp-footer">
-        <div class="sp-label">Recent</div>
-        <div class="sp-recent" id="sp-recent"></div>
+      <div class="sidebar-recent" id="sidebar-recent-wrap" style="display:none">
+        <div class="sidebar-recent-label"><i class="fas fa-clock-rotate-left"></i> Recent</div>
+        <div id="sidebar-recent"></div>
       </div>
     </aside>
 
-    <!-- Detail Panel (right) -->
-    <section class="detail-panel" id="detail-panel">
+    <!-- Right panel: empty / profile / register -->
+    <section class="hub-panel" id="hub-panel">
 
-      <!-- STATE: Empty -->
-      <div class="state-empty" id="state-empty">
-        <div class="empty-glyph"><i class="fas fa-hospital-user"></i></div>
-        <h2>Patient Hub</h2>
-        <p>Search for a patient to view their complete profile, or register a new patient.</p>
-        <button class="btn btn-primary" id="btn-register-empty" type="button">
+      <!-- ── STATE: Empty ─────────────────────────────────────── -->
+      <div class="hub-state" id="state-empty">
+        <div class="empty-art">
+          <div class="empty-orb">
+            <i class="fas fa-hospital-user"></i>
+          </div>
+          <div class="empty-lid-globe">🌐</div>
+        </div>
+        <h2 class="empty-title">Patient Hub</h2>
+        <p class="empty-sub">Search for a patient by name, PID, or Global LID (RW-…), or register a new patient below.</p>
+        <div class="empty-stats" id="empty-stats">
+          <div class="empty-stat"><div class="empty-stat-val" id="es-total">—</div><div class="empty-stat-lbl">Total Patients</div></div>
+          <div class="empty-stat"><div class="empty-stat-val" id="es-today">—</div><div class="empty-stat-lbl">Registered Today</div></div>
+          <div class="empty-stat"><div class="empty-stat-val" id="es-lids">—</div><div class="empty-stat-lbl">Active LIDs</div></div>
+        </div>
+        <button class="btn btn-primary" id="btn-reg-empty" type="button">
           <i class="fas fa-user-plus"></i> Register New Patient
         </button>
       </div>
 
-      <!-- STATE: Profile -->
-      <div class="state-profile" id="state-profile" style="display:none">
+      <!-- ── STATE: Profile ───────────────────────────────────── -->
+      <div class="hub-state" id="state-profile" style="display:none">
 
         <!-- Profile hero -->
         <div class="profile-hero">
-          <div class="photo-wrap">
-            <img id="ph-photo" src="" alt="Patient photo" style="display:none">
-            <div class="photo-placeholder" id="ph-photo-placeholder"><i class="fas fa-user"></i></div>
-            <span class="status-dot" id="ph-status-dot"></span>
-          </div>
-          <div class="hero-info">
-            <div class="hero-name" id="ph-name">—</div>
-            <div class="hero-meta">
-              <span id="ph-gender" class="badge"></span>
-              <span id="ph-age"    class="badge badge-grey"></span>
-              <span id="ph-blood"  class="badge badge-red" style="display:none"></span>
+
+          <!-- Avatar -->
+          <div class="ph-avatar-wrap">
+            <div class="ph-avatar" id="ph-avatar">
+              <img id="ph-photo" src="" alt="" style="display:none">
+              <div class="ph-initials" id="ph-initials"></div>
             </div>
-            <div class="hero-ids">
-              <span class="id-chip"><i class="fas fa-id-card"></i> <b id="ph-pid">—</b></span>
-              <span class="id-chip"><i class="fas fa-barcode"></i> <b id="ph-lab-id">—</b></span>
+            <div class="ph-status-dot" id="ph-status-dot"></div>
+          </div>
+
+          <!-- Identity block -->
+          <div class="ph-identity">
+            <div class="ph-name" id="ph-name">—</div>
+            <div class="ph-badges">
+              <span class="badge" id="ph-gender-badge"></span>
+              <span class="badge badge-grey" id="ph-age-badge"></span>
+              <span class="badge badge-red" id="ph-blood-badge" style="display:none"></span>
+              <span id="ph-inpatient-badge" style="display:none"><span class="badge badge-orange anim-pulse">🏥 Inpatient</span></span>
+            </div>
+
+            <!-- Dual ID row -->
+            <div class="ph-id-row">
+              <div class="ph-id-chip ph-pid-chip" title="Patient Identity — local">
+                <i class="fas fa-id-card"></i>
+                <div>
+                  <div class="ph-id-chip-lbl">PID · Local</div>
+                  <div class="ph-id-chip-val" id="ph-pid">—</div>
+                </div>
+              </div>
+              <div class="ph-id-chip ph-lid-chip" id="ph-lid-chip" title="Laboratory Identity — global reference">
+                <i class="fas fa-globe"></i>
+                <div>
+                  <div class="ph-id-chip-lbl">LID · Global <span class="lid-global-badge">GLOBAL</span></div>
+                  <div class="ph-id-chip-val" id="ph-lid">—</div>
+                </div>
+              </div>
+              <div class="ph-access-badge" id="ph-access-badge" title="Current access level">
+                <span id="ph-access-dot" class="access-dot access-local"></span>
+                <span id="ph-access-label">Local Access</span>
+              </div>
             </div>
           </div>
-          <div class="hero-actions">
-            <button class="icon-btn" id="btn-edit-profile"  type="button" title="Edit Profile"><i class="fas fa-pen-to-square"></i></button>
-            <button class="icon-btn" id="btn-print-label"   type="button" title="Print Label"><i class="fas fa-print"></i></button>
-            <button class="icon-btn icon-btn-primary" id="btn-new-request" type="button" title="New Lab Request">
-              <i class="fas fa-flask"></i> Request
+
+          <!-- Hero actions -->
+          <div class="ph-actions">
+            <button class="icon-btn" id="btn-ph-edit" title="Edit Profile"><i class="fas fa-pen-to-square"></i></button>
+            <button class="icon-btn" id="btn-ph-print" title="Print ID Label"><i class="fas fa-print"></i></button>
+            <button class="btn btn-primary btn-sm" id="btn-ph-request">
+              <i class="fas fa-flask"></i> Lab Request
             </button>
           </div>
+        </div><!-- /profile-hero -->
+
+        <!-- LID reuse notice (shown when requesting lab) -->
+        <div class="lid-reuse-notice" id="lid-reuse-notice" style="display:none">
+          <i class="fas fa-globe"></i>
+          <div>
+            <strong>LID Reuse:</strong> Global identifier <span id="lid-reuse-val"></span> will be linked to this test.
+            No new LID will be created.
+          </div>
+          <button class="lid-reuse-close" onclick="document.getElementById('lid-reuse-notice').style.display='none'">×</button>
         </div>
 
         <!-- Profile tabs -->
-        <div class="profile-tabs tab-nav" role="tablist">
-          <button class="tab-btn active" data-tab="overview" role="tab" aria-selected="true"><i class="fas fa-id-card-clip"></i> Overview</button>
-          <button class="tab-btn"        data-tab="labs"     role="tab"><i class="fas fa-flask"></i> Lab History</button>
-          <button class="tab-btn"        data-tab="guardian" role="tab"><i class="fas fa-people-roof"></i> Guardian</button>
-          <button class="tab-btn"        data-tab="insurance"role="tab"><i class="fas fa-shield-halved"></i> Insurance</button>
-        </div>
+        <nav class="profile-tab-nav" role="tablist">
+          <button class="tab-btn active" data-tab="overview"><i class="fas fa-id-card-clip"></i> Overview</button>
+          <button class="tab-btn" data-tab="lab-journey"><i class="fas fa-timeline"></i> Lab Journey</button>
+          <button class="tab-btn" data-tab="guardian"><i class="fas fa-people-roof"></i> Guardian</button>
+          <button class="tab-btn" data-tab="insurance"><i class="fas fa-shield-halved"></i> Insurance</button>
+          <button class="tab-btn" data-tab="global-access"><i class="fas fa-globe"></i> 🌐 Global Access</button>
+        </nav>
 
-        <!-- Tab content -->
-        <div class="profile-tab-content">
+        <!-- Tab panes -->
+        <div class="profile-panes">
 
           <!-- Overview -->
           <div class="tab-pane active" id="tab-overview">
-            <div class="info-grid">
-              <div class="info-card">
-                <div class="info-card-title"><i class="fas fa-user"></i> Personal</div>
-                <div class="info-rows" id="info-personal"></div>
+            <div class="overview-grid">
+              <!-- Personal card -->
+              <div class="ov-card">
+                <div class="ov-card-title"><i class="fas fa-user"></i> Personal Identity</div>
+                <div class="ov-rows" id="ov-personal"></div>
               </div>
-              <div class="info-card">
-                <div class="info-card-title"><i class="fas fa-heart-pulse"></i> Medical</div>
-                <div class="info-rows" id="info-medical"></div>
+              <!-- Medical card -->
+              <div class="ov-card">
+                <div class="ov-card-title"><i class="fas fa-heart-pulse"></i> Medical Profile</div>
+                <div class="ov-rows" id="ov-medical"></div>
               </div>
-              <div class="info-card" id="inpatient-card" style="display:none">
-                <div class="info-card-title"><i class="fas fa-bed-pulse"></i> Admission</div>
-                <div class="info-rows" id="info-inpatient"></div>
+              <!-- Inpatient card -->
+              <div class="ov-card" id="ov-inpatient-card" style="display:none">
+                <div class="ov-card-title"><i class="fas fa-bed-pulse"></i> Current Admission</div>
+                <div class="ov-rows" id="ov-inpatient"></div>
+              </div>
+              <!-- Identity architecture card -->
+              <div class="ov-card ov-card-full">
+                <div class="ov-card-title"><i class="fas fa-diagram-project"></i> Identity Architecture</div>
+                <div class="identity-arch">
+                  <div class="ia-node ia-pid">
+                    <div class="ia-node-icon">👤</div>
+                    <div class="ia-node-lbl">PID</div>
+                    <div class="ia-node-val" id="ia-pid">—</div>
+                    <div class="ia-node-sub">Private · Local only</div>
+                  </div>
+                  <div class="ia-arrow">→</div>
+                  <div class="ia-node ia-lid">
+                    <div class="ia-node-icon">🌐</div>
+                    <div class="ia-node-lbl">LID</div>
+                    <div class="ia-node-val" id="ia-lid">—</div>
+                    <div class="ia-node-sub">Global reference · Shared</div>
+                  </div>
+                  <div class="ia-arrow">→</div>
+                  <div class="ia-node ia-local">
+                    <div class="ia-node-icon">🏥</div>
+                    <div class="ia-node-lbl">Records</div>
+                    <div class="ia-node-val" id="ia-hospital">—</div>
+                    <div class="ia-node-sub">Local · Access controlled</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Lab History -->
-          <div class="tab-pane" id="tab-labs" style="display:none">
-            <div class="lab-header">
-              <span class="lab-total" id="lab-total"></span>
-              <a href="#" class="link-all" id="link-all-labs">View all <i class="fas fa-arrow-right"></i></a>
+          <!-- Lab Journey (LID Timeline) -->
+          <div class="tab-pane" id="tab-lab-journey" style="display:none">
+            <div class="lab-journey-header">
+              <div class="lj-lid-display">
+                <span class="lj-globe">🌐</span>
+                <span class="lj-lid-label">Global LID:</span>
+                <span class="lj-lid-val" id="lj-lid-val">—</span>
+                <span class="lj-rule-badge">One patient · One LID · All hospitals</span>
+              </div>
+              <div class="lj-controls">
+                <select class="fi lj-filter" id="lj-filter-hospital" style="width:160px">
+                  <option value="">All Hospitals</option>
+                  <option value="local">🏥 This Hospital</option>
+                </select>
+                <select class="fi lj-filter" id="lj-filter-dept" style="width:140px">
+                  <option value="">All Departments</option>
+                  <option>Hematology</option><option>Chemistry</option>
+                  <option>Microbiology</option><option>Serology</option>
+                  <option>Blood Bank</option><option>Molecular</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="lj-refresh"><i class="fas fa-arrows-rotate"></i></button>
+              </div>
             </div>
-            <div id="lab-list"></div>
+
+            <!-- Timeline -->
+            <div class="lj-timeline-wrap" id="lj-timeline-wrap">
+              <div class="lj-loading"><i class="fas fa-spinner fa-spin"></i> Loading LID journey…</div>
+            </div>
+
+            <!-- Foreign LID banner -->
+            <div class="lj-foreign-notice" id="lj-foreign-notice" style="display:none">
+              <i class="fas fa-lock"></i>
+              <div>
+                <strong>Foreign hospital records are access-controlled.</strong>
+                Some entries require authorized access to view. Click <em>Request Access</em> to apply.
+              </div>
+              <button class="btn btn-primary btn-sm" id="lj-request-access-btn">🌐 Request Access</button>
+            </div>
           </div>
 
           <!-- Guardian -->
           <div class="tab-pane" id="tab-guardian" style="display:none">
-            <div class="sub-header">
-              <button class="btn-add" id="btn-add-guardian" type="button">
-                <i class="fas fa-plus"></i> Add Guardian
-              </button>
+            <div class="sub-hd">
+              <div class="sub-hd-title">Guardians / Next of Kin</div>
+              <button class="btn btn-primary btn-sm" id="btn-add-guardian"><i class="fas fa-plus"></i> Add Guardian</button>
             </div>
-            <div id="guardian-list"></div>
+            <div id="guardian-list"><div class="tab-hint"><i class="fas fa-people-roof"></i><p>No guardians registered</p></div></div>
           </div>
 
           <!-- Insurance -->
           <div class="tab-pane" id="tab-insurance" style="display:none">
-            <div class="sub-header">
-              <button class="btn-add" id="btn-add-insurance" type="button">
-                <i class="fas fa-plus"></i> Add Insurance
-              </button>
+            <div class="sub-hd">
+              <div class="sub-hd-title">Insurance &amp; Payment</div>
+              <button class="btn btn-primary btn-sm" id="btn-add-insurance"><i class="fas fa-plus"></i> Add Insurance</button>
             </div>
-            <div id="insurance-list"></div>
+            <div id="insurance-list"><div class="tab-hint"><i class="fas fa-shield-halved"></i><p>No insurance registered</p></div></div>
           </div>
 
-        </div><!-- /profile-tab-content -->
+          <!-- Global Access -->
+          <div class="tab-pane" id="tab-global-access" style="display:none">
+            <div class="global-access-layout">
+
+              <!-- Access model explanation -->
+              <div class="ga-model-card">
+                <div class="ga-model-title">🔐 Patient History Privacy Model</div>
+                <div class="ga-access-levels">
+                  <div class="ga-level ga-level-local">
+                    <div class="ga-level-dot ga-dot-green"></div>
+                    <div>
+                      <div class="ga-level-name">Level 1 — Local Access</div>
+                      <div class="ga-level-desc">Full access to this hospital's records only</div>
+                    </div>
+                    <div class="ga-level-badge">Active</div>
+                  </div>
+                  <div class="ga-level">
+                    <div class="ga-level-dot ga-dot-yellow"></div>
+                    <div>
+                      <div class="ga-level-name">Level 2 — Shared Clinical</div>
+                      <div class="ga-level-desc">Limited, filtered cross-hospital data · Read-only</div>
+                    </div>
+                    <div class="ga-level-badge-req" id="ga-l2-status">Request</div>
+                  </div>
+                  <div class="ga-level">
+                    <div class="ga-level-dot ga-dot-red"></div>
+                    <div>
+                      <div class="ga-level-name">Level 3 — Research</div>
+                      <div class="ga-level-desc">Fully anonymized · Aggregated · No identifiers</div>
+                    </div>
+                    <div class="ga-level-badge-req" id="ga-l3-status">Restricted</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Inter-hospital access log -->
+              <div class="ga-access-log-card">
+                <div class="ga-model-title">📋 Access Request Log</div>
+                <div id="ga-access-log">
+                  <div class="tab-hint"><i class="fas fa-shield-halved"></i><p>No cross-hospital access requests for this LID</p></div>
+                </div>
+              </div>
+
+              <!-- Request form -->
+              <div class="ga-request-card">
+                <div class="ga-model-title">🌐 Request Cross-Hospital Access</div>
+                <div class="ga-request-form">
+                  <div class="form-group">
+                    <label class="form-label">Clinical Justification</label>
+                    <textarea class="form-input fi-ta" id="ga-justification" placeholder="Reason for requesting access to foreign LID data…" style="min-height:80px"></textarea>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Access Level Requested</label>
+                    <select class="form-input" id="ga-level-req">
+                      <option value="2">Level 2 — Shared Clinical (read-only filtered data)</option>
+                      <option value="3">Level 3 — Research (anonymized aggregate)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Source Hospital (optional)</label>
+                    <input type="text" class="form-input" id="ga-source-hospital" placeholder="Hospital name or all institutions">
+                  </div>
+                  <button class="btn btn-primary" id="btn-ga-request" style="width:100%">
+                    📤 Submit Access Request
+                  </button>
+                </div>
+              </div>
+
+              <!-- AI note -->
+              <div class="ga-ai-note">
+                <i class="fas fa-robot"></i>
+                <div>
+                  <strong>🤖 AI Access:</strong> AI operates only on anonymized summaries and context-limited datasets.
+                  AI cannot expose patient identity or access full cross-hospital records.
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div><!-- /profile-panes -->
       </div><!-- /state-profile -->
 
-      <!-- STATE: Registration -->
-      <div class="state-register" id="state-register" style="display:none">
+      <!-- ── STATE: Registration ──────────────────────────────── -->
+      <div class="hub-state" id="state-register" style="display:none">
 
         <div class="reg-header">
-          <button class="btn-back" id="btn-back" type="button" aria-label="Back">
-            <i class="fas fa-arrow-left"></i>
+          <button class="btn btn-ghost btn-sm" id="btn-reg-back">
+            <i class="fas fa-arrow-left"></i> Back
           </button>
           <div>
-            <h2 class="reg-title">New Patient Registration</h2>
-            <span class="reg-sub">Fill all required fields marked <span class="req-mark">*</span></span>
+            <h2 class="reg-title">🧬 New Patient Registration</h2>
+            <span class="reg-sub">One patient = one PID · One global laboratory reference = one LID</span>
           </div>
         </div>
 
         <!-- Step bar -->
         <div class="reg-steps">
-          <div class="step-bar">
-            <div class="step-item active" data-step="1">
-              <div class="step-num">1</div><span>Personal</span>
+          <div class="step-node active" data-step="1"><div class="step-num">1</div><div class="step-lbl">Personal</div></div>
+          <div class="step-connector"></div>
+          <div class="step-node" data-step="2"><div class="step-num">2</div><div class="step-lbl">Medical</div></div>
+          <div class="step-connector"></div>
+          <div class="step-node" data-step="3"><div class="step-num">3</div><div class="step-lbl">Guardian</div></div>
+          <div class="step-connector"></div>
+          <div class="step-node" data-step="4"><div class="step-num">4</div><div class="step-lbl">Insurance</div></div>
+        </div>
+
+        <!-- DUPLICATE DETECTION OVERLAY -->
+        <div class="dup-overlay" id="dup-overlay" style="display:none">
+          <div class="dup-panel">
+            <div class="dup-header">
+              <div class="dup-icon">⚠️</div>
+              <div>
+                <div class="dup-title">Possible Duplicate Patient Detected</div>
+                <div class="dup-sub">The system found patients matching the entered details. Please review before proceeding.</div>
+              </div>
             </div>
-            <div class="step-line"></div>
-            <div class="step-item" data-step="2">
-              <div class="step-num">2</div><span>Medical</span>
-            </div>
-            <div class="step-line"></div>
-            <div class="step-item" data-step="3">
-              <div class="step-num">3</div><span>Guardian</span>
-            </div>
-            <div class="step-line"></div>
-            <div class="step-item" data-step="4">
-              <div class="step-num">4</div><span>Insurance</span>
+            <div class="dup-list" id="dup-list"></div>
+            <div class="dup-footer">
+              <button class="btn btn-secondary" id="btn-dup-select">✅ This is the patient</button>
+              <button class="btn btn-primary" id="btn-dup-new">➕ Confirm as New Patient</button>
             </div>
           </div>
         </div>
 
-        <!-- Form body -->
+        <!-- LID ASSIGNMENT NOTICE -->
+        <div class="lid-assign-notice" id="lid-assign-notice" style="display:none">
+          <div class="lan-icon" id="lan-icon">🌐</div>
+          <div class="lan-body">
+            <div class="lan-title" id="lan-title">Global LID will be assigned</div>
+            <div class="lan-detail" id="lan-detail">A new global Laboratory Identity (RW-XXXXXXX) will be created for this patient.</div>
+          </div>
+        </div>
+
+        <!-- Form -->
         <div class="reg-form-wrap">
           <form id="reg-form" novalidate enctype="multipart/form-data">
             {% csrf_token %}
 
-            <!-- Step 1 : Personal -->
+            <!-- Step 1: Personal Identity -->
             <div class="form-step active" id="step-1">
               <div class="form-grid">
                 <div class="fg">
                   <label class="fl required">Family Name</label>
-                  <input type="text" name="family_name" class="fi" placeholder="e.g. Uwimana" required>
+                  <input type="text" name="family_name" id="reg-family-name" class="fi" placeholder="e.g. UWIMANA" required autocomplete="off">
                 </div>
                 <div class="fg">
                   <label class="fl required">Other Names</label>
-                  <input type="text" name="other_names" class="fi" placeholder="e.g. Jean Pierre" required>
+                  <input type="text" name="other_names" id="reg-other-names" class="fi" placeholder="e.g. Jean Pierre" required autocomplete="off">
                 </div>
                 <div class="fg">
                   <label class="fl required">Date of Birth</label>
-                  <input type="date" name="date_of_birth" class="fi" required>
+                  <input type="date" name="date_of_birth" id="reg-dob" class="fi" required>
                 </div>
                 <div class="fg">
                   <label class="fl required">Gender</label>
@@ -242,11 +437,11 @@
                 </div>
                 <div class="fg">
                   <label class="fl">National ID / Passport</label>
-                  <input type="text" name="person_id" class="fi" placeholder="1 19XX X XXXXXXX X XX">
+                  <input type="text" name="person_id" id="reg-person-id" class="fi" placeholder="1 19XX X XXXXXXX X XX">
                 </div>
                 <div class="fg">
                   <label class="fl">Phone Number</label>
-                  <input type="tel" name="phone" class="fi" placeholder="+250 7XX XXX XXX">
+                  <input type="tel" name="phone" id="reg-phone" class="fi" placeholder="+250 7XX XXX XXX">
                 </div>
                 <div class="fg">
                   <label class="fl">Email</label>
@@ -284,30 +479,38 @@
                 {% endif %}
                 <div class="fg fg-full">
                   <label class="fl">Patient Photo</label>
-                  <div class="photo-upload" id="photo-upload" role="button" tabindex="0" aria-label="Upload patient photo">
+                  <div class="photo-upload-zone" id="photo-zone" role="button" tabindex="0">
                     <input type="file" name="photo" id="photo-file" accept="image/*" style="display:none">
                     <img id="photo-preview" src="" alt="Preview" style="display:none">
-                    <div class="photo-upload-inner" id="photo-upload-inner">
+                    <div class="photo-upload-inner" id="photo-inner">
                       <i class="fas fa-camera"></i>
                       <span>Click to upload photo</span>
-                      <small>JPG, PNG — max 5 MB</small>
+                      <small>JPG, PNG · max 5 MB</small>
                     </div>
                   </div>
                 </div>
               </div>
+
+              <!-- Duplicate check indicator -->
+              <div class="dup-check-bar" id="dup-check-bar" style="display:none">
+                <i class="fas fa-spinner fa-spin" id="dup-check-spinner"></i>
+                <i class="fas fa-shield-check" id="dup-check-ok" style="display:none;color:var(--alert-green)"></i>
+                <i class="fas fa-triangle-exclamation" id="dup-check-warn" style="display:none;color:var(--alert-orange)"></i>
+                <span id="dup-check-msg">Checking for duplicates…</span>
+              </div>
             </div>
 
-            <!-- Step 2 : Medical -->
+            <!-- Step 2: Medical -->
             <div class="form-step" id="step-2" style="display:none">
               <div class="form-grid">
                 <div class="fg">
                   <label class="fl">Blood Group</label>
                   <select name="blood_group" class="fi">
                     <option value="unknown">Unknown</option>
-                    <option value="A+">A+</option><option value="A-">A-</option>
-                    <option value="B+">B+</option><option value="B-">B-</option>
-                    <option value="AB+">AB+</option><option value="AB-">AB-</option>
-                    <option value="O+">O+</option><option value="O-">O-</option>
+                    <option>A+</option><option>A-</option>
+                    <option>B+</option><option>B-</option>
+                    <option>AB+</option><option>AB-</option>
+                    <option>O+</option><option>O-</option>
                   </select>
                 </div>
                 <div class="fg">
@@ -337,7 +540,7 @@
                 </div>
                 <div class="fg fg-full">
                   <label class="toggle-row">
-                    <input type="checkbox" name="is_inpatient" id="inpatient-toggle">
+                    <input type="checkbox" name="is_inpatient" id="reg-inpatient">
                     <span class="toggle-track"><span class="toggle-thumb"></span></span>
                     <span>Patient is currently admitted (Inpatient)</span>
                   </label>
@@ -353,13 +556,13 @@
               </div>
             </div>
 
-            <!-- Step 3 : Guardian -->
+            <!-- Step 3: Guardian -->
             <div class="form-step" id="step-3" style="display:none">
               <div class="step-note"><i class="fas fa-circle-info"></i> Optional — recommended for minors and unconscious patients</div>
               <div class="form-grid">
                 <div class="fg fg-full">
                   <label class="fl">Guardian Full Name</label>
-                  <input type="text" name="guardian_name" class="fi" placeholder="e.g. Uwimana Marie">
+                  <input type="text" name="guardian_name" class="fi" placeholder="e.g. UWIMANA Marie">
                 </div>
                 <div class="fg">
                   <label class="fl">Relationship</label>
@@ -381,25 +584,16 @@
                   <label class="fl">Guardian National ID</label>
                   <input type="text" name="guardian_national_id" class="fi">
                 </div>
-                <div class="fg">
-                  <label class="fl">Guardian District</label>
-                  <select name="guardian_district" class="fi">
-                    <option value="">Select district…</option>
-                    {% for code, label in districts %}
-                    <option value="{{ code }}">{{ label }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
               </div>
             </div>
 
-            <!-- Step 4 : Insurance -->
+            <!-- Step 4: Insurance -->
             <div class="form-step" id="step-4" style="display:none">
-              <div class="step-note"><i class="fas fa-circle-info"></i> Optional — insurance can be added or updated at any time</div>
+              <div class="step-note"><i class="fas fa-circle-info"></i> Optional — can be added or updated at any time</div>
               <div class="form-grid">
                 <div class="fg fg-full">
                   <label class="fl">Payment Type</label>
-                  <select name="ins_payment_type" class="fi" id="ins-type-select">
+                  <select name="ins_payment_type" class="fi" id="ins-type-sel">
                     <option value="">None / Skip</option>
                     <option value="private">Private (Self-pay)</option>
                     <option value="insurance">Insurance</option>
@@ -435,28 +629,68 @@
             </div>
 
           </form>
-        </div><!-- /reg-form-wrap -->
+        </div>
 
         <!-- Form footer nav -->
-        <div class="form-footer">
-          <button class="btn btn-secondary" id="btn-prev" type="button" style="visibility:hidden">
+        <div class="reg-footer">
+          <button class="btn btn-secondary" id="btn-prev" style="visibility:hidden">
             <i class="fas fa-arrow-left"></i> Back
           </button>
-          <div class="step-dots" role="tablist">
-            <span class="dot active" data-step="1"></span>
-            <span class="dot" data-step="2"></span>
-            <span class="dot" data-step="3"></span>
-            <span class="dot" data-step="4"></span>
+          <div class="step-dots">
+            <span class="step-dot active" data-step="1"></span>
+            <span class="step-dot" data-step="2"></span>
+            <span class="step-dot" data-step="3"></span>
+            <span class="step-dot" data-step="4"></span>
           </div>
-          <button class="btn btn-primary" id="btn-next" type="button">
+          <button class="btn btn-primary" id="btn-next">
             Next <i class="fas fa-arrow-right"></i>
           </button>
         </div>
 
       </div><!-- /state-register -->
 
-    </section><!-- /detail-panel -->
-  </div><!-- /hub-content -->
+    </section><!-- /hub-panel -->
+  </div><!-- /hub-body -->
+
+  <!-- ══ INTER-HOSPITAL REQUEST MODAL ═══════════════════════════════════════ -->
+  <div class="modal-overlay" id="access-modal" style="display:none" role="dialog">
+    <div class="modal glass-card" style="max-width:480px">
+      <div class="modal-header">
+        <h3 class="modal-title">🌐 Request Cross-Hospital Access</h3>
+        <button class="btn-icon" id="access-modal-close"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:var(--space-md)">
+        <div class="access-modal-lid-info">
+          <span class="access-modal-lid-label">Global LID:</span>
+          <span class="access-modal-lid-val" id="access-modal-lid">—</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Access Level</label>
+          <select class="form-input" id="modal-access-level">
+            <option value="2">Level 2 — Shared Clinical (filtered read-only)</option>
+            <option value="3">Level 3 — Research (anonymized only)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Clinical Justification <span style="color:var(--alert-red)">*</span></label>
+          <textarea class="form-input fi-ta" id="modal-justification" placeholder="Clinical reason for accessing foreign laboratory records…" style="min-height:100px"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Source Hospital (leave blank = all)</label>
+          <input type="text" class="form-input" id="modal-hospital" placeholder="Hospital name or code">
+        </div>
+        <div class="access-privacy-note">
+          <i class="fas fa-lock"></i>
+          All access requests are logged and audited. Approved access is read-only and filtered. No modification rights will be granted.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="access-modal-cancel">Cancel</button>
+        <button class="btn btn-primary" id="access-modal-submit">📤 Submit Request</button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /hub-main -->
 {% endblock %}
 

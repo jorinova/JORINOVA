@@ -50,8 +50,31 @@ class StockMovementSerializer(serializers.ModelSerializer):
 class StockMovementCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model  = StockMovement
-        fields = ['item', 'movement_type', 'quantity', 'batch_number', 'expiry_date', 'unit_cost', 'notes']
+        fields = ['item', 'movement_type', 'quantity', 'batch_number', 'expiry_date', 'unit_cost', 'department', 'notes']
 
     def create(self, validated_data):
-        validated_data['performed_by'] = self.context['request'].user
+        request = self.context.get('request')
+        if request:
+            validated_data['performed_by'] = request.user
         return StockMovement.objects.create(**validated_data)
+
+
+class StockMovementListSerializer(serializers.ModelSerializer):
+    item_name         = serializers.CharField(source='item.name', read_only=True)
+    item_code         = serializers.CharField(source='item.code', read_only=True)
+    performed_by_name = serializers.SerializerMethodField()
+    department_name   = serializers.CharField(source='department.name', read_only=True, default='')
+    movement_display  = serializers.CharField(source='get_movement_type_display', read_only=True)
+
+    class Meta:
+        model  = StockMovement
+        fields = [
+            'id', 'item', 'item_name', 'item_code',
+            'movement_type', 'movement_display', 'quantity', 'balance_after',
+            'batch_number', 'expiry_date', 'unit_cost',
+            'department', 'department_name',
+            'notes', 'performed_by', 'performed_by_name', 'performed_at',
+        ]
+
+    def get_performed_by_name(self, obj):
+        return obj.performed_by.get_full_name() if obj.performed_by_id else '—'

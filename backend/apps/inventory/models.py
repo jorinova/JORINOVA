@@ -131,7 +131,7 @@ class StockMovement(models.Model):
 
     department    = models.ForeignKey('core_config.LaboratoryDepartment', on_delete=models.SET_NULL, null=True, blank=True)
     notes         = models.TextField(blank=True)
-    performed_by  = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True)
+    performed_by  = models.ForeignKey('authentication.NexusUser', on_delete=models.SET_NULL, null=True)
     performed_at  = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -174,8 +174,8 @@ class PurchaseOrder(models.Model):
     status       = models.CharField(max_length=20, choices=POStatus.choices, default=POStatus.DRAFT)
     total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
     notes        = models.TextField(blank=True)
-    requested_by = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True, related_name='po_requests')
-    approved_by  = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='po_approvals')
+    requested_by = models.ForeignKey('authentication.NexusUser', on_delete=models.SET_NULL, null=True, related_name='po_requests')
+    approved_by  = models.ForeignKey('authentication.NexusUser', on_delete=models.SET_NULL, null=True, blank=True, related_name='po_approvals')
     expected_date= models.DateField(null=True, blank=True)
     created_at   = models.DateTimeField(auto_now_add=True)
 

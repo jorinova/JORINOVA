@@ -68,6 +68,19 @@ def new_request(request):
     })
 
 
+@login_required
+def label_center(request, lab_id=None):
+    """Label Print Center — generates and prints specimen tube labels."""
+    from apps.core_config.models import LaboratoryDepartment
+    departments = LaboratoryDepartment.objects.filter(is_active=True).order_by('order')
+    return render(request, 'labels.html', {
+        'page_title':  '🏷️ Label Print Center — ALIS-X',
+        'departments': departments,
+        'today':       timezone.now().date(),
+        'auto_lab_id': lab_id or request.GET.get('lab_id', ''),
+    })
+
+
 # ─── Filters ──────────────────────────────────────────────────────────────────
 
 # When django-filter isn't installed, disable FilterSet entirely.
@@ -162,6 +175,135 @@ class LabRequestViewSet(viewsets.ModelViewSet):
         req.save(update_fields=['status', 'updated_at'])
         return Response(LabRequestDetailSerializer(req, context={'request': request}).data)
 
+    @action(detail=True, methods=['post'], url_path='enter-results')
+    def enter_results(self, request, pk=None):
+        """Bulk result entry — save multiple test results in one call.
+        Body: { results: [{requested_test_id, value, flag, comment, result_source, entry_mode, instrument_id}],
+                validate_all: bool }
+        """
+        lab_req      = self.get_object()
+        entries      = request.data.get('results', [])
+        validate_all = bool(request.data.get('validate_all', False))
+        saved        = []
+        errors       = []
+        now          = timezone.now()
+
+        for entry in entries:
+            if not entry.get('value'):
+                continue
+            rt_id = entry.get('requested_test_id')
+            try:
+                rt = lab_req.requested_tests.get(id=rt_id)
+            except RequestedTest.DoesNotExist:
+                errors.append(f'Test {rt_id} not found')
+                continue
+
+            result, created = LabResult.objects.update_or_create(
+                requested_test=rt,
+                defaults={
+                    'patient':               lab_req.patient,
+                    'value':                 str(entry.get('value', '')),
+                    'flag':                  entry.get('flag', 'N'),
+                    'technician_comment':    entry.get('comment', ''),
+                    'entered_by':            request.user,
+                    'entered_at':            now,
+                    'is_validated':          validate_all,
+                    'validated_by':          request.user if validate_all else None,
+                    'validated_at':          now if validate_all else None,
+                }
+            )
+
+            # Attach source tracking
+            result.__dict__.update({
+                '_result_source': entry.get('result_source', 'MANUAL'),
+                '_entry_mode':    entry.get('entry_mode', 'SINGLE'),
+                '_instrument_id': entry.get('instrument_id', ''),
+            })
+
+            # Auto-flag critical values
+            try:
+                v = float(result.value)
+                ref = rt.test.reference_range_min, rt.test.reference_range_max
+                if ref[0] and ref[1]:
+                    if v > float(ref[1]) * 1.5 or v < float(ref[0]) * 0.5:
+                        result.is_critical = True
+                        result.flag = 'HH' if v > float(ref[1]) else 'LL'
+                    elif v > float(ref[1]) or v < float(ref[0]):
+                        result.is_abnormal = True
+                    result.save(update_fields=['is_critical', 'is_abnormal', 'flag',
+                                               'is_validated', 'validated_by', 'validated_at'])
+            except (TypeError, ValueError, AttributeError):
+                result.save(update_fields=['is_validated', 'validated_by', 'validated_at'])
+
+            rt.status = 'validated' if validate_all else 'completed'
+            if validate_all:
+                rt.validated_at = now
+                rt.validated_by = request.user
+            rt.save(update_fields=['status', 'validated_at', 'validated_by'])
+
+            # Chain-of-custody event
+            from .models import SampleCustodyEvent
+            sample = lab_req.samples.first()
+            if sample:
+                SampleCustodyEvent.objects.create(
+                    sample=sample,
+                    event_type='processing',
+                    location=rt.test.department.name if rt.test.department_id else '',
+                    performed_by=request.user,
+                    timestamp=now,
+                )
+
+            saved.append(rt_id)
+
+        # Update request status
+        if lab_req.status in ('received', 'submitted'):
+            lab_req.status = 'validated' if validate_all else 'processing'
+            lab_req.save(update_fields=['status', 'updated_at'])
+        elif validate_all:
+            lab_req.status = 'validated'
+            lab_req.save(update_fields=['status', 'updated_at'])
+
+        # Audit trail
+        try:
+            from apps.audit.logger import AuditLogger
+            AuditLogger.log(
+                entity_type='LAB',
+                entity_id=lab_req.lab_id,
+                action='RESULT_ENTRY',
+                performed_by=request.user,
+                source='MANUAL',
+                metadata={'saved': saved, 'validated': validate_all, 'source': entries[0].get('result_source', 'MANUAL') if entries else ''},
+            )
+        except Exception:
+            pass
+
+        return Response({'saved': saved, 'errors': errors, 'validated': validate_all}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject(self, request, pk=None):
+        """Reject a sample at reception."""
+        lab_req = self.get_object()
+        reason  = request.data.get('reason', '')
+        detail  = request.data.get('detail', '')
+        if not reason:
+            return Response({'detail': 'Rejection reason is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        lab_req.status = 'cancelled'
+        lab_req.save(update_fields=['status', 'updated_at'])
+        for sample in lab_req.samples.all():
+            sample.status = SampleStatus.REJECTED
+            sample.rejection_reason = reason
+            sample.save(update_fields=['status', 'rejection_reason'])
+            from .models import SampleRejection, SampleCustodyEvent
+            SampleRejection.objects.create(
+                sample=sample, reason=reason, reason_detail=detail,
+                rejected_by=request.user, recollect_required=True,
+            )
+            SampleCustodyEvent.objects.create(
+                sample=sample, event_type='rejected',
+                notes=f'{reason}: {detail}', performed_by=request.user,
+            )
+        return Response({'status': 'rejected', 'reason': reason})
+
     @action(detail=True, methods=['post'], url_path='enter-result/(?P<rt_id>[0-9]+)')
     def enter_result(self, request, pk=None, rt_id=None):
         lab_req = self.get_object()
@@ -197,6 +339,21 @@ class SampleViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         return SampleSerializer
+
+    @action(detail=True, methods=['post'], url_path='label-printed')
+    def label_printed(self, request, pk=None):
+        """Record that a label was printed — chain of custody event."""
+        sample = self.get_object()
+        copies = int(request.data.get('copies', 1))
+        from .models import SampleCustodyEvent
+        SampleCustodyEvent.objects.create(
+            sample=sample,
+            event_type='labeled',
+            location=request.data.get('printer', 'Label Printer'),
+            performed_by=request.user,
+            notes=f'Label printed × {copies}',
+        )
+        return Response({'status': 'logged', 'copies': copies})
 
     @action(detail=True, methods=['patch'], url_path='status')
     def update_status(self, request, pk=None):
@@ -265,39 +422,70 @@ class LabResultViewSet(viewsets.ReadOnlyModelViewSet):
 def _labels_action(self, request, pk=None):
     req = self.get_object()
     labels_data = []
+    patient  = req.patient
+    hospital = req.hospital
+
     for sample in req.samples.select_related('department'):
         test_names = list(
             req.requested_tests
             .filter(test__department=sample.department)
+            .select_related('test')
             .values_list('test__short_name', flat=True)
         )
+        tube_display = sample.tube_type.replace('_', ' ').title() if sample.tube_type else '—'
+
+        # Compute patient age
+        age = None
+        if patient.date_of_birth:
+            from dateutil.relativedelta import relativedelta
+            try:
+                rd   = relativedelta(timezone.now().date(), patient.date_of_birth)
+                age  = rd.years
+            except Exception:
+                pass
+
         labels_data.append({
+            'sample_id':      sample.id,
             'sid':            sample.sid,
             'barcode':        sample.barcode,
             'tube_type':      sample.tube_type,
-            'tube_display':   sample.tube_type.replace('_', ' ').title(),
+            'tube_display':   tube_display,
             'label_color':    sample.label_color,
-            'patient_name':   req.patient.full_name,
-            'patient_pid':    req.patient.pid,
-            'patient_dob':    req.patient.date_of_birth.strftime('%d/%m/%Y') if req.patient.date_of_birth else '',
-            'patient_gender': req.patient.gender,
-            'patient_age':    req.patient.age,
+            'specimen_type':  sample.specimen_type,
+            'volume_ml':      str(sample.volume_ml) if sample.volume_ml else None,
+            # Patient
+            'patient_name':   patient.full_name,
+            'patient_pid':    patient.pid,
+            'patient_lid':    patient.unique_lab_id or '',
+            'patient_dob':    patient.date_of_birth.strftime('%d/%m/%Y') if patient.date_of_birth else '',
+            'patient_gender': patient.gender,
+            'patient_age':    age,
+            # Request
             'lab_id':         req.lab_id,
-            'department':     sample.department.name,
-            'dept_abbr':      sample.department.abbreviation,
+            'emergency_level':req.emergency_level,
+            # Sample / Lab info
+            'department':     sample.department.name if sample.department_id else '—',
+            'dept_abbr':      sample.department.abbreviation if sample.department_id else '—',
             'is_high_risk':   sample.is_high_risk,
+            'biosafety_emoji':sample.biosafety_emoji,
             'test_names':     test_names,
+            # Hospital + datetime
+            'hospital_name':  hospital.name if hospital else 'NEXUS Hospital',
             'collected_at':   timezone.now().strftime('%d/%m/%Y %H:%M'),
-            'hospital_name':  req.hospital.name,
         })
+
     return Response({
         'labels':       labels_data,
-        'patient_name': req.patient.full_name,
+        'patient_name': patient.full_name,
+        'patient_pid':  patient.pid,
+        'patient_lid':  patient.unique_lab_id or '',
         'lab_id':       req.lab_id,
         'emergency':    req.emergency_level,
+        'tube_types':   list({s.tube_type for s in req.samples.all()}),
     })
 
 
+_labels_action.__name__ = 'labels'
 LabRequestViewSet.labels = action(detail=True, methods=['get'], url_path='labels')(_labels_action)
 
 

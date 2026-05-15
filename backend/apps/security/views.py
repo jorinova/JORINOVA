@@ -90,6 +90,15 @@ def api_audit_log(request):
 
 # ─── API: RBAC roles ──────────────────────────────────────────────────────────
 
+def _dept_head_perms(dept):
+    return {
+        'lab_tests':'dept_crud','patients':'read','results':'dept_crud',
+        'reports':'dept_crud','billing':'none','inventory':'read',
+        'settings':'none','security':'none','users':'read',
+        'records':'dept_crud','surveillance':'read','ai':'none',
+    }
+
+
 RBAC_MATRIX = {
     'super_admin': {
         'label': '⚡ Super Administrator', 'level': 5,
@@ -209,15 +218,6 @@ RBAC_MATRIX = {
         'permissions': {k:'read' for k in ['lab_tests','patients','results','reports','records']},
     },
 }
-
-
-def _dept_head_perms(dept):
-    return {
-        'lab_tests':'dept_crud','patients':'read','results':'dept_crud',
-        'reports':'dept_crud','billing':'none','inventory':'read',
-        'settings':'none','security':'none','users':'read',
-        'records':'dept_crud','surveillance':'read','ai':'none',
-    }
 
 
 @login_required
