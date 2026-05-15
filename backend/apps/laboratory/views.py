@@ -250,10 +250,9 @@ class LabResultViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 # ─── Label generation ─────────────────────────────────────────────────────────
-# Attached to LabRequestViewSet as @action — added below via monkey-patch pattern
-# (defined here cleanly instead)
 
-def _labels_action(self, request, pk=None):
+@action(detail=True, methods=['get'], url_path='labels')
+def labels(self, request, pk=None):
     req = self.get_object()
     labels_data = []
     for sample in req.samples.select_related('department'):
@@ -289,7 +288,7 @@ def _labels_action(self, request, pk=None):
     })
 
 
-LabRequestViewSet.labels = action(detail=True, methods=['get'], url_path='labels')(_labels_action)
+LabRequestViewSet.labels = labels
 
 
 # ─── Test Catalog ViewSet ──────────────────────────────────────────────────────
