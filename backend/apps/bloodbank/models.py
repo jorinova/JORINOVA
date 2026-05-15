@@ -6,6 +6,7 @@ ISO 15189 compliant
 """
 from decimal import Decimal
 from django.db import models
+from django.conf import settings
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
 
@@ -189,7 +190,7 @@ class DonationEvent(models.Model):
     hospital      = models.ForeignKey('core_config.Hospital', on_delete=models.SET_NULL, null=True, blank=True)
     donation_type = models.CharField(max_length=15, choices=DonationType.choices, default=DonationType.VOLUNTARY)
     donation_date = models.DateField(default=timezone.now)
-    collected_by  = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True, related_name='donations_collected')
+    collected_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='donations_collected')
     volume_ml     = models.PositiveSmallIntegerField(default=450)
 
     # Screening results
@@ -252,7 +253,7 @@ class BloodBag(models.Model):
     reserved_for_patient = models.ForeignKey('patients.Patient', on_delete=models.SET_NULL, null=True, blank=True, related_name='reserved_bags')
     issued_to_patient    = models.ForeignKey('patients.Patient', on_delete=models.SET_NULL, null=True, blank=True, related_name='issued_bags')
     issued_at     = models.DateTimeField(null=True, blank=True)
-    issued_by     = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='issued_bags')
+    issued_by     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='issued_bags')
 
     notes         = models.TextField(blank=True)
     created_at    = models.DateTimeField(auto_now_add=True)
@@ -309,7 +310,7 @@ class CrossmatchRecord(models.Model):
     blood_bag     = models.ForeignKey(BloodBag, on_delete=models.CASCADE, related_name='crossmatches')
     patient       = models.ForeignKey('patients.Patient', on_delete=models.PROTECT, related_name='crossmatches')
     lab_request   = models.ForeignKey('laboratory.LabRequest', on_delete=models.SET_NULL, null=True, blank=True)
-    performed_by  = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True)
+    performed_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     performed_at  = models.DateTimeField(default=timezone.now)
 
     result        = models.CharField(max_length=20, choices=CrossmatchResult.choices, default=CrossmatchResult.PENDING)
@@ -317,7 +318,7 @@ class CrossmatchRecord(models.Model):
     ai_flag       = models.BooleanField(default=False, help_text='AI detected potential incompatibility')
     ai_note       = models.TextField(blank=True)
     technician_note= models.TextField(blank=True)
-    validated_by  = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='validated_crossmatches')
+    validated_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='validated_crossmatches')
     validated_at  = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -367,9 +368,9 @@ class HaemovigilanceReport(models.Model):
     root_cause    = models.TextField(blank=True)
     preventive_action= models.TextField(blank=True)
 
-    reported_by   = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True, related_name='hv_reports')
+    reported_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='hv_reports')
     reported_at   = models.DateTimeField(auto_now_add=True)
-    reviewed_by   = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='hv_reviews')
+    reviewed_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='hv_reviews')
     reviewed_at   = models.DateTimeField(null=True, blank=True)
     is_notified_to_rbc = models.BooleanField(default=False, help_text='Notified to Rwanda Biomedical Centre')
 
@@ -441,7 +442,7 @@ class InterHospitalExchange(models.Model):
     dispatched_at  = models.DateTimeField(null=True, blank=True)
     received_at    = models.DateTimeField(null=True, blank=True)
 
-    requested_by   = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True, related_name='exchange_requests')
+    requested_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='exchange_requests')
     created_at     = models.DateTimeField(auto_now_add=True)
     notes          = models.TextField(blank=True)
 
@@ -507,8 +508,8 @@ class BloodRequest(models.Model):
 
     status        = models.CharField(max_length=15, choices=RequestStatus.choices, default=RequestStatus.PENDING)
     assigned_bags = models.ManyToManyField(BloodBag, related_name='blood_requests', blank=True)
-    requested_by  = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True, related_name='blood_requests')
-    processed_by  = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='processed_requests')
+    requested_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='blood_requests')
+    processed_by  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='processed_requests')
 
     ward          = models.CharField(max_length=60, blank=True)
     doctor_name   = models.CharField(max_length=100, blank=True)
@@ -539,7 +540,7 @@ class TemperatureLog(models.Model):
     alert_message = models.CharField(max_length=200, blank=True)
     source        = models.CharField(max_length=30, default='sensor',
                                       choices=[('sensor','IoT Sensor'),('manual','Manual Entry'),('api','External API')])
-    recorded_by   = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True, blank=True)
+    recorded_by   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     recorded_at   = models.DateTimeField(default=timezone.now)
 
     class Meta:

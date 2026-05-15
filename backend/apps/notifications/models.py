@@ -1,5 +1,6 @@
 """Notifications models — system alerts, patient SMS/email, critical results"""
 from django.db import models
+from django.conf import settings
 from django.utils import timezone
 
 
@@ -28,7 +29,7 @@ class NotificationPriority(models.TextChoices):
 
 
 class Notification(models.Model):
-    recipient     = models.ForeignKey('authentication.User', on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
+    recipient     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
     patient       = models.ForeignKey('patients.Patient', on_delete=models.SET_NULL, null=True, blank=True, related_name='notifications')
     hospital      = models.ForeignKey('core_config.Hospital', on_delete=models.SET_NULL, null=True, blank=True)
 

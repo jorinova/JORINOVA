@@ -110,7 +110,7 @@ class Patient(models.Model):
     photo = models.ImageField(upload_to='patients/photos/', blank=True, null=True)
     fingerprint_hash = models.CharField(max_length=512, blank=True)
     blood_group = models.CharField(
-        max_length=5,
+        max_length=10,
         choices=[
             ('A+', 'A+'), ('A-', 'A-'), ('B+', 'B+'), ('B-', 'B-'),
             ('AB+', 'AB+'), ('AB-', 'AB-'), ('O+', 'O+'), ('O-', 'O-'), ('unknown', 'Unknown')
