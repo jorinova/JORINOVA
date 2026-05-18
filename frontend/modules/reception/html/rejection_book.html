@@ -1,0 +1,692 @@
+{% extends "shared/html/base.html" %}
+{% load static %}
+
+{% block title %}📋 Sample Rejection Book — NEXUS ALIS-X{% endblock %}
+{% block module_id %}reception{% endblock %}
+{% block nav_active_reception %}active{% endblock %}
+
+{% block head_extra %}
+<style>
+/* ── Rejection Book ────────────────────────────────────────────── */
+.rej-main { padding: 0 0 2rem; }
+
+.module-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, #1a0a0a 0%, #3d1a1a 50%, #5a1a1a 100%);
+  color: #fff; border-radius: 12px; margin-bottom: 1.25rem; gap: 1rem;
+}
+.mh-left .page-title { margin: 0; font-size: 1.6rem; font-weight: 700; }
+.mh-subtitle { font-size: .82rem; opacity: .75; margin-top: .2rem; display: block; }
+.mh-right { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.stat-chip { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+  border-radius: 20px; padding: .3rem .8rem; font-size: .82rem; color: #fff; }
+.stat-chip.critical { background: rgba(220,53,69,.35); border-color: #dc3545; }
+
+/* KPI row */
+.kpi-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 1rem; margin-bottom: 1.5rem; }
+.kpi-card { background: #fff; border: 1px solid #e9ecef; border-radius: 10px;
+  padding: 1.1rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.kpi-card.danger { border-left: 4px solid #dc3545; }
+.kpi-card.warning{ border-left: 4px solid #ff8c00; }
+.kpi-card.info   { border-left: 4px solid #17a2b8; }
+.kpi-card.success{ border-left: 4px solid #28a745; }
+.kpi-card.dark   { border-left: 4px solid #343a40; }
+.kpi-val { font-size: 2rem; font-weight: 700; color: #1a0a0a; line-height: 1; }
+.kpi-lbl { font-size: .78rem; color: #6c757d; margin-top: .4rem; }
+
+/* Tab nav */
+.tab-nav { display: flex; gap: .5rem; border-bottom: 2px solid #e9ecef; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.tab-btn { background: none; border: none; padding: .5rem 1.1rem; border-radius: 8px 8px 0 0;
+  font-size: .88rem; font-weight: 500; color: #6c757d; cursor: pointer; transition: .2s; }
+.tab-btn:hover  { background: #fef2f2; color: #1a0a0a; }
+.tab-btn.active { background: #1a0a0a; color: #fff; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Toolbar */
+.pane-toolbar { display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1rem; flex-wrap: wrap; gap: .5rem; }
+.filter-group { display: flex; gap: .5rem; flex-wrap: wrap; }
+.filter-group select, .filter-group input { padding: .35rem .6rem; border: 1px solid #ced4da;
+  border-radius: 6px; font-size: .83rem; background: #fff; }
+
+/* Table */
+.results-table-wrap { overflow-x: auto; overflow-y: auto; max-height: 58vh; border: 1px solid #e9ecef; border-radius: 8px; }
+.data-table { width: 100%; border-collapse: collapse; font-size: .84rem; min-width: 900px; }
+.data-table thead th { background: #1a0a0a; color: #fff; padding: .6rem .75rem; text-align: left;
+  white-space: nowrap; position: sticky; top: 0; z-index: 2; }
+.data-table tbody tr td { padding: .55rem .75rem; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+.data-table tbody tr:hover td { background: #fef9f9; }
+
+/* Severity row highlight */
+.data-table tbody tr.sev-critical td:first-child { border-left: 4px solid #dc3545; }
+.data-table tbody tr.sev-high     td:first-child { border-left: 4px solid #f97316; }
+.data-table tbody tr.sev-moderate td:first-child { border-left: 4px solid #eab308; }
+.data-table tbody tr.sev-low      td:first-child { border-left: 4px solid #22c55e; }
+
+/* Severity badges */
+.sev-badge { display: inline-block; padding: .15rem .5rem; border-radius: 8px; font-size: .74rem; font-weight: 700; }
+.sev-badge.critical { background: #f8d7da; color: #721c24; }
+.sev-badge.high     { background: #fff3cd; color: #856404; }
+.sev-badge.moderate { background: #d1ecf1; color: #0c5460; }
+.sev-badge.low      { background: #d4edda; color: #155724; }
+
+/* Category badges */
+.cat-badge { display: inline-block; padding: .15rem .5rem; border-radius: 8px; font-size: .72rem;
+  background: #e9ecef; color: #495057; }
+
+/* Rule cards (for rule catalogue tab) */
+.rule-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 1rem; }
+.rule-card { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 1rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05); }
+.rule-card.critical { border-left: 4px solid #dc3545; }
+.rule-card.high     { border-left: 4px solid #f97316; }
+.rule-card.moderate { border-left: 4px solid #eab308; }
+.rule-card.low      { border-left: 4px solid #22c55e; }
+.rule-code { font-family: monospace; font-size: .82rem; color: #6c757d; }
+.rule-name { font-weight: 700; font-size: .95rem; color: #1a0a0a; margin: .25rem 0; }
+.rule-desc { font-size: .82rem; color: #495057; margin-bottom: .5rem; }
+.rule-action { font-size: .79rem; color: #155724; background: #d4edda; border-radius: 6px;
+  padding: .4rem .6rem; margin-top: .4rem; }
+.rule-ai { font-size: .76rem; color: #004085; background: #cce5ff; border-radius: 6px;
+  padding: .35rem .6rem; margin-top: .25rem; }
+.rule-tags { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .5rem; }
+.rule-tag { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 10px;
+  font-size: .7rem; padding: .1rem .4rem; }
+
+/* New rejection modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6);
+  display: flex; align-items: center; justify-content: center; z-index: 9000; backdrop-filter: blur(3px); }
+.modal-box { background: #fff; border-radius: 14px; width: 90%; max-width: 620px;
+  max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.modal-wide { max-width: 780px; }
+.modal-header { display: flex; justify-content: space-between; align-items: center;
+  padding: 1rem 1.25rem; border-bottom: 1px solid #e9ecef; position: sticky; top: 0; background: #fff; z-index: 1; }
+.modal-header h3 { margin: 0; font-size: 1.1rem; }
+.modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #6c757d; }
+.modal-body { padding: 1rem 1.25rem; }
+.modal-footer { display: flex; justify-content: flex-end; gap: .75rem;
+  padding: 1rem 1.25rem; border-top: 1px solid #e9ecef; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.form-row { display: flex; flex-direction: column; gap: .3rem; }
+.form-row.full-width { grid-column: span 2; }
+.form-row label { font-size: .82rem; font-weight: 600; color: #495057; }
+.form-row input, .form-row select, .form-row textarea {
+  padding: .4rem .65rem; border: 1px solid #ced4da; border-radius: 6px; font-size: .85rem; }
+.form-row textarea { resize: vertical; }
+
+/* Buttons */
+.btn-primary   { background: #1a0a0a; color: #fff; border: none; padding: .5rem 1rem; border-radius: 8px; font-size: .85rem; font-weight: 600; cursor: pointer; }
+.btn-primary:hover { background: #3d1a1a; }
+.btn-secondary { background: #f8f9fa; color: #1a0a0a; border: 1px solid #ced4da; padding: .5rem 1rem; border-radius: 8px; font-size: .85rem; cursor: pointer; }
+.btn-danger    { background: #dc3545; color: #fff; border: none; padding: .5rem 1rem; border-radius: 8px; font-size: .85rem; cursor: pointer; }
+.btn-sm        { padding: .3rem .65rem; font-size: .8rem; }
+.empty-state   { text-align: center; color: #6c757d; padding: 2rem; font-size: .9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rej-main">
+
+  <!-- ── Header ─────────────────────────────────────────────────── -->
+  <div class="module-header">
+    <div class="mh-left">
+      <h1 class="page-title">📋 Sample Rejection Book</h1>
+      <span class="mh-subtitle">ISO 15189 · CLSI EP23 · Pre-analytical QA · Immutable Audit</span>
+    </div>
+    <div class="mh-right">
+      <div class="stat-chip critical">🚫 <span id="stat-critical">—</span> Critical Rejections</div>
+      <div class="stat-chip">📊 <span id="stat-total">—</span> This Month</div>
+    </div>
+  </div>
+
+  <!-- ── KPI ────────────────────────────────────────────────────── -->
+  <div class="kpi-row">
+    <div class="kpi-card danger">  <div class="kpi-val" id="kpi-total">—</div><div class="kpi-lbl">Total (30 days)</div></div>
+    <div class="kpi-card warning"> <div class="kpi-val" id="kpi-critical">—</div><div class="kpi-lbl">Critical Severity</div></div>
+    <div class="kpi-card info">    <div class="kpi-val" id="kpi-unresolved">—</div><div class="kpi-lbl">Unresolved</div></div>
+    <div class="kpi-card success"> <div class="kpi-val" id="kpi-recollected">—</div><div class="kpi-lbl">Recollected</div></div>
+    <div class="kpi-card dark">    <div class="kpi-val" id="kpi-top-reason">—</div><div class="kpi-lbl">Top Rejection Reason</div></div>
+  </div>
+
+  <!-- ── Tabs ───────────────────────────────────────────────────── -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="book">📋 Rejection Book</button>
+    <button class="tab-btn" data-tab="rules">📖 Rejection Rules Catalogue</button>
+    <button class="tab-btn" data-tab="tube-guide">🧪 Tube Guide</button>
+    <button class="tab-btn" data-tab="stats">📊 QA Analytics</button>
+  </nav>
+
+  <!-- ══ REJECTION BOOK ════════════════════════════════════════════ -->
+  <div class="tab-pane active" id="tab-book">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="f-severity" onchange="loadBook()">
+          <option value="">All Severity</option>
+          <option value="critical">🔴 Critical</option>
+          <option value="high">🟠 High</option>
+          <option value="moderate">🟡 Moderate</option>
+          <option value="low">🟢 Low</option>
+        </select>
+        <select id="f-category" onchange="loadBook()">
+          <option value="">All Categories</option>
+          <option value="identification">Identification</option>
+          <option value="specimen_quality">Specimen Quality</option>
+          <option value="volume">Volume</option>
+          <option value="tube_container">Tube/Container</option>
+          <option value="timing">Timing</option>
+          <option value="pre_analytical">Pre-Analytical</option>
+          <option value="safety">Safety</option>
+        </select>
+        <select id="f-resolved" onchange="loadBook()">
+          <option value="">All Status</option>
+          <option value="false">Unresolved</option>
+          <option value="true">Resolved</option>
+        </select>
+        <input type="date" id="f-date-from" onchange="loadBook()">
+        <input type="date" id="f-date-to" onchange="loadBook()">
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn-secondary" onclick="loadBook()">🔄 Refresh</button>
+        <button class="btn-primary" onclick="openRejectModal()">+ Record Rejection</button>
+      </div>
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="book-table">
+        <thead>
+          <tr>
+            <th>Rejection ID</th><th>Severity</th><th>Code</th><th>Reason</th>
+            <th>SID / PID</th><th>Specimen</th><th>Department</th>
+            <th>Rejected By</th><th>Ward Notified</th><th>Status</th>
+            <th>Date/Time</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="book-tbody">
+          <tr><td colspan="12" class="empty-state">Loading rejection records…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ REJECTION RULES CATALOGUE ════════════════════════════════ -->
+  <div class="tab-pane" id="tab-rules">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="r-severity" onchange="loadRules()">
+          <option value="">All Severity</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="moderate">Moderate</option>
+          <option value="low">Low</option>
+        </select>
+        <select id="r-category" onchange="loadRules()">
+          <option value="">All Categories</option>
+          <option value="identification">Identification</option>
+          <option value="specimen_quality">Specimen Quality</option>
+          <option value="volume">Volume</option>
+          <option value="tube_container">Tube/Container</option>
+          <option value="timing">Timing</option>
+          <option value="safety">Safety</option>
+        </select>
+      </div>
+      <span style="font-size:.82rem;color:#6c757d">
+        Source: CLSI EP23-A · ISO 15189:2022 · WHO Laboratory Guidelines
+      </span>
+    </div>
+    <div id="rules-grid" class="rule-grid">
+      <div class="empty-state">Loading rules catalogue…</div>
+    </div>
+  </div>
+
+  <!-- ══ TUBE GUIDE ════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-tube-guide">
+    <div id="tube-guide-cards" class="rule-grid">
+      <div class="empty-state">Loading tube guide…</div>
+    </div>
+  </div>
+
+  <!-- ══ QA ANALYTICS ══════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-stats">
+    <div id="stats-panel" style="padding:.5rem">
+      <div class="empty-state">Loading QA statistics…</div>
+    </div>
+  </div>
+
+</div><!-- /.rej-main -->
+
+<!-- ── Record Rejection Modal ─────────────────────────────────── -->
+<div class="modal-overlay" id="reject-modal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>🚫 Record Sample Rejection</h3>
+      <button class="modal-close" onclick="closeModal('reject-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Quick suggest from observations -->
+      <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:.75rem;margin-bottom:1rem">
+        <div style="font-weight:600;font-size:.85rem;margin-bottom:.5rem">🔍 Quick suggest from observations:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem">
+          <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem"><input type="checkbox" id="obs-haemolysed"> Haemolysed</label>
+          <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem"><input type="checkbox" id="obs-lipaemic"> Lipaemic</label>
+          <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem"><input type="checkbox" id="obs-clotted"> Clotted</label>
+          <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem"><input type="checkbox" id="obs-qns"> QNS</label>
+          <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem"><input type="checkbox" id="obs-wrong-tube"> Wrong tube</label>
+          <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem"><input type="checkbox" id="obs-no-label"> No label</label>
+          <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem"><input type="checkbox" id="obs-expired"> Expired tube</label>
+          <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem"><input type="checkbox" id="obs-leaking"> Leaking</label>
+          <label style="display:flex;align-items:center;gap:.3rem;font-size:.8rem"><input type="checkbox" id="obs-delayed"> Delayed transport</label>
+        </div>
+        <button class="btn-secondary btn-sm" style="margin-top:.5rem" onclick="suggestRules()">
+          💡 Suggest Rejection Codes
+        </button>
+        <div id="suggested-rules" style="margin-top:.5rem;display:none">
+          <div style="font-size:.78rem;font-weight:600;color:#495057;margin-bottom:.25rem">Suggested rejection codes:</div>
+          <div id="suggested-list" style="display:flex;flex-wrap:wrap;gap:.3rem"></div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Rejection Code *</label>
+          <select id="rej-code" onchange="onCodeChange()">
+            <option value="">Select rejection code…</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Specimen ID (SID)</label>
+          <input type="text" id="rej-sid" placeholder="SID-XXXX">
+        </div>
+        <div class="form-row">
+          <label>Patient ID (PID)</label>
+          <input type="text" id="rej-pid" placeholder="PID-XXXX">
+        </div>
+        <div class="form-row">
+          <label>Lab ID (LID)</label>
+          <input type="text" id="rej-lid" placeholder="RW-XXXXXXX">
+        </div>
+        <div class="form-row">
+          <label>Specimen Type</label>
+          <select id="rej-specimen">
+            <option value="">Select…</option>
+            <option value="blood_edta">Blood (EDTA)</option>
+            <option value="blood_citrate">Blood (Citrate)</option>
+            <option value="blood_sst">Blood (SST/Gel)</option>
+            <option value="blood_fluoride">Blood (Fluoride)</option>
+            <option value="urine">Urine</option>
+            <option value="stool">Stool</option>
+            <option value="sputum">Sputum</option>
+            <option value="csf">CSF</option>
+            <option value="swab">Swab</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Tube Type</label>
+          <select id="rej-tube">
+            <option value="">Select…</option>
+            <option value="purple_edta">Purple (EDTA)</option>
+            <option value="blue_citrate">Blue (Citrate)</option>
+            <option value="yellow_sst">Yellow/Gold (SST)</option>
+            <option value="grey_fluoride">Grey (Fluoride)</option>
+            <option value="green_heparin">Green (Heparin)</option>
+            <option value="red_plain">Red (Plain)</option>
+            <option value="pink_edta">Pink (Blood Bank)</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Department</label>
+          <select id="rej-dept">
+            <option value="">Select…</option>
+            <option value="HEM">Hematology</option>
+            <option value="BIOCHEM">Biochemistry</option>
+            <option value="COAG">Coagulation</option>
+            <option value="MICRO">Microbiology</option>
+            <option value="SERO">Serology</option>
+            <option value="BLOOD_BANK">Blood Bank</option>
+            <option value="MOL">Molecular</option>
+            <option value="URINE">Urinalysis</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Collected By</label>
+          <input type="text" id="rej-collected-by" placeholder="Name of phlebotomist/nurse">
+        </div>
+        <div class="form-row">
+          <label>Collection Site / Ward</label>
+          <input type="text" id="rej-site" placeholder="e.g. Ward 3B, ICU">
+        </div>
+        <div class="form-row">
+          <label>Requester / Doctor Name</label>
+          <input type="text" id="rej-requester" placeholder="Dr. / Nurse who requested">
+        </div>
+        <div class="form-row">
+          <label class="checkbox-label" style="font-weight:400">
+            <input type="checkbox" id="rej-ward-notified"> Ward/Requester notified
+          </label>
+        </div>
+        <div class="form-row full-width">
+          <label>Rejection Note (optional)</label>
+          <textarea id="rej-note" rows="2" placeholder="Additional details about the rejection…"></textarea>
+        </div>
+        <!-- Corrective action (auto-filled from rule, read-only) -->
+        <div class="form-row full-width" id="corrective-action-row" style="display:none">
+          <label>Corrective Action (from rule):</label>
+          <div id="corrective-action-text" style="background:#d4edda;border:1px solid #c3e6cb;border-radius:6px;padding:.5rem .75rem;font-size:.82rem;color:#155724;line-height:1.5"></div>
+        </div>
+        <div class="form-row full-width" id="ai-context-row" style="display:none">
+          <label>Clinical Background (AI context):</label>
+          <div id="ai-context-text" style="background:#cce5ff;border:1px solid #b8daff;border-radius:6px;padding:.5rem .75rem;font-size:.8rem;color:#004085;line-height:1.5"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('reject-modal')">Cancel</button>
+      <button class="btn-danger" onclick="submitRejection()">🚫 Record Rejection</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const API = '/api/v1';
+let _allRules = [];
+
+function auth() {
+  const t = localStorage.getItem('access_token');
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+async function apiFetch(url, opts = {}) {
+  const r = await fetch(url, { headers: { 'Content-Type': 'application/json', ...auth() }, ...opts });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+function toast(msg, type='info') {
+  if (window.NexusCore?.toast) window.NexusCore.toast(msg, type);
+  else alert(msg);
+}
+function setText(id, val) { const el = document.getElementById(id); if(el) el.textContent = val ?? '—'; }
+
+/* ── Tab switching ────────────────────────────────────────────── */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab)?.classList.add('active');
+    if (btn.dataset.tab === 'book')       loadBook();
+    if (btn.dataset.tab === 'rules')      loadRules();
+    if (btn.dataset.tab === 'tube-guide') loadTubeGuide();
+    if (btn.dataset.tab === 'stats')      loadStats();
+  });
+});
+
+/* ── Dashboard stats ─────────────────────────────────────────── */
+async function loadStats() {
+  try {
+    const d = await apiFetch(`${API}/rejection/stats/summary?days=30`);
+    setText('kpi-total', d.total);
+    setText('stat-total', d.total);
+    const top = d.top_reasons?.[0];
+    setText('kpi-top-reason', top ? `${top.code} (${top.count}x)` : '—');
+
+    const statsPanel = document.getElementById('stats-panel');
+    if (statsPanel && d.top_reasons) {
+      statsPanel.innerHTML = `
+        <h3 style="margin-bottom:1rem">Top Rejection Reasons (Last 30 Days)</h3>
+        <div style="overflow-x:auto">
+          <table class="data-table" style="min-width:auto">
+            <thead><tr><th>Rank</th><th>Code</th><th>Reason</th><th>Count</th><th>% of Total</th></tr></thead>
+            <tbody>
+              ${d.top_reasons.map((r,i) => `<tr>
+                <td>#${i+1}</td>
+                <td><code>${r.code}</code></td>
+                <td>${r.name}</td>
+                <td><strong>${r.count}</strong></td>
+                <td>${d.total ? Math.round(r.count/d.total*100) : 0}%</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <h3 style="margin:.1rem 0 1rem">By Department</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:.75rem">
+          ${(d.by_dept||[]).map(x => `
+            <div style="background:#fff;border:1px solid #e9ecef;border-radius:8px;padding:.75rem 1rem;min-width:140px;text-align:center">
+              <div style="font-size:1.4rem;font-weight:700">${x.count}</div>
+              <div style="font-size:.8rem;color:#6c757d">${x.dept || 'Unknown'}</div>
+            </div>`).join('')}
+        </div>`;
+    }
+  } catch(e) { console.error(e); }
+}
+
+/* ── Rejection book ─────────────────────────────────────────── */
+async function loadBook() {
+  const sev   = document.getElementById('f-severity')?.value || '';
+  const cat   = document.getElementById('f-category')?.value || '';
+  const res   = document.getElementById('f-resolved')?.value;
+  const from_ = document.getElementById('f-date-from')?.value || '';
+  const to_   = document.getElementById('f-date-to')?.value   || '';
+  const params = new URLSearchParams();
+  if (sev)   params.set('severity', sev);
+  if (cat)   params.set('category', cat);
+  if (res !== undefined && res !== '') params.set('resolved', res);
+  if (from_) params.set('date_from', from_);
+  if (to_)   params.set('date_to',   to_);
+
+  const tbody = document.getElementById('book-tbody');
+  tbody.innerHTML = '<tr><td colspan="12" class="empty-state">Loading…</td></tr>';
+  try {
+    const data = await apiFetch(`${API}/rejection/?${params}&limit=100`);
+
+    // Update KPIs
+    const total    = data.length;
+    const critical = data.filter(r => r.severity === 'critical').length;
+    const unresolv = data.filter(r => !r.resolved).length;
+    const recoll   = data.filter(r => r.recollection_done).length;
+    setText('kpi-critical',   critical);
+    setText('stat-critical',  critical);
+    setText('kpi-unresolved', unresolv);
+    setText('kpi-recollected',recoll);
+
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty-state">No rejection records found.</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `<tr class="sev-${r.severity}">
+      <td><strong>${r.rejection_id}</strong></td>
+      <td><span class="sev-badge ${r.severity}">${r.severity.toUpperCase()}</span></td>
+      <td><code>${r.rejection_code}</code></td>
+      <td><strong>${r.rejection_name}</strong></td>
+      <td>${r.sid||'—'}<br><small>${r.pid||''} ${r.lid||''}</small></td>
+      <td>${r.specimen_type||'—'}<br><small>${r.tube_type||''}</small></td>
+      <td>${r.department||'—'}</td>
+      <td>${r.rejected_by||'—'}</td>
+      <td>${r.ward_notified ? '✅ Yes' : '⚠️ No'}</td>
+      <td>${r.resolved ? '<span style="color:#28a745">✔ Resolved</span>' : '<span style="color:#dc3545">Open</span>'}</td>
+      <td>${r.rejected_at ? new Date(r.rejected_at).toLocaleString() : '—'}</td>
+      <td>
+        ${!r.resolved ? `<button class="btn-secondary btn-sm" onclick="resolveRejection('${r.rejection_id}')">✓ Resolve</button>` : ''}
+      </td>
+    </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="12" class="empty-state">Error: ${e.message}</td></tr>`;
+  }
+}
+
+/* ── Rules catalogue ─────────────────────────────────────────── */
+async function loadRules() {
+  const sev = document.getElementById('r-severity')?.value || '';
+  const cat = document.getElementById('r-category')?.value || '';
+  const params = new URLSearchParams();
+  if (sev) params.set('severity', sev);
+  if (cat) params.set('category', cat);
+
+  const grid = document.getElementById('rules-grid');
+  grid.innerHTML = '<div class="empty-state">Loading…</div>';
+  try {
+    _allRules = await apiFetch(`${API}/rejection/rules?${params}`);
+    if (!_allRules.length) { grid.innerHTML = '<div class="empty-state">No rules match filter.</div>'; return; }
+    grid.innerHTML = _allRules.map(r => `
+      <div class="rule-card ${r.severity}">
+        <div class="rule-code">${r.code}</div>
+        <div class="rule-name">${r.name}</div>
+        <div class="rule-desc">${r.description}</div>
+        <div class="rule-action">✓ ${r.corrective_action?.substring(0,150) || '—'}</div>
+        ${r.ai_context ? `<div class="rule-ai">🤖 ${r.ai_context.substring(0,120)}</div>` : ''}
+        <div class="rule-tags">
+          <span class="sev-badge ${r.severity}">${r.severity.toUpperCase()}</span>
+          <span class="cat-badge">${(r.category||'').replace(/_/g,' ')}</span>
+          ${r.recollect ? '<span class="rule-tag">🔄 Recollect</span>' : ''}
+          ${r.tat_impact ? `<span class="rule-tag">⏱️ ${r.tat_impact}</span>` : ''}
+        </div>
+      </div>`).join('');
+
+    // Populate rejection code dropdown
+    const sel = document.getElementById('rej-code');
+    if (sel) {
+      sel.innerHTML = '<option value="">Select rejection code…</option>' +
+        _allRules.map(r => `<option value="${r.code}">${r.code} — ${r.name}</option>`).join('');
+    }
+  } catch(e) {
+    grid.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
+  }
+}
+
+/* ── Tube guide ────────────────────────────────────────────── */
+async function loadTubeGuide() {
+  const container = document.getElementById('tube-guide-cards');
+  container.innerHTML = '<div class="empty-state">Loading…</div>';
+  try {
+    const guide = await apiFetch(`${API}/rejection/tube-guide`);
+    const COLOURS = {
+      purple_edta:  '#9333ea', blue_citrate: '#2563eb',
+      grey_fluoride:'#6b7280', yellow_sst:   '#eab308',
+      green_heparin:'#16a34a', red_plain:    '#dc2626', pink_edta: '#ec4899',
+    };
+    container.innerHTML = Object.entries(guide).map(([k, v]) => `
+      <div class="rule-card" style="border-left:6px solid ${COLOURS[k]||'#999'}">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+          <div style="width:18px;height:18px;border-radius:50%;background:${COLOURS[k]||'#999'}"></div>
+          <strong>${v.name}</strong>
+        </div>
+        <div style="font-size:.82rem;color:#495057;margin-bottom:.4rem">
+          <strong>Tests:</strong> ${v.tests.join(', ')}
+        </div>
+        <div style="font-size:.82rem;background:#fff3cd;border-radius:6px;padding:.4rem .6rem;color:#856404">
+          ⚡ Mix: ${v.mix > 0 ? v.mix + ' gentle inversions immediately' : 'No mixing — allow to clot'}
+        </div>
+        <div style="font-size:.78rem;color:#6c757d;margin-top:.4rem">${v.note}</div>
+      </div>`).join('');
+  } catch(e) {
+    container.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
+  }
+}
+
+/* ── Suggest from observations ─────────────────────────────── */
+async function suggestRules() {
+  const body = {
+    is_haemolysed: document.getElementById('obs-haemolysed').checked,
+    is_lipaemic:   document.getElementById('obs-lipaemic').checked,
+    is_clotted:    document.getElementById('obs-clotted').checked,
+    is_qns:        document.getElementById('obs-qns').checked,
+    wrong_tube:    document.getElementById('obs-wrong-tube').checked,
+    no_label:      document.getElementById('obs-no-label').checked,
+    expired_tube:  document.getElementById('obs-expired').checked,
+    leaking:       document.getElementById('obs-leaking').checked,
+    delayed:       document.getElementById('obs-delayed').checked,
+  };
+  try {
+    const suggestions = await apiFetch(`${API}/rejection/rules/suggest`, { method:'POST', body:JSON.stringify(body) });
+    const listEl = document.getElementById('suggested-list');
+    const rowEl  = document.getElementById('suggested-rules');
+    if (suggestions.length) {
+      listEl.innerHTML = suggestions.map(r => `
+        <button onclick="selectCode('${r.code}')"
+          style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:.3rem .7rem;font-size:.8rem;cursor:pointer">
+          <strong>${r.code}</strong> — ${r.name}
+          <span style="font-size:.7rem;color:#856404">${r.severity.toUpperCase()}</span>
+        </button>`).join('');
+      rowEl.style.display = '';
+    } else {
+      listEl.innerHTML = '<span style="color:#6c757d;font-size:.8rem">No specific rules matched. Select manually.</span>';
+      rowEl.style.display = '';
+    }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function selectCode(code) {
+  const sel = document.getElementById('rej-code');
+  if (sel) { sel.value = code; onCodeChange(); }
+}
+
+function onCodeChange() {
+  const code = document.getElementById('rej-code')?.value;
+  const rule = _allRules.find(r => r.code === code);
+  const caRow = document.getElementById('corrective-action-row');
+  const aiRow = document.getElementById('ai-context-row');
+  if (rule) {
+    document.getElementById('corrective-action-text').textContent = rule.corrective_action || '';
+    document.getElementById('ai-context-text').textContent = rule.ai_context || '';
+    if (caRow) caRow.style.display = rule.corrective_action ? '' : 'none';
+    if (aiRow) aiRow.style.display = rule.ai_context ? '' : 'none';
+  } else {
+    if (caRow) caRow.style.display = 'none';
+    if (aiRow) aiRow.style.display = 'none';
+  }
+}
+
+/* ── Submit rejection ─────────────────────────────────────── */
+async function submitRejection() {
+  const code = document.getElementById('rej-code')?.value;
+  if (!code) { toast('Select a rejection code', 'error'); return; }
+  const body = {
+    rejection_code:  code,
+    sid:             document.getElementById('rej-sid').value || null,
+    pid:             document.getElementById('rej-pid').value || null,
+    lid:             document.getElementById('rej-lid').value || null,
+    specimen_type:   document.getElementById('rej-specimen').value || null,
+    tube_type:       document.getElementById('rej-tube').value || null,
+    department:      document.getElementById('rej-dept').value || null,
+    collected_by:    document.getElementById('rej-collected-by').value || null,
+    collection_site: document.getElementById('rej-site').value || null,
+    requester_name:  document.getElementById('rej-requester').value || null,
+    ward_notified:   document.getElementById('rej-ward-notified').checked,
+    rejection_note:  document.getElementById('rej-note').value || null,
+  };
+  try {
+    const result = await apiFetch(`${API}/rejection/`, { method:'POST', body: JSON.stringify(body) });
+    closeModal('reject-modal');
+    toast(`Rejection recorded: ${result.rejection_id} (${result.name})`, 'success');
+    loadBook();
+    loadStats();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function resolveRejection(rejId) {
+  try {
+    await apiFetch(`${API}/rejection/${rejId}/resolve`, {
+      method:'PATCH',
+      body: JSON.stringify({ resolved: true, recollection_done: false })
+    });
+    toast('Marked as resolved', 'success');
+    loadBook();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+/* ── Modal ────────────────────────────────────────────────── */
+function openRejectModal() {
+  if (!_allRules.length) loadRules();
+  document.getElementById('reject-modal').style.display = 'flex';
+}
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.style.display = 'none'; });
+});
+
+/* ── Init ─────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  loadRules();
+  loadBook();
+  loadStats();
+});
+</script>
+{% endblock %}

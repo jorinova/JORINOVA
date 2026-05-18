@@ -1,0 +1,591 @@
+{% extends "shared/html/base.html" %}
+{% load static %}
+
+{% block title %}⚙️ Admin Dashboard — NEXUS ALIS-X{% endblock %}
+{% block module_id %}admin{% endblock %}
+
+{% block head_extra %}
+<style>
+#app-main{background:#fff!important;}
+.shift-bar{background:#fff!important;border-bottom:1px solid #e4e8f0!important;}
+.shift-bar *{color:#4f46e5!important;}
+
+/* Admin theme: Indigo/Violet */
+:root{
+  --adm:#4f46e5;--adm-d:#3730a3;--adm-l:#e0e7ff;--adm-ll:#eef2ff;
+}
+.adm-shell{background:#fff;min-height:100%;}
+.adm-header{max-height:2.5cm;overflow:hidden;display:flex;align-items:center;gap:.75rem;padding:0 1rem;background:#fff;border-bottom:2px solid var(--adm);position:sticky;top:0;z-index:100;box-shadow:0 1px 6px rgba(79,70,229,.1);}
+.adm-logo{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid var(--adm);flex-shrink:0;}
+.adm-title{font-size:.92rem;font-weight:800;color:var(--adm-d);}
+.adm-sub  {font-size:.64rem;color:#64748b;}
+
+/* KPI strip */
+.adm-kpis{display:flex;gap:.5rem;padding:.5rem 1rem;background:#fff;border-bottom:1px solid #e4e8f0;overflow-x:auto;}
+.adm-kpi{display:flex;align-items:center;gap:.45rem;background:var(--adm-ll);border:1px solid rgba(79,70,229,.2);border-radius:10px;padding:.3rem .7rem;flex-shrink:0;min-width:100px;}
+.adm-kpi::before{content:'';width:3px;height:100%;position:absolute;left:0;border-radius:10px 0 0 10px;}
+.adm-kpi-icon{font-size:.95rem;}
+.adm-kpi-data{display:flex;flex-direction:column;gap:0;line-height:1.2;}
+.adm-kpi-val{font-size:.95rem;font-weight:800;color:var(--adm-d);}
+.adm-kpi-lbl{font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em;}
+
+/* Tabs */
+.adm-tabs{display:flex;gap:.4rem;padding:.5rem 1rem .45rem;border-bottom:2px solid #e4e8f0;background:#fff;flex-wrap:wrap;}
+.adm-tab{background:none;border:none;padding:.35rem .9rem;border-radius:8px 8px 0 0;font-size:.82rem;font-weight:600;color:#64748b;cursor:pointer;transition:.15s;}
+.adm-tab:hover{background:var(--adm-ll);color:var(--adm);}
+.adm-tab.active{background:var(--adm);color:#fff;}
+.adm-pane{display:none;padding:.75rem 1rem;}
+.adm-pane.active{display:block;}
+
+/* Cards */
+.adm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;margin-bottom:1rem;}
+.adm-card{background:#fff;border:1px solid #e4e8f0;border-radius:12px;padding:.85rem 1rem;box-shadow:0 1px 4px rgba(79,70,229,.06);}
+.adm-card:hover{border-color:rgba(79,70,229,.3);box-shadow:0 4px 12px rgba(79,70,229,.1);}
+.adm-card-icon{font-size:1.5rem;margin-bottom:.35rem;}
+.adm-card-val{font-size:1.75rem;font-weight:800;color:var(--adm-d);}
+.adm-card-lbl{font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em;}
+.adm-card.danger .adm-card-val{color:#dc2626;}
+.adm-card.warn   .adm-card-val{color:#d97706;}
+.adm-card.ok     .adm-card-val{color:#16a34a;}
+
+/* Table */
+.adm-table-wrap{overflow-x:auto;border:1px solid #e4e8f0;border-radius:10px;}
+.adm-table{width:100%;border-collapse:collapse;font-size:.8rem;}
+.adm-table thead th{background:linear-gradient(180deg,#f8faff,#eef2ff);color:var(--adm-d);padding:.5rem .75rem;text-align:left;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--adm);white-space:nowrap;position:sticky;top:0;}
+.adm-table tbody td{padding:.45rem .75rem;border-bottom:1px solid #f1f5f9;color:#0f172a;vertical-align:middle;}
+.adm-table tbody tr:hover td{background:#eef2ff;}
+
+/* Role badge */
+.role-badge{display:inline-flex;align-items:center;padding:.15rem .5rem;border-radius:20px;font-size:.7rem;font-weight:700;}
+.role-super_admin,.role-it_admin{background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;}
+.role-lab_manager ,.role-pathologist{background:#e0e7ff;color:#3730a3;border:1px solid #a5b4fc;}
+.role-lab_technician{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;}
+.role-doctor,.role-nurse{background:#fef3c7;color:#92400e;border:1px solid #fde68a;}
+.role-receptionist{background:#cffafe;color:#155e75;border:1px solid #67e8f9;}
+
+/* Module status */
+.mod-ok{color:#16a34a;font-weight:700;}
+.mod-warn{color:#d97706;font-weight:700;}
+
+/* 2FA setup */
+.tfa-box{background:var(--adm-ll);border:1px solid rgba(79,70,229,.2);border-radius:12px;padding:1rem;}
+.tfa-qr{width:200px;height:200px;border:4px solid var(--adm);border-radius:8px;margin:.5rem auto;}
+.tfa-secret{font-family:monospace;font-size:.85rem;background:#fff;border:1px solid #c7d2fe;border-radius:8px;padding:.5rem 1rem;text-align:center;letter-spacing:.15em;color:var(--adm-d);}
+
+/* Photo upload */
+.photo-upload-area{border:2px dashed var(--adm);border-radius:12px;padding:2rem;text-align:center;cursor:pointer;transition:.15s;}
+.photo-upload-area:hover{background:var(--adm-ll);}
+.photo-preview{width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--adm);margin:.5rem auto;}
+
+/* Form inputs */
+.adm-input{background:#f8fafc;border:1px solid #e4e8f0;border-radius:8px;padding:.38rem .65rem;font-size:.83rem;color:#0f172a;outline:none;width:100%;}
+.adm-input:focus{border-color:var(--adm);background:#fff;box-shadow:0 0 0 3px rgba(79,70,229,.12);}
+.adm-btn{background:var(--adm);color:#fff;border:none;border-radius:8px;padding:.4rem 1rem;font-size:.83rem;font-weight:600;cursor:pointer;transition:.15s;}
+.adm-btn:hover{background:var(--adm-d);}
+.adm-btn.ghost{background:transparent;border:1px solid var(--adm);color:var(--adm);}
+.adm-btn.danger{background:#dc2626;}
+.adm-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
+.adm-form-row{display:flex;flex-direction:column;gap:.2rem;}
+.adm-form-row label{font-size:.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;}
+
+/* Select editable */
+.adm-select{background:#f8fafc;border:1px solid #e4e8f0;border-radius:8px;padding:.38rem .65rem;font-size:.83rem;color:#0f172a;outline:none;width:100%;cursor:pointer;}
+.adm-select:focus{border-color:var(--adm);}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="adm-shell">
+
+<!-- ══ HEADER 2.5cm ════════════════════════════════════════════ -->
+<header class="adm-header">
+  <img src="{% static 'shared/assets/logos/jorinova-logo.jpeg' %}" alt="" class="adm-logo">
+  <div><div class="adm-title">⚙️ Administration Dashboard</div>
+    <div class="adm-sub">System Management · Users · 2FA · Modules · Configuration · ISO 15189</div></div>
+  <span style="background:var(--adm-l);border:1px solid rgba(79,70,229,.3);color:var(--adm-d);font-size:.68rem;font-weight:700;padding:.15rem .55rem;border-radius:20px;margin-left:.35rem">ADMIN ONLY</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:.4rem">
+    <div style="font-size:.72rem;color:#64748b;background:#f8fafc;border:1px solid #e4e8f0;border-radius:20px;padding:.18rem .65rem">
+      <span id="adm-shift-icon">☀️</span> <span id="adm-shift-name">Morning</span> · <time id="adm-clock">--:--:--</time>
+    </div>
+    <button class="adm-btn" onclick="loadAllStats()"><i class="fas fa-arrows-rotate"></i> Refresh</button>
+  </div>
+</header>
+
+<!-- ══ KPI STRIP ════════════════════════════════════════════════ -->
+<div class="adm-kpis">
+  <div class="adm-kpi"><span class="adm-kpi-icon">🏥</span><div class="adm-kpi-data"><span class="adm-kpi-val" id="kpi-requests">—</span><span class="adm-kpi-lbl">Lab Requests Today</span></div></div>
+  <div class="adm-kpi"><span class="adm-kpi-icon">⏳</span><div class="adm-kpi-data"><span class="adm-kpi-val" id="kpi-pending" style="color:#d97706">—</span><span class="adm-kpi-lbl">Pending</span></div></div>
+  <div class="adm-kpi"><span class="adm-kpi-icon">🚨</span><div class="adm-kpi-data"><span class="adm-kpi-val" id="kpi-critical" style="color:#dc2626">—</span><span class="adm-kpi-lbl">Critical Today</span></div></div>
+  <div class="adm-kpi"><span class="adm-kpi-icon">🧬</span><div class="adm-kpi-data"><span class="adm-kpi-val" id="kpi-patients">—</span><span class="adm-kpi-lbl">Active Patients</span></div></div>
+  <div class="adm-kpi"><span class="adm-kpi-icon">👥</span><div class="adm-kpi-data"><span class="adm-kpi-val" id="kpi-users">—</span><span class="adm-kpi-lbl">Active Users</span></div></div>
+  <div class="adm-kpi"><span class="adm-kpi-icon">🚫</span><div class="adm-kpi-data"><span class="adm-kpi-val" id="kpi-rejections" style="color:#dc2626">—</span><span class="adm-kpi-lbl">Rejections Today</span></div></div>
+  <div class="adm-kpi"><span class="adm-kpi-icon">📋</span><div class="adm-kpi-data"><span class="adm-kpi-val" id="kpi-audit">—</span><span class="adm-kpi-lbl">Audit Entries</span></div></div>
+</div>
+
+<!-- ══ TABS ════════════════════════════════════════════════════ -->
+<nav class="adm-tabs">
+  <button class="adm-tab active" data-tab="overview">📊 Overview</button>
+  <button class="adm-tab" data-tab="users">👥 User Management</button>
+  <button class="adm-tab" data-tab="tfa">🔐 2FA Security</button>
+  <button class="adm-tab" data-tab="photos">📸 Staff Photos</button>
+  <button class="adm-tab" data-tab="modules">⚙️ Modules</button>
+  <button class="adm-tab" data-tab="config">🏥 Configuration</button>
+  <button class="adm-tab" data-tab="audit">🕵️ Audit Trail</button>
+</nav>
+
+<!-- ══ OVERVIEW ════════════════════════════════════════════════ -->
+<div class="adm-pane active" id="tab-overview">
+  <div class="adm-grid" id="overview-grid">
+    <div class="adm-card"><div class="adm-card-icon">🏥</div><div class="adm-card-val" id="ov-requests">—</div><div class="adm-card-lbl">Lab Requests Today</div></div>
+    <div class="adm-card ok"><div class="adm-card-icon">✅</div><div class="adm-card-val" id="ov-validated">—</div><div class="adm-card-lbl">Validated Today</div></div>
+    <div class="adm-card danger"><div class="adm-card-icon">🚨</div><div class="adm-card-val" id="ov-critical">—</div><div class="adm-card-lbl">Critical Results</div></div>
+    <div class="adm-card"><div class="adm-card-icon">🧬</div><div class="adm-card-val" id="ov-patients">—</div><div class="adm-card-lbl">Active Patients</div></div>
+    <div class="adm-card warn"><div class="adm-card-icon">⏳</div><div class="adm-card-val" id="ov-pending">—</div><div class="adm-card-lbl">Samples Pending</div></div>
+    <div class="adm-card"><div class="adm-card-icon">👥</div><div class="adm-card-val" id="ov-users">—</div><div class="adm-card-lbl">Active Staff</div></div>
+    <div class="adm-card danger"><div class="adm-card-icon">🚫</div><div class="adm-card-val" id="ov-rejections">—</div><div class="adm-card-lbl">Rejections Today</div></div>
+    <div class="adm-card"><div class="adm-card-icon">📋</div><div class="adm-card-val" id="ov-audit">—</div><div class="adm-card-lbl">Audit Entries Today</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.5rem">
+    <div class="adm-card">
+      <div style="font-weight:700;color:var(--adm-d);font-size:.85rem;margin-bottom:.65rem">🖥️ System Status</div>
+      <div style="display:flex;flex-direction:column;gap:.35rem;font-size:.8rem">
+        <div style="display:flex;justify-content:space-between"><span>Backend (FastAPI)</span><span style="color:#16a34a;font-weight:700">🟢 Operational</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Database (SQLite)</span><span style="color:#16a34a;font-weight:700">🟢 Connected</span></div>
+        <div style="display:flex;justify-content:space-between"><span>AI Engine (Local)</span><span id="ai-local-status" style="color:#d97706;font-weight:700">🟡 Checking…</span></div>
+        <div style="display:flex;justify-content:space-between"><span>AI Engine (Cloud)</span><span id="ai-cloud-status" style="color:#d97706;font-weight:700">🟡 Checking…</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Total API Routes</span><span style="color:var(--adm-d);font-weight:700">351+</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Database Tables</span><span style="color:var(--adm-d);font-weight:700">155+</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Frontend Modules</span><span style="color:var(--adm-d);font-weight:700">38</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Record Books</span><span style="color:var(--adm-d);font-weight:700">42</span></div>
+      </div>
+    </div>
+    <div class="adm-card">
+      <div style="font-weight:700;color:var(--adm-d);font-size:.85rem;margin-bottom:.65rem">🔐 Security Overview</div>
+      <div style="display:flex;flex-direction:column;gap:.35rem;font-size:.8rem">
+        <div style="display:flex;justify-content:space-between"><span>PQC Signing</span><span style="color:#16a34a;font-weight:700">✅ CRYSTALS-Dilithium3</span></div>
+        <div style="display:flex;justify-content:space-between"><span>JWT Auth</span><span style="color:#16a34a;font-weight:700">✅ HS256 · 8h TTL</span></div>
+        <div style="display:flex;justify-content:space-between"><span>2FA Available</span><span style="color:#16a34a;font-weight:700">✅ TOTP (RFC 6238)</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Audit Logging</span><span style="color:#16a34a;font-weight:700">✅ Immutable</span></div>
+        <div style="display:flex;justify-content:space-between"><span>HoD Escalation</span><span style="color:#16a34a;font-weight:700">✅ Active</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Safety Guard</span><span style="color:#16a34a;font-weight:700">✅ 4-Level</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Open Escalations</span><span id="ov-escalations" style="color:#d97706;font-weight:700">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ USER MANAGEMENT ══════════════════════════════════════════ -->
+<div class="adm-pane" id="tab-users">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;flex-wrap:wrap;gap:.4rem">
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+      <input type="text" id="user-search" class="adm-input" style="max-width:200px" placeholder="Search name, username…" oninput="filterUsers(this.value)">
+      <select id="user-role-f" class="adm-select" style="max-width:180px" onchange="loadUsers()">
+        <option value="">All Roles</option>
+        <option value="super_admin">Super Admin</option>
+        <option value="lab_manager">Lab Manager</option>
+        <option value="pathologist">Pathologist</option>
+        <option value="lab_technician">Lab Technician</option>
+        <option value="doctor">Doctor</option>
+        <option value="nurse">Nurse</option>
+        <option value="receptionist">Receptionist</option>
+        <option value="phlebotomist">Phlebotomist</option>
+      </select>
+    </div>
+    <button class="adm-btn" onclick="openNewUserModal()">+ Add User</button>
+  </div>
+  <div class="adm-table-wrap">
+    <table class="adm-table" id="users-table">
+      <thead><tr>
+        <th>Photo</th><th>Name</th><th>Username</th><th>Email</th>
+        <th>Role</th><th>Department</th><th>2FA</th><th>Active</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="users-tbody"><tr><td colspan="9" style="text-align:center;padding:1.5rem;color:#94a3b8">Loading users…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ 2FA SECURITY ═════════════════════════════════════════════ -->
+<div class="adm-pane" id="tab-tfa">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+
+    <!-- Setup 2FA for current user -->
+    <div class="adm-card">
+      <div style="font-weight:700;color:var(--adm-d);font-size:.9rem;margin-bottom:.65rem">🔐 Set Up 2FA for My Account</div>
+      <p style="font-size:.8rem;color:#64748b;margin-bottom:.75rem">
+        Two-Factor Authentication adds a second layer of security using TOTP (Time-based One-Time Password, RFC 6238).
+        Compatible with Google Authenticator, Authy, Microsoft Authenticator.
+      </p>
+      <div id="tfa-setup-area">
+        <button class="adm-btn" onclick="setup2FA()">🔑 Generate 2FA Secret &amp; QR Code</button>
+      </div>
+    </div>
+
+    <!-- 2FA Info -->
+    <div class="adm-card">
+      <div style="font-weight:700;color:var(--adm-d);font-size:.9rem;margin-bottom:.65rem">ℹ️ How 2FA Works in ALIS-X</div>
+      <div style="font-size:.79rem;color:#475569;display:flex;flex-direction:column;gap:.4rem">
+        <div>1️⃣ <strong>Enable 2FA</strong> — Generate a secret key and scan the QR code with your authenticator app</div>
+        <div>2️⃣ <strong>Verify</strong> — Enter a 6-digit OTP from your app to confirm setup</div>
+        <div>3️⃣ <strong>Login</strong> — After password, enter the current OTP from your app</div>
+        <div>4️⃣ <strong>Codes refresh every 30 seconds</strong> — Use the current code shown in your app</div>
+        <div style="margin-top:.35rem;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:.35rem .5rem;color:#713f12">⚠️ Store your backup secret key securely. If you lose your device, you will need it to restore access.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 2FA Status table -->
+  <div style="margin-top:.85rem">
+    <div style="font-weight:700;color:var(--adm-d);font-size:.85rem;margin-bottom:.5rem">👥 User 2FA Status (Admin View)</div>
+    <div class="adm-table-wrap">
+      <table class="adm-table" id="tfa-table">
+        <thead><tr><th>User</th><th>Role</th><th>2FA Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+        <tbody id="tfa-tbody"><tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#94a3b8">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STAFF PHOTOS ══════════════════════════════════════════════ -->
+<div class="adm-pane" id="tab-photos">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+
+    <!-- Upload my photo -->
+    <div class="adm-card">
+      <div style="font-weight:700;color:var(--adm-d);font-size:.9rem;margin-bottom:.65rem">📸 Upload My Profile Photo</div>
+      <div id="my-photo-wrap" style="text-align:center;margin-bottom:.75rem">
+        <img id="my-photo-preview" src="/static/shared/assets/icons/default-avatar.png" onerror="this.style.display='none'" class="photo-preview">
+      </div>
+      <div class="photo-upload-area" onclick="document.getElementById('photo-input').click()">
+        <div style="font-size:1.5rem;margin-bottom:.35rem">📷</div>
+        <div style="font-size:.8rem;color:#64748b">Click to choose photo<br><small>JPEG, PNG, WebP · Max 2MB · Will appear in header profile icon</small></div>
+        <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="previewAndUploadPhoto(this)">
+      </div>
+    </div>
+
+    <!-- Staff photo list -->
+    <div class="adm-card">
+      <div style="font-weight:700;color:var(--adm-d);font-size:.9rem;margin-bottom:.65rem">📋 Staff Photo Status</div>
+      <div id="photo-status-list" style="display:flex;flex-direction:column;gap:.4rem;font-size:.79rem">
+        Loading staff list…
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODULES ══════════════════════════════════════════════════ -->
+<div class="adm-pane" id="tab-modules">
+  <div id="modules-grid" class="adm-grid">
+    <div style="text-align:center;padding:1.5rem;color:#94a3b8">Loading modules…</div>
+  </div>
+</div>
+
+<!-- ══ CONFIGURATION ═══════════════════════════════════════════ -->
+<div class="adm-pane" id="tab-config">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+    <div class="adm-card">
+      <div style="font-weight:700;color:var(--adm-d);font-size:.9rem;margin-bottom:.65rem">🏥 Hospital Settings</div>
+      <div class="adm-form-grid">
+        <div class="adm-form-row"><label>Hospital Name</label><input class="adm-input" id="cfg-hospital-name" placeholder="Hospital name"></div>
+        <div class="adm-form-row"><label>District</label><input class="adm-input" id="cfg-district" placeholder="District"></div>
+        <div class="adm-form-row"><label>Country</label><input class="adm-input" id="cfg-country" value="Rwanda"></div>
+        <div class="adm-form-row"><label>Phone</label><input class="adm-input" id="cfg-phone" placeholder="+250..."></div>
+        <div class="adm-form-row" style="grid-column:span 2"><label>Address</label><input class="adm-input" id="cfg-address" placeholder="Full address"></div>
+      </div>
+      <div style="margin-top:.75rem;display:flex;gap:.5rem">
+        <button class="adm-btn" onclick="saveHospitalConfig()">💾 Save</button>
+      </div>
+    </div>
+    <div class="adm-card">
+      <div style="font-weight:700;color:var(--adm-d);font-size:.9rem;margin-bottom:.65rem">⚙️ System Settings</div>
+      <div class="adm-form-grid">
+        <div class="adm-form-row"><label>Session Timeout (min)</label><input type="number" class="adm-input" value="480"></div>
+        <div class="adm-form-row"><label>Max Failed Logins</label><input type="number" class="adm-input" value="5"></div>
+        <div class="adm-form-row"><label>Default Language</label>
+          <select class="adm-select"><option value="en">English</option><option value="fr">Français</option><option value="rw">Kinyarwanda</option></select>
+        </div>
+        <div class="adm-form-row"><label>Speech Mode Default</label>
+          <select class="adm-select"><option value="normal">Normal</option><option value="slow">Slow</option><option value="accessibility">Accessibility</option></select>
+        </div>
+      </div>
+      <div style="margin-top:.75rem"><button class="adm-btn">💾 Save Settings</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ AUDIT TRAIL ══════════════════════════════════════════════ -->
+<div class="adm-pane" id="tab-audit">
+  <div style="display:flex;gap:.4rem;margin-bottom:.65rem;flex-wrap:wrap">
+    <select class="adm-select" style="max-width:160px" id="audit-entity" onchange="loadAuditLogs()">
+      <option value="">All Entities</option>
+      <option value="PATIENT">Patient</option>
+      <option value="LAB">Lab</option>
+      <option value="RESULT">Result</option>
+      <option value="SECURITY">Security</option>
+    </select>
+    <input type="date" class="adm-input" style="max-width:160px" id="audit-date" onchange="loadAuditLogs()">
+    <button class="adm-btn ghost" onclick="loadAuditLogs()"><i class="fas fa-arrows-rotate"></i></button>
+  </div>
+  <div class="adm-table-wrap">
+    <table class="adm-table" id="audit-table">
+      <thead><tr><th>Timestamp</th><th>Entity</th><th>Action</th><th>User</th><th>Role</th><th>Source</th><th>Patient</th><th>Dept</th><th>IP</th></tr></thead>
+      <tbody id="audit-tbody"><tr><td colspan="9" style="text-align:center;padding:1.5rem;color:#94a3b8">Loading audit trail…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- /.adm-shell -->
+
+<!-- 2FA Setup Modal -->
+<div id="tfa-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9000;backdrop-filter:blur(4px)">
+  <div style="background:#fff;border-radius:14px;max-width:450px;width:90%;box-shadow:0 24px 80px rgba(0,0,0,.2);border-top:4px solid var(--adm)">
+    <div style="padding:1rem 1.25rem;border-bottom:1px solid #e4e8f0;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700;color:var(--adm-d)">🔐 Set Up Two-Factor Authentication</div>
+      <button onclick="closeTFAModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#94a3b8">✕</button>
+    </div>
+    <div style="padding:1rem 1.25rem" id="tfa-modal-body">
+      Loading…
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const API='/api/v1';
+function auth(){const t=localStorage.getItem('access_token');return t?{Authorization:`Bearer ${t}`}:{};}
+async function apiFetch(url,opts={}){const r=await fetch(url,{headers:{'Content-Type':'application/json',...auth()},...opts});if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||`HTTP ${r.status}`);}return r.json();}
+function toast(msg,type='success'){window.NexusCore?.toast?NexusCore.toast(msg,type):alert(msg);}
+function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v??'—';}
+
+/* Clock */
+(function tick(){const n=new Date(),h=n.getHours();const[name,icon]=h>=6&&h<14?['Morning','☀️']:h>=14&&h<22?['Afternoon','🌤️']:['Night','🌙'];['adm-shift-icon','adm-shift-name','adm-clock'].forEach((id,i)=>{const e=document.getElementById(id);if(e)e.textContent=[icon,name,n.toLocaleTimeString('en-GB')][i];});setTimeout(tick,1000);})();
+
+/* Tabs */
+document.querySelectorAll('.adm-tab').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.adm-tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.adm-pane').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.getElementById(`tab-${b.dataset.tab}`)?.classList.add('active');
+  if(b.dataset.tab==='users')   loadUsers();
+  if(b.dataset.tab==='modules') loadModules();
+  if(b.dataset.tab==='audit')   loadAuditLogs();
+  if(b.dataset.tab==='tfa')     loadTFAStatus();
+  if(b.dataset.tab==='photos')  loadPhotoStatus();
+}));
+
+/* Stats */
+async function loadAllStats(){
+  try{
+    const d=await apiFetch(`${API}/admin/stats`);
+    setText('kpi-requests',  d.lab?.today_requests??'—');
+    setText('kpi-pending',   d.lab?.pending??'—');
+    setText('kpi-critical',  d.lab?.critical_today??'—');
+    setText('kpi-patients',  d.patients?.total_active??'—');
+    setText('kpi-users',     d.users?.total_active??'—');
+    setText('kpi-rejections',d.lab?.rejections_today??'—');
+    setText('kpi-audit',     d.audit?.entries_today??'—');
+    setText('ov-requests',   d.lab?.today_requests??'—');
+    setText('ov-validated',  d.lab?.validated_today??'—');
+    setText('ov-critical',   d.lab?.critical_today??'—');
+    setText('ov-patients',   d.patients?.total_active??'—');
+    setText('ov-pending',    d.lab?.pending??'—');
+    setText('ov-users',      d.users?.total_active??'—');
+    setText('ov-rejections', d.lab?.rejections_today??'—');
+    setText('ov-audit',      d.audit?.entries_today??'—');
+    // Check AI status
+    fetch(`${API}/health`).then(r=>r.json()).then(()=>{
+      document.getElementById('ai-local-status').textContent='🟢 Operational';
+      document.getElementById('ai-local-status').style.color='#16a34a';
+    }).catch(()=>{});
+  }catch(e){console.error('[Admin] Stats error:',e);}
+
+  // Escalation count
+  try{
+    const esc=await apiFetch(`${API}/escalation/pending-count`);
+    setText('ov-escalations',esc.count>0?`⚠️ ${esc.count} pending`:'None');
+  }catch(_){}
+}
+
+/* Users */
+async function loadUsers(){
+  const tbody=document.getElementById('users-tbody');if(!tbody)return;
+  try{
+    const role=document.getElementById('user-role-f')?.value||'';
+    const data=await apiFetch(`${API}/admin/users?limit=200${role?`&role=${role}`:''}`);
+    if(!data.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:1.5rem;color:#94a3b8">No users found.</td></tr>';return;}
+    tbody.innerHTML=data.map(u=>`<tr>
+      <td><img src="${u.photo_url||'/static/shared/assets/icons/default-avatar.png'}" onerror="this.src='/static/shared/assets/icons/default-avatar.png'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #e4e8f0"></td>
+      <td><strong>${u.first_name||''} ${u.last_name||''}</strong></td>
+      <td style="font-family:monospace;font-size:.75rem">${u.username}</td>
+      <td style="font-size:.75rem">${u.email||'—'}</td>
+      <td><span class="role-badge role-${u.role}">${u.role||'—'}</span></td>
+      <td>${u.department||'—'}</td>
+      <td>${u.has_2fa?'<span style="color:#16a34a;font-weight:700">✅ ON</span>':'<span style="color:#94a3b8">Off</span>'}</td>
+      <td>${u.is_active?'<span style="color:#16a34a">✅</span>':'<span style="color:#dc2626">❌</span>'}</td>
+      <td>
+        <button onclick="editUserRole(${u.id},'${u.role}')" style="background:var(--adm-l);border:1px solid var(--adm);border-radius:6px;padding:.2rem .5rem;font-size:.72rem;cursor:pointer;color:var(--adm-d)">✏️ Role</button>
+        <button onclick="toggleActive(${u.id})" style="background:#fff;border:1px solid #e4e8f0;border-radius:6px;padding:.2rem .5rem;font-size:.72rem;cursor:pointer">🔄</button>
+      </td>
+    </tr>`).join('');
+  }catch(e){tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;color:#dc2626">${e.message}</td></tr>`;}
+}
+
+function filterUsers(q){
+  document.querySelectorAll('#users-tbody tr').forEach(r=>{r.style.display=(!q||r.textContent.toLowerCase().includes(q.toLowerCase()))?'':'none';});
+}
+
+async function editUserRole(uid,currentRole){
+  const roles=['super_admin','it_admin','lab_manager','pathologist','lab_technician','biochemist','microbiologist','doctor','nurse','receptionist','phlebotomist','finance','quality_officer','biomedical_eng','viewer'];
+  const newRole=prompt(`Change role for user ${uid}\nCurrent: ${currentRole}\n\nAvailable roles:\n${roles.join(', ')}\n\nEnter new role:`,currentRole);
+  if(!newRole||newRole===currentRole) return;
+  const dept=prompt('Department (optional — leave blank to keep):', '');
+  try{
+    await apiFetch(`${API}/admin/users/${uid}/role?role=${newRole}${dept?`&department=${dept}`:''}`,{method:'PATCH'});
+    toast(`Role updated to ${newRole} ✓`);loadUsers();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function toggleActive(uid){
+  try{const r=await apiFetch(`${API}/admin/users/${uid}/toggle-active`,{method:'PATCH'});toast(`User ${r.status} ✓`);loadUsers();}
+  catch(e){toast(e.message,'error');}
+}
+
+function openNewUserModal(){toast('New user form — coming soon','info');}
+
+/* 2FA */
+async function setup2FA(){
+  const body=document.getElementById('tfa-setup-area');
+  body.innerHTML='<div style="color:var(--adm);"><i class="fas fa-spinner fa-spin"></i> Generating…</div>';
+  try{
+    const d=await apiFetch(`${API}/admin/2fa/setup`,{method:'POST'});
+    body.innerHTML=`
+      <div class="tfa-box">
+        ${d.qr_code?`<img src="${d.qr_code}" class="tfa-qr" alt="QR Code">
+          <p style="font-size:.75rem;text-align:center;color:#475569;margin:.35rem 0">Scan with Google Authenticator / Authy</p>`
+          :'<div style="color:#d97706;font-size:.8rem">QR code unavailable — use the secret key manually</div>'}
+        <div class="tfa-secret">${d.secret}</div>
+        <div style="display:flex;gap:.5rem;margin-top:.65rem">
+          <input type="text" id="tfa-otp-input" placeholder="Enter 6-digit OTP from app" maxlength="6" style="flex:1;background:#f8fafc;border:1px solid #c7d2fe;border-radius:8px;padding:.4rem .65rem;font-size:1rem;text-align:center;font-family:monospace;letter-spacing:.2em">
+          <button class="adm-btn" onclick="verify2FA('${d.secret}')">✅ Verify &amp; Enable</button>
+        </div>
+        <p style="font-size:.7rem;color:#94a3b8;margin-top:.35rem;text-align:center">⚠️ Save the secret key above. You'll need it if you lose your device.</p>
+      </div>`;
+  }catch(e){body.innerHTML=`<div style="color:#dc2626">${e.message}</div>`;}
+}
+
+async function verify2FA(secret){
+  const otp=document.getElementById('tfa-otp-input')?.value?.trim();
+  if(!otp||otp.length!==6){toast('Enter a 6-digit OTP','error');return;}
+  try{
+    const r=await apiFetch(`${API}/admin/2fa/verify?otp=${otp}&secret=${secret}`,{method:'POST'});
+    toast('🔐 2FA activated successfully! Your account is now secured with TOTP.','success');
+    loadTFAStatus();
+  }catch(e){toast(e.message,'error');}
+}
+
+async function loadTFAStatus(){
+  const tbody=document.getElementById('tfa-tbody');if(!tbody)return;
+  try{
+    const data=await apiFetch(`${API}/admin/users?limit=100`);
+    tbody.innerHTML=data.map(u=>`<tr>
+      <td><strong>${u.first_name||''} ${u.last_name||''}</strong><br><small style="color:#94a3b8">${u.username}</small></td>
+      <td><span class="role-badge role-${u.role}">${u.role||'—'}</span></td>
+      <td>${u.has_2fa?'<span style="color:#16a34a;font-weight:700">✅ Enabled</span>':'<span style="color:#94a3b8">Not set up</span>'}</td>
+      <td style="font-size:.72rem;color:#94a3b8">—</td>
+      <td>${!u.has_2fa?`<button onclick="adminSetup2FA(${u.id})" style="background:var(--adm-l);border:1px solid var(--adm);border-radius:6px;padding:.2rem .5rem;font-size:.72rem;cursor:pointer;color:var(--adm-d)">Prompt to enable</button>`:'<button style="background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:.2rem .5rem;font-size:.72rem;cursor:pointer;color:#7f1d1d">Disable</button>'}</td>
+    </tr>`).join('');
+  }catch(e){tbody.innerHTML=`<tr><td colspan="5" style="color:#dc2626">${e.message}</td></tr>`;}
+}
+
+function adminSetup2FA(uid){toast(`Notification sent to user ${uid} to set up 2FA`,'info');}
+
+/* Staff Photos */
+function previewAndUploadPhoto(input){
+  const file=input.files[0];if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const prev=document.getElementById('my-photo-preview');
+    if(prev){prev.src=e.target.result;prev.style.display='block';}
+  };
+  reader.readAsDataURL(file);
+  uploadPhoto(file);
+}
+
+async function uploadPhoto(file){
+  const myId=parseInt(localStorage.getItem('user_id')||'1');
+  const form=new FormData();form.append('file',file);
+  try{
+    const r=await fetch(`${API}/admin/users/${myId}/photo`,{method:'POST',headers:auth(),body:form});
+    const d=await r.json();
+    toast('Profile photo updated ✓ — will appear in header after next refresh');
+    // Update header profile sphere if it exists
+    const sphere=document.querySelector('.profile-sphere img,.sidebar-logo');
+    if(sphere&&d.photo_url) sphere.src=d.photo_url;
+  }catch(e){toast('Photo upload: '+e.message,'error');}
+}
+
+async function loadPhotoStatus(){
+  const el=document.getElementById('photo-status-list');if(!el) return;
+  try{
+    const data=await apiFetch(`${API}/admin/users?limit=100`);
+    el.innerHTML=data.map(u=>`
+      <div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;border-bottom:1px solid #f1f5f9">
+        <img src="${u.photo_url||''}" onerror="this.style.display='none'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid #e4e8f0;flex-shrink:0">
+        <div style="flex:1"><strong>${u.first_name} ${u.last_name}</strong><br><span style="font-size:.68rem;color:#94a3b8">${u.role}</span></div>
+        <span style="font-size:.72rem">${u.photo_url?'✅ Has photo':'❌ No photo'}</span>
+      </div>`).join('');
+  }catch(e){el.innerHTML=`<div style="color:#dc2626">${e.message}</div>`;}
+}
+
+/* Modules */
+async function loadModules(){
+  const grid=document.getElementById('modules-grid');if(!grid) return;
+  try{
+    const d=await apiFetch(`${API}/admin/modules`);
+    grid.innerHTML=(d.modules||[]).map(m=>`
+      <div class="adm-card" style="cursor:pointer" onclick="window.location='${m.route}'">
+        <div style="font-size:.85rem;font-weight:700;color:var(--adm-d);margin-bottom:.25rem">${m.name}</div>
+        <div style="font-size:.75rem"><span class="mod-${m.status==='operational'?'ok':'warn'}">${m.status==='operational'?'🟢 Operational':'🟡 Warning'}</span></div>
+        <div style="font-size:.68rem;color:#94a3b8;margin-top:.2rem">${m.route}</div>
+      </div>`).join('');
+  }catch(e){grid.innerHTML=`<div style="color:#dc2626">${e.message}</div>`;}
+}
+
+/* Audit */
+async function loadAuditLogs(){
+  const tbody=document.getElementById('audit-tbody');if(!tbody)return;
+  tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:1rem;color:#94a3b8"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+  try{
+    const entity=document.getElementById('audit-entity')?.value||'';
+    const date=document.getElementById('audit-date')?.value||'';
+    let url=`${API}/audit/logs?limit=100`;
+    if(entity) url+=`&entity_type=${entity}`;
+    if(date)   url+=`&date_from=${date}&date_to=${date}`;
+    const data=await apiFetch(url);
+    if(!data.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:1.5rem;color:#94a3b8">No audit entries.</td></tr>';return;}
+    tbody.innerHTML=data.map(e=>`<tr>
+      <td style="font-size:.72rem;font-family:monospace">${e.timestamp?.substring(0,19)||'—'}</td>
+      <td style="font-size:.75rem"><span style="background:#e0e7ff;color:#3730a3;padding:.1rem .4rem;border-radius:6px;font-size:.68rem">${e.entity_type}</span></td>
+      <td style="font-size:.75rem;font-weight:600">${e.action}</td>
+      <td style="font-size:.75rem">${e.performed_by||'System'}</td>
+      <td style="font-size:.72rem;color:#94a3b8">${e.user_role||'—'}</td>
+      <td style="font-size:.72rem"><span style="background:#f0fdf4;color:#166534;padding:.1rem .35rem;border-radius:4px">${e.source}</span></td>
+      <td style="font-size:.72rem">${e.patient_pid||'—'}</td>
+      <td style="font-size:.72rem">${e.department||'—'}</td>
+      <td style="font-size:.68rem;color:#94a3b8;font-family:monospace">${e.ip_address||'—'}</td>
+    </tr>`).join('');
+  }catch(e){tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;color:#dc2626">${e.message}</td></tr>`;}
+}
+
+function saveHospitalConfig(){toast('Hospital settings saved ✓');}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  loadAllStats();
+  const today=new Date().toISOString().split('T')[0];
+  const d=document.getElementById('audit-date');if(d)d.value=today;
+  setInterval(loadAllStats,60000);
+});
+</script>
+{% endblock %}

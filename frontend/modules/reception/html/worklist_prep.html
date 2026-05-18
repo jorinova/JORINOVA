@@ -1,0 +1,292 @@
+{% extends "shared/html/base.html" %}
+{% load static %}
+
+{% block title %}Worklist Preparation — NEXUS ALIS-X{% endblock %}
+{% block module_id %}reception{% endblock %}
+{% block nav_active_reception %}active{% endblock %}
+
+{% block module_css %}
+<link rel="stylesheet" href="{{ static('modules/reception/css/worklist_prep.css') }}">
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Hard-lock white theme — prevents sidebar dark bleed */
+  html, body, #app-main { background: #ffffff !important; color: #0f172a !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wp-page" id="wp-page" data-request-id="{{ lab_request_id }}">
+
+  <!-- ━━━━ HEADER ━━━━ -->
+  <header class="wp-header">
+    <div class="wp-header-left">
+      <div class="wp-icon-wrap">
+        <i class="fas fa-flask-vial"></i>
+      </div>
+      <div>
+        <div class="wp-title">Worklist Preparation</div>
+        <div class="wp-subtitle" id="wp-shift-display">Loading…</div>
+      </div>
+    </div>
+    <div class="wp-header-right">
+      <a href="/reception/" class="wp-back-link">
+        <i class="fas fa-arrow-left"></i> Reception
+      </a>
+    </div>
+  </header>
+
+  <!-- ━━━━ PATIENT BANNER ━━━━ -->
+  <div class="wp-patient-banner" id="wp-patient-banner">
+    <div class="wp-patient-avatar" id="wp-avatar">?</div>
+    <div class="wp-patient-info">
+      <div class="wp-patient-name" id="wp-patient-name">Loading patient…</div>
+      <div class="wp-patient-meta" id="wp-patient-meta">
+        <span class="wp-badge wp-badge-grey" style="animation:wp-shimmer 1.5s infinite">—</span>
+      </div>
+    </div>
+    <div class="wp-request-info">
+      <div class="wp-lab-id" id="wp-lab-id">—</div>
+      <div id="wp-doctor-info" style="text-align:right;margin-top:4px"></div>
+      <div id="wp-date-info" style="text-align:right"></div>
+    </div>
+  </div>
+
+  <!-- ━━━━ MAIN CONTENT ━━━━ -->
+  <div class="wp-content">
+
+    <!-- High-risk toggle -->
+    <div class="wp-highrisk-row" id="wp-highrisk-row" style="display:none">
+      <div class="wp-highrisk-label">
+        <i class="fas fa-biohazard"></i>
+        <div>
+          <div>Mark as High-Risk Specimen</div>
+          <div style="font-size:11px;font-weight:400;opacity:0.8">HIV+, Hepatitis, Active TB — extra precaution required</div>
+        </div>
+      </div>
+      <label class="wp-toggle">
+        <input type="checkbox" id="wp-highrisk-toggle">
+        <span class="wp-toggle-track"><span class="wp-toggle-thumb"></span></span>
+      </label>
+    </div>
+
+    <!-- Section heading -->
+    <div class="wp-section-title">
+      <i class="fas fa-vials"></i>
+      Specimens & Test Assignment
+    </div>
+
+    <!-- Skeleton loaders -->
+    <div id="wp-skeleton">
+      <div class="wp-skeleton wp-skeleton-card"></div>
+      <div class="wp-skeleton wp-skeleton-card" style="height:90px"></div>
+      <div class="wp-skeleton wp-skeleton-card" style="height:140px"></div>
+    </div>
+
+    <!-- Tube group cards (rendered by JS) -->
+    <div class="wp-tube-groups" id="wp-tube-groups" style="display:none"></div>
+
+    <!-- Summary bar -->
+    <div class="wp-summary-bar" id="wp-summary-bar" style="display:none">
+      <div class="wp-summary-item">
+        <div class="wp-summary-value" id="sum-tubes">—</div>
+        <div class="wp-summary-label">Tubes</div>
+      </div>
+      <div class="wp-summary-divider"></div>
+      <div class="wp-summary-item">
+        <div class="wp-summary-value" id="sum-tests">—</div>
+        <div class="wp-summary-label">Tests</div>
+      </div>
+      <div class="wp-summary-divider"></div>
+      <div class="wp-summary-item">
+        <div class="wp-summary-value" id="sum-depts">—</div>
+        <div class="wp-summary-label">Departments</div>
+      </div>
+      <div class="wp-summary-divider"></div>
+      <div class="wp-summary-item">
+        <div class="wp-summary-value" id="sum-est" style="color:#059669">—</div>
+        <div class="wp-summary-label">Est. Total (RWF)</div>
+      </div>
+    </div>
+
+    <!-- Confirm button row -->
+    <div class="wp-confirm-row" id="wp-confirm-row" style="display:none">
+      <a href="/reception/" class="wp-btn-secondary">
+        <i class="fas fa-xmark"></i> Cancel
+      </a>
+      <button class="wp-btn-confirm" id="wp-btn-confirm" type="button">
+        <span class="wp-btn-spinner"></span>
+        <i class="fas fa-check-circle wp-btn-icon"></i>
+        CONFIRM &amp; GENERATE WORKLIST
+      </button>
+    </div>
+
+    <!-- Empty state -->
+    <div class="wp-empty" id="wp-empty" style="display:none">
+      <i class="fas fa-magnifying-glass"></i>
+      <div class="wp-empty-title">No Tests Found</div>
+      <div>This lab request has no ordered tests or was already received.</div>
+    </div>
+
+  </div><!-- /wp-content -->
+
+</div><!-- /wp-page -->
+
+<!-- ━━━━ BILLING MODAL ━━━━ -->
+<div class="wp-modal-overlay" id="billing-overlay">
+  <div class="wp-modal" role="dialog" aria-modal="true" aria-labelledby="billing-modal-title">
+
+    <!-- Modal header -->
+    <div class="wp-modal-header">
+      <div class="wp-modal-icon"><i class="fas fa-receipt"></i></div>
+      <div>
+        <div class="wp-modal-title" id="billing-modal-title">Billing Summary</div>
+        <div class="wp-modal-subtitle" id="billing-modal-patient">Auto-billed from test catalog</div>
+      </div>
+      <button class="wp-modal-close" id="billing-modal-close" title="Dismiss billing (save later)">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Modal body -->
+    <div class="wp-modal-body" id="billing-modal-body">
+
+      <div id="billing-main-view">
+        <!-- Auto-billed items -->
+        <div class="billing-section-label">
+          <i class="fas fa-bolt" style="color:#f59e0b"></i>
+          Auto-billed from test catalog
+        </div>
+        <table class="billing-items-table">
+          <thead>
+            <tr>
+              <th style="width:40%">Test / Service</th>
+              <th style="width:10%">Qty</th>
+              <th style="width:14%">Unit Price</th>
+              <th style="width:14%">Total</th>
+              <th style="width:10%">Waive</th>
+              <th style="width:12%"></th>
+            </tr>
+          </thead>
+          <tbody id="billing-items-tbody"></tbody>
+        </table>
+
+        <!-- Add "Other" item -->
+        <div class="billing-section-label">
+          <i class="fas fa-plus" style="color:#0ea5e9"></i>
+          Add Other Services
+        </div>
+        <div class="billing-add-row">
+          <div class="billing-search-wrap">
+            <i class="fas fa-magnifying-glass billing-search-icon"></i>
+            <input type="text" id="billing-search-input" class="billing-search-input"
+                   placeholder="Search service to add…" autocomplete="off">
+            <div class="billing-search-dropdown" id="billing-search-dropdown"></div>
+          </div>
+        </div>
+
+        <!-- Payment method -->
+        <div class="billing-section-label">
+          <i class="fas fa-credit-card" style="color:#6366f1"></i>
+          Payment Method
+        </div>
+        <div class="billing-payment-pills" id="billing-payment-pills">
+          <label class="billing-payment-pill" data-method="CASH">
+            <input type="radio" name="pay_method" value="CASH" style="display:none"> 💵 Cash
+          </label>
+          <label class="billing-payment-pill" data-method="INSURANCE">
+            <input type="radio" name="pay_method" value="INSURANCE" style="display:none"> 🏥 Insurance
+          </label>
+          <label class="billing-payment-pill" data-method="RSSB">
+            <input type="radio" name="pay_method" value="RSSB" style="display:none"> 🔵 RSSB
+          </label>
+          <label class="billing-payment-pill" data-method="MOMO">
+            <input type="radio" name="pay_method" value="MOMO" style="display:none"> 📱 MoMo
+          </label>
+          <label class="billing-payment-pill" data-method="CREDIT">
+            <input type="radio" name="pay_method" value="CREDIT" style="display:none"> 📋 Credit
+          </label>
+        </div>
+
+        <!-- Extra fields (insurance / momo ref) -->
+        <div id="billing-extra-fields" style="display:none;margin-top:10px;display:none">
+          <input type="text" id="billing-insurance-name" class="billing-search-input"
+                 placeholder="Insurance name…" style="margin-bottom:6px">
+          <input type="text" id="billing-momo-ref" class="billing-search-input"
+                 placeholder="MoMo reference…" style="display:none">
+        </div>
+
+        <!-- Notes -->
+        <div class="billing-section-label" style="margin-top:12px">
+          <i class="fas fa-note-sticky" style="color:#94a3b8"></i>
+          Notes (optional)
+        </div>
+        <textarea class="billing-notes-input" id="billing-notes"
+                  placeholder="Any notes about this bill…" rows="2"></textarea>
+
+        <!-- Totals -->
+        <div class="billing-totals" id="billing-totals" style="margin-top:16px">
+          <div class="billing-total-row">
+            <span>Subtotal</span>
+            <span id="bill-subtotal">0 RWF</span>
+          </div>
+          <div class="billing-total-row">
+            <span>Waivers</span>
+            <span id="bill-waivers" style="color:#dc2626">−0 RWF</span>
+          </div>
+          <div class="billing-total-row grand">
+            <span>TOTAL DUE</span>
+            <span id="bill-total" class="billing-grand-amount">0 RWF</span>
+          </div>
+        </div>
+      </div><!-- /#billing-main-view -->
+
+      <!-- Success view -->
+      <div id="billing-success-view" style="display:none">
+        <div class="wp-success-splash">
+          <div class="wp-success-icon"><i class="fas fa-check"></i></div>
+          <div class="wp-success-title">Worklist Created!</div>
+          <div class="wp-success-msg" id="billing-success-msg">
+            Worklist entries and billing record saved.<br>
+            Ready to print specimen labels.
+          </div>
+          <div class="wp-success-actions">
+            <a href="#" id="billing-print-link" class="wp-print-btn" target="_blank">
+              <i class="fas fa-print"></i> Print Labels
+            </a>
+            <a href="/reception/" class="wp-done-btn">
+              <i class="fas fa-check"></i> Done
+            </a>
+          </div>
+        </div>
+      </div><!-- /#billing-success-view -->
+
+    </div><!-- /wp-modal-body -->
+
+    <!-- Modal footer -->
+    <div class="wp-modal-footer" id="billing-modal-footer">
+      <button class="wp-modal-dismiss" id="billing-skip-btn" type="button">
+        Skip Billing (bill later)
+      </button>
+      <div style="display:flex;gap:10px">
+        <button class="wp-modal-btn-skip" id="billing-draft-btn" type="button">
+          <i class="fas fa-save"></i> Save Draft
+        </button>
+        <button class="wp-modal-btn-confirm" id="billing-confirm-btn" type="button">
+          <i class="fas fa-check-circle"></i> Confirm Billing
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /wp-modal -->
+</div><!-- /billing-overlay -->
+
+<!-- Toast container -->
+<div class="wp-toast-container" id="wp-toast-container"></div>
+
+{% endblock %}
+
+{% block module_scripts %}
+<script src="{{ static('modules/reception/js/worklist_prep.js') }}" defer></script>
+{% endblock %}

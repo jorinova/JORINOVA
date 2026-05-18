@@ -1,0 +1,393 @@
+{% extends "shared/html/base.html" %}
+{% load static %}
+
+{% block title %}🟡 Urinalysis — NEXUS ALIS-X{% endblock %}
+{% block module_id %}urinalysis{% endblock %}
+{% block nav_active_lab %}active{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{% static 'modules/urinalysis/css/urinalysis.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+{% endblock %}
+
+{% block content %}
+<div id="urn-app">
+
+  <div class="dept-header urn-hdr">
+    <div class="dh-left">
+      <div class="dh-icon">🟡</div>
+      <div><h1 class="dh-title">Urinalysis Department</h1>
+        <div class="dh-sub">Dipstick · Microscopy · Urine Culture Link · Pregnancy Testing · Renal Function Correlation</div></div>
+    </div>
+    <div class="dh-right">
+      <div class="dh-chip" id="hdr-pending">⏳ <span id="stat-pending">—</span> Pending</div>
+      <div class="dh-chip danger">🔴 <span id="stat-abnormal">—</span> Abnormal</div>
+      <div class="dh-chip culture">🧫 <span id="stat-culture">—</span> Culture Sent</div>
+    </div>
+  </div>
+
+  <div class="dept-kpis">
+    <div class="kpi kpi-total"><div class="kpi-val" id="kpi-total">—</div><div class="kpi-lbl">Total Today</div></div>
+    <div class="kpi kpi-abnormal"><div class="kpi-val" id="kpi-abnormal">—</div><div class="kpi-lbl">Abnormal Dipstick</div></div>
+    <div class="kpi kpi-protein"><div class="kpi-val" id="kpi-protein">—</div><div class="kpi-lbl">Proteinuria</div></div>
+    <div class="kpi kpi-uti"><div class="kpi-val" id="kpi-uti">—</div><div class="kpi-lbl">UTI Suspected</div></div>
+    <div class="kpi kpi-culture"><div class="kpi-val" id="kpi-culture">—</div><div class="kpi-lbl">Cultures Sent</div></div>
+  </div>
+
+  <nav class="dept-tabs">
+    <button class="dt active" data-tab="dashboard">📊 Dashboard</button>
+    <button class="dt" data-tab="dipstick">🔬 Dipstick Results</button>
+    <button class="dt" data-tab="microscopy">👁️ Urine Microscopy</button>
+    <button class="dt" data-tab="culture-link">🧫 Culture Link</button>
+    <button class="dt" data-tab="special">💊 Special Tests</button>
+    <button class="dt" data-tab="validation">✅ Validation</button>
+    <button class="dt" data-tab="book">📖 Critical Book</button>
+  </nav>
+
+  <!-- ══ DASHBOARD ════════════════════════════════════════════════ -->
+  <div class="dept-pane active" id="tab-dashboard">
+    <!-- Dipstick parameter legend -->
+    <div class="urn-param-strip">
+      <div class="urn-param"><div class="urn-p-icon">🌡️</div><div class="urn-p-name">Appearance</div><div class="urn-p-ref">Clear, pale yellow</div></div>
+      <div class="urn-param"><div class="urn-p-icon">🔢</div><div class="urn-p-name">pH</div><div class="urn-p-ref">4.5 – 8.5</div></div>
+      <div class="urn-param"><div class="urn-p-icon">⚖️</div><div class="urn-p-name">Specific Gravity</div><div class="urn-p-ref">1.003 – 1.030</div></div>
+      <div class="urn-param crit"><div class="urn-p-icon">🩸</div><div class="urn-p-name">Blood</div><div class="urn-p-ref">Negative</div></div>
+      <div class="urn-param crit"><div class="urn-p-icon">🥩</div><div class="urn-p-name">Protein</div><div class="urn-p-ref">Negative</div></div>
+      <div class="urn-param crit"><div class="urn-p-icon">🍬</div><div class="urn-p-name">Glucose</div><div class="urn-p-ref">Negative</div></div>
+      <div class="urn-param"><div class="urn-p-icon">🟠</div><div class="urn-p-name">Ketones</div><div class="urn-p-ref">Negative</div></div>
+      <div class="urn-param crit"><div class="urn-p-icon">🟤</div><div class="urn-p-name">Bilirubin</div><div class="urn-p-ref">Negative</div></div>
+      <div class="urn-param"><div class="urn-p-icon">🟡</div><div class="urn-p-name">Urobilinogen</div><div class="urn-p-ref">&lt;1.0 mg/dL</div></div>
+      <div class="urn-param crit"><div class="urn-p-icon">🦠</div><div class="urn-p-name">Nitrite</div><div class="urn-p-ref">Negative (bacteria)</div></div>
+      <div class="urn-param crit"><div class="urn-p-icon">🔴</div><div class="urn-p-name">Leukocytes (LE)</div><div class="urn-p-ref">Negative (WBC)</div></div>
+    </div>
+
+    <div class="urn-sq-grid">
+      <div class="sq-card dipstick-sq"><div class="sq-icon">🔬</div>
+        <div class="sq-body"><div class="sq-name">Dipstick Analysis</div>
+          <div class="sq-tests">Automated strip reader or manual reading · All 11 parameters · Semi-quantitative</div>
+          <div class="sq-cnt" id="sq-dipstick">— pending</div></div>
+        <button onclick="switchTab('dipstick')">View →</button></div>
+      <div class="sq-card micro-sq"><div class="sq-icon">👁️</div>
+        <div class="sq-body"><div class="sq-name">Microscopy</div>
+          <div class="sq-tests">RBC · WBC · Casts · Crystals · Epithelial cells · Bacteria · Yeast</div>
+          <div class="sq-cnt" id="sq-micro">— pending</div></div>
+        <button onclick="switchTab('microscopy')">View →</button></div>
+      <div class="sq-card culture-sq"><div class="sq-icon">🧫</div>
+        <div class="sq-body"><div class="sq-name">Culture Referrals</div>
+          <div class="sq-tests">Samples referred to Microbiology · UTI culture tracking · Antibiogram results</div>
+          <div class="sq-cnt" id="sq-culture-ref">— referred</div></div>
+        <button onclick="switchTab('culture-link')">View →</button></div>
+      <div class="sq-card special-sq"><div class="sq-icon">💊</div>
+        <div class="sq-body"><div class="sq-name">Special Tests</div>
+          <div class="sq-tests">urine hCG (pregnancy) · Microalbumin · Creatinine ratio · Urine drug screen</div>
+          <div class="sq-cnt" id="sq-special">— pending</div></div>
+        <button onclick="switchTab('special')">View →</button></div>
+    </div>
+
+    <div class="urn-dash-row">
+      <div class="urn-chart-box"><div class="box-title">Urinalysis Results — Today by Abnormality</div><canvas id="urn-chart" height="200"></canvas></div>
+      <div class="urn-recent-box">
+        <div class="box-title">Recent Abnormal Results</div>
+        <div id="urn-recent-list"><div class="dept-empty">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DIPSTICK RESULTS ══════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-dipstick">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="dip-abnormal-f" onchange="loadDipstick()">
+          <option value="">All Results</option>
+          <option value="abnormal_only">Abnormal Only</option>
+          <option value="protein_positive">Protein +</option>
+          <option value="blood_positive">Blood +</option>
+          <option value="glucose_positive">Glucose +</option>
+          <option value="nitrite_positive">Nitrite + (UTI)</option>
+          <option value="le_positive">LE + (WBC)</option>
+        </select>
+        <input type="date" id="dip-date-f" onchange="loadDipstick()">
+      </div>
+      <div class="dept-toolbar-right">
+        <button class="dept-print-btn" onclick="NexusPrint?.printAll('dip-table')">🖨️</button>
+        <button class="dept-filter-btn" onclick="NexusFilter?.open('dip-table')">⚙️</button>
+        <button class="btn-primary" onclick="openModal('dip-modal')">+ Enter Dipstick Result</button>
+      </div>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="dip-table">
+        <thead><tr>
+          <th>Lab ID</th><th>Patient</th><th>Colour</th><th>Appearance</th><th>pH</th>
+          <th>SG</th><th>Blood</th><th>Protein</th><th>Glucose</th>
+          <th>Ketones</th><th>Bilirubin</th><th>Urobilinogen</th>
+          <th>Nitrite</th><th>LE</th><th>Overall</th><th>Microscopy?</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="dip-tbody"><tr><td colspan="17" class="dept-empty">Loading dipstick results…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ MICROSCOPY ════════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-microscopy">
+    <div class="urn-micro-ref">
+      <div class="um-item"><strong>RBC</strong><span>0–3 /HPF (normal)</span><span class="crit">Haematuria: &gt;3 RBC/HPF</span></div>
+      <div class="um-item"><strong>WBC</strong><span>0–5 /HPF (normal)</span><span class="crit">Pyuria: &gt;5 WBC/HPF</span></div>
+      <div class="um-item"><strong>Hyaline casts</strong><span>0–2 /LPF (normal)</span></div>
+      <div class="um-item"><strong>Granular casts</strong><span>None (abnormal if present)</span></div>
+      <div class="um-item"><strong>RBC casts</strong><span>None (glomerulonephritis)</span></div>
+      <div class="um-item"><strong>WBC casts</strong><span>None (pyelonephritis)</span></div>
+      <div class="um-item"><strong>Bacteria</strong><span>Few / Moderate / Many</span></div>
+      <div class="um-item"><strong>Yeast</strong><span>None — consider candidiasis</span></div>
+    </div>
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="micro-finding-f" onchange="loadMicroscopy()">
+          <option value="">All Findings</option>
+          <option value="RBC">Haematuria (RBC)</option>
+          <option value="WBC">Pyuria (WBC)</option>
+          <option value="CAST">Casts present</option>
+          <option value="BACTERIA">Bacteria</option>
+          <option value="YEAST">Yeast</option>
+          <option value="CRYSTALS">Crystals</option>
+        </select>
+        <input type="date" id="micro-date-f" onchange="loadMicroscopy()">
+      </div>
+      <button class="btn-primary" onclick="openModal('micro-modal')">+ Enter Microscopy</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="micro-table">
+        <thead><tr><th>Lab ID</th><th>Patient</th><th>RBC (/HPF)</th><th>WBC (/HPF)</th>
+          <th>Squamous Epi.</th><th>Hyaline Casts</th><th>Pathological Casts</th>
+          <th>Bacteria</th><th>Yeast</th><th>Crystals</th>
+          <th>AI Interpretation</th><th>Culture Indicated</th><th>Validated</th><th>Actions</th></tr></thead>
+        <tbody id="micro-tbody"><tr><td colspan="14" class="dept-empty">Loading microscopy results…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ CULTURE LINK ══════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-culture-link">
+    <div class="culture-link-info">
+      🧫 <strong>Culture Referral Link:</strong> Urine samples referred for culture are tracked here.
+      Culture results from Microbiology are automatically linked back to the original urinalysis.
+    </div>
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="cult-link-status-f" onchange="loadCultureLink()">
+          <option value="">All Status</option>
+          <option value="REFERRED">Referred to Microbiology</option>
+          <option value="CULTURE_PENDING">Culture Pending (24–48 h)</option>
+          <option value="CULTURE_POSITIVE">Culture Positive</option>
+          <option value="CULTURE_NEGATIVE">No Growth</option>
+          <option value="CULTURE_CONTAMINATED">Contaminated</option>
+        </select>
+        <input type="date" id="cult-link-date-f" onchange="loadCultureLink()">
+      </div>
+      <button class="btn-primary" onclick="openModal('refer-modal')">+ Refer for Culture</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="cult-link-table">
+        <thead><tr><th>Lab ID</th><th>Patient</th><th>Referred At</th><th>Reason for Culture</th>
+          <th>Dipstick Findings</th><th>Microscopy Findings</th>
+          <th>Culture Status</th><th>Organism (if positive)</th>
+          <th>Antibiogram</th><th>Actions</th></tr></thead>
+        <tbody id="cult-link-tbody"><tr><td colspan="10" class="dept-empty">Loading culture referrals…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ SPECIAL TESTS ════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-special">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="spec-test-f" onchange="loadSpecial()">
+          <option value="">All Special Tests</option>
+          <option value="HCG">urine hCG (Pregnancy Test)</option>
+          <option value="MICROALBUMIN">Microalbumin</option>
+          <option value="ALBUMIN_CREAT">Albumin:Creatinine Ratio</option>
+          <option value="BENCE_JONES">Bence Jones Protein</option>
+          <option value="UDS">Urine Drug Screen</option>
+          <option value="OSMOLALITY">Urine Osmolality</option>
+          <option value="CULTURE">24h Urine Protein</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openModal('special-modal')">+ Enter Special Test</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="special-table">
+        <thead><tr><th>Lab ID</th><th>Patient</th><th>Test</th><th>Result</th>
+          <th>Unit</th><th>Reference Range</th><th>Flag</th>
+          <th>AI Interpretation</th><th>Clinical Note</th><th>Validated</th><th>Actions</th></tr></thead>
+        <tbody id="special-tbody"><tr><td colspan="11" class="dept-empty">Loading special test results…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ VALIDATION ════════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-validation">
+    <div class="val-header">
+      <h3>Pending Validation Queue</h3>
+      <span class="val-count" id="urn-val-count">Loading…</span>
+    </div>
+    <div id="urn-val-list" class="val-list"><div class="dept-empty">Loading…</div></div>
+  </div>
+
+  <!-- ══ CRITICAL BOOK ═════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-book">
+    <div class="dept-toolbar">
+      <span class="pqc-badge">🔐 PQC-Signed · ISO 15189 Critical Archive</span>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="urn-book-table">
+        <thead><tr><th>Entry #</th><th>Patient</th><th>Critical Finding</th>
+          <th>Reason</th><th>Clinician Notified</th><th>Read-back</th><th>Archived</th></tr></thead>
+        <tbody id="urn-book-tbody"><tr><td colspan="7" class="dept-empty">Loading critical book…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /#urn-app -->
+
+<!-- ═══ MODALS ════════════════════════════════════════════════ -->
+
+<!-- Dipstick Modal -->
+<div class="dept-modal-overlay" id="dip-modal" style="display:none">
+  <div class="dept-modal dept-modal-wide">
+    <div class="dept-modal-hdr"><h3>🔬 Enter Dipstick Result</h3><button onclick="closeModal('dip-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Lab Request ID</label><input type="number" id="dmod-req"></div>
+        <div class="dept-form-row"><label>Patient ID</label><input type="number" id="dmod-pat"></div>
+        <div class="dept-form-row"><label>Source</label>
+          <select id="dmod-source"><option value="MANUAL">Manual (visual reading)</option><option value="AUTOMATED">Automated strip reader</option></select></div>
+        <div class="dept-form-row"><label>Reader / Analyzer</label><input type="text" id="dmod-reader" placeholder="e.g. URISYS 2400, iChromaII"></div>
+      </div>
+      <!-- Dipstick parameter entry grid -->
+      <div class="dip-entry-grid">
+        <div class="dip-entry-hdr">Parameter</div><div class="dip-entry-hdr">Result</div><div class="dip-entry-hdr">Semiquant.</div>
+        <div class="dip-label">Colour</div><input type="text" id="dp-colour" placeholder="pale yellow, dark, red…"><input type="text" id="dp-colour-sq" disabled>
+        <div class="dip-label">Appearance</div>
+          <select id="dp-appearance"><option value="CLEAR">Clear</option><option value="SLIGHTLY_TURBID">Slightly turbid</option><option value="TURBID">Turbid</option><option value="CLOUDY">Cloudy</option><option value="HAEMATURIC">Haematuric (blood)</option></select>
+          <input type="text" id="dp-appearance-sq" disabled>
+        <div class="dip-label">pH</div><input type="number" step="0.5" min="4.5" max="8.5" id="dp-ph" placeholder="4.5–8.5"><input type="text" id="dp-ph-sq" disabled>
+        <div class="dip-label">Specific Gravity</div><input type="number" step="0.001" min="1.001" max="1.035" id="dp-sg" placeholder="1.003–1.030"><input type="text" id="dp-sg-sq" disabled>
+        <div class="dip-label">Blood</div>
+          <select id="dp-blood" onchange="checkUTIFlags()"><option value="NEG">Negative</option><option value="TRACE">Trace</option><option value="1+">1+</option><option value="2+">2+</option><option value="3+">3+</option></select>
+          <input type="text" id="dp-blood-sq" placeholder="RBC/µL" id="dp-blood-sq">
+        <div class="dip-label">Protein</div>
+          <select id="dp-protein"><option value="NEG">Negative</option><option value="TRACE">Trace (0.15)</option><option value="1+">1+ (0.30)</option><option value="2+">2+ (1.0)</option><option value="3+">3+ (3.0)</option><option value="4+">4+ (≥20)</option></select>
+          <input type="text" id="dp-protein-sq" placeholder="g/L">
+        <div class="dip-label">Glucose</div>
+          <select id="dp-glucose"><option value="NEG">Negative</option><option value="TRACE">Trace (1)</option><option value="1+">1+ (2.8)</option><option value="2+">2+ (5.5)</option><option value="3+">3+ (14)</option><option value="4+">4+ (≥28)</option></select>
+          <input type="text" id="dp-glucose-sq" placeholder="mmol/L">
+        <div class="dip-label">Ketones</div>
+          <select id="dp-ketones"><option value="NEG">Negative</option><option value="TRACE">Trace</option><option value="1+">1+ (Mild)</option><option value="2+">2+ (Moderate)</option><option value="3+">3+ (Large)</option></select>
+          <input type="text" id="dp-ketones-sq" placeholder="mmol/L">
+        <div class="dip-label">Bilirubin</div>
+          <select id="dp-bilirubin"><option value="NEG">Negative</option><option value="1+">1+</option><option value="2+">2+</option><option value="3+">3+</option></select>
+          <input type="text" id="dp-bilirubin-sq" disabled>
+        <div class="dip-label">Urobilinogen</div>
+          <select id="dp-urobilinogen"><option value="NORMAL">Normal (0.2–1.0)</option><option value="2+">2+ (1–4)</option><option value="4+">4+ (4–8)</option><option value="8+">8+ (≥8)</option></select>
+          <input type="text" id="dp-urobilinogen-sq" placeholder="mg/dL">
+        <div class="dip-label">Nitrite (Bacteria)</div>
+          <select id="dp-nitrite" onchange="checkUTIFlags()"><option value="NEG">Negative</option><option value="POS">Positive ⚠️</option></select>
+          <input type="text" id="dp-nitrite-sq" disabled>
+        <div class="dip-label">Leukocytes (LE)</div>
+          <select id="dp-le" onchange="checkUTIFlags()"><option value="NEG">Negative</option><option value="TRACE">Trace (±)</option><option value="1+">1+ (~15 WBC/µL)</option><option value="2+">2+ (~70 WBC/µL)</option><option value="3+">3+ (≥500 WBC/µL)</option></select>
+          <input type="text" id="dp-le-sq" placeholder="WBC/µL">
+      </div>
+      <!-- UTI flag -->
+      <div id="uti-flag" class="uti-flag-box" style="display:none">
+        <strong>⚠️ UTI Suspected</strong>: Positive nitrite + positive LE detected. Consider urine culture referral.
+        <label style="margin-left:1rem;font-size:.85rem"><input type="checkbox" id="dmod-refer-culture"> Refer for culture</label>
+      </div>
+      <!-- Microscopy flag -->
+      <div class="dept-form-row" style="margin-top:.75rem">
+        <label class="checkbox-label" style="font-weight:400"><input type="checkbox" id="dmod-microscopy-req"> Microscopy Required</label>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('dip-modal')">Cancel</button><button class="btn-primary" onclick="submitDipstick()">Save Dipstick Result</button></div>
+  </div>
+</div>
+
+<!-- Microscopy Modal -->
+<div class="dept-modal-overlay" id="micro-modal" style="display:none">
+  <div class="dept-modal dept-modal-wide">
+    <div class="dept-modal-hdr"><h3>👁️ Urine Microscopy Entry</h3><button onclick="closeModal('micro-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Lab ID / Dipstick Link</label><input type="text" id="mmod-lab" placeholder="Link to dipstick result"></div>
+        <div class="dept-form-row"><label>Patient ID</label><input type="number" id="mmod-pat"></div>
+        <div class="dept-form-row"><label>Preparation</label>
+          <select id="mmod-prep"><option value="UNSPUN">Unspun (direct wet mount)</option><option value="SPUN">Centrifuged sediment</option><option value="CYTOCENTRIFUGE">Cytocentrifuge</option></select></div>
+        <div class="dept-form-row"><label>Volume centrifuged (mL)</label><input type="number" id="mmod-volume" value="10" min="1"></div>
+        <div class="dept-form-row"><label>RBC (/HPF)</label><input type="text" id="mmod-rbc" placeholder="e.g. 0–3, 5–10, >50"></div>
+        <div class="dept-form-row"><label>WBC (/HPF)</label><input type="text" id="mmod-wbc" placeholder="e.g. 0–5, 20–50"></div>
+        <div class="dept-form-row"><label>Squamous Epithelial Cells</label>
+          <select id="mmod-squamous"><option value="FEW">Few</option><option value="MODERATE">Moderate</option><option value="MANY">Many (possible contamination)</option></select></div>
+        <div class="dept-form-row"><label>Transitional Epithelial Cells</label>
+          <select id="mmod-transitional"><option value="NONE">None</option><option value="OCCASIONAL">Occasional</option><option value="PRESENT">Present</option></select></div>
+        <div class="dept-form-row"><label>Hyaline Casts (/LPF)</label><input type="text" id="mmod-hy-cast" placeholder="0–2 normal"></div>
+        <div class="dept-form-row"><label>Pathological Casts</label>
+          <select id="mmod-path-cast"><option value="NONE">None</option><option value="GRANULAR">Granular casts</option><option value="RBC">RBC casts (glomerulonephritis)</option><option value="WBC">WBC casts (pyelonephritis)</option><option value="WAXY">Waxy casts (CKD)</option><option value="BROAD">Broad casts (tubular damage)</option></select></div>
+        <div class="dept-form-row"><label>Bacteria</label>
+          <select id="mmod-bacteria"><option value="NONE">None</option><option value="FEW">Few</option><option value="MODERATE">Moderate</option><option value="MANY">Many ⚠️</option></select></div>
+        <div class="dept-form-row"><label>Yeast</label>
+          <select id="mmod-yeast"><option value="NONE">None</option><option value="PRESENT">Present (Candida?)</option></select></div>
+        <div class="dept-form-row"><label>Crystals</label>
+          <select id="mmod-crystals"><option value="NONE">None</option><option value="OXALATE">Calcium oxalate</option><option value="URATE">Urate / uric acid</option><option value="PHOSPHATE">Phosphate</option><option value="STRUVITE">Struvite (triple phosphate)</option><option value="CYSTINE">Cystine ⚠️</option></select></div>
+        <div class="dept-form-row full-col"><label>Additional Findings</label><textarea id="mmod-additional" rows="2" placeholder="Any other findings — e.g. sperm cells, parasites, artefacts…"></textarea></div>
+        <div class="dept-form-row"><label class="checkbox-label" style="font-weight:400"><input type="checkbox" id="mmod-culture-req"> Refer for culture (UTI suspected)</label></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('micro-modal')">Cancel</button><button class="btn-primary" onclick="submitMicroscopy()">Save Microscopy</button></div>
+  </div>
+</div>
+
+<!-- Refer for Culture Modal -->
+<div class="dept-modal-overlay" id="refer-modal" style="display:none">
+  <div class="dept-modal">
+    <div class="dept-modal-hdr"><h3>🧫 Refer Urine for Culture</h3><button onclick="closeModal('refer-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Lab ID</label><input type="text" id="ref-lab-id"></div>
+        <div class="dept-form-row"><label>Patient ID</label><input type="number" id="ref-pat"></div>
+        <div class="dept-form-row full-col"><label>Reason for Referral</label>
+          <select id="ref-reason"><option value="NITRITE_LE_POSITIVE">Nitrite + LE positive (UTI suspected)</option><option value="WBC_ELEVATED">WBC &gt;5/HPF (pyuria)</option><option value="BACTERIA_MANY">Many bacteria on microscopy</option><option value="RECURRENT_UTI">Recurrent UTI — antibiogram needed</option><option value="CATHETER_ASSOCIATED">Catheter-associated UTI</option><option value="IMMUNOCOMPROMISED">Immunocompromised patient</option><option value="CLINICAL_REQUEST">Clinician request</option></select></div>
+        <div class="dept-form-row full-col"><label>Notes to Microbiology</label><textarea id="ref-notes" rows="2" placeholder="Clinical context, antibiotic history, suspected organism…"></textarea></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('refer-modal')">Cancel</button><button class="btn-primary" onclick="submitCultureReferral()">🧫 Refer for Culture</button></div>
+  </div>
+</div>
+
+<!-- Special Test Modal -->
+<div class="dept-modal-overlay" id="special-modal" style="display:none">
+  <div class="dept-modal">
+    <div class="dept-modal-hdr"><h3>💊 Special Urine Test Result</h3><button onclick="closeModal('special-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Lab Request ID</label><input type="number" id="smod-req"></div>
+        <div class="dept-form-row"><label>Patient ID</label><input type="number" id="smod-pat"></div>
+        <div class="dept-form-row"><label>Test</label>
+          <select id="smod-test" onchange="loadUrineSpecialRef()">
+            <option value="HCG">urine hCG (Pregnancy Test)</option>
+            <option value="MICROALBUMIN">Microalbumin (µg/mL)</option>
+            <option value="ALBUMIN_CREAT">Albumin:Creatinine Ratio (ACR)</option>
+            <option value="BENCE_JONES">Bence Jones Protein</option>
+            <option value="OSMOLALITY">Urine Osmolality</option>
+            <option value="24H_PROTEIN">24-Hour Urine Protein</option>
+          </select></div>
+        <div class="dept-form-row"><label>Result</label><input type="text" id="smod-result" placeholder="Positive/Negative or numeric value"></div>
+        <div class="dept-form-row"><label>Unit</label><input type="text" id="smod-unit" placeholder="µg/mL, mg/g, mOsm/kg…"></div>
+        <div class="dept-form-row"><label>Method</label>
+          <select id="smod-method"><option value="IMMUNOASSAY">Immunoassay</option><option value="COLORIMETRIC">Colorimetric</option><option value="NEPHELOMETRY">Nephelometry</option><option value="DIPSTICK">Rapid dipstick</option></select></div>
+        <div class="dept-form-row full-col"><label>Clinical Notes</label><textarea id="smod-notes" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('special-modal')">Cancel</button><button class="btn-primary" onclick="submitSpecial()">Save Result</button></div>
+  </div>
+</div>
+
+<script src="{% static 'modules/urinalysis/js/urinalysis.js' %}" defer></script>
+{% endblock %}

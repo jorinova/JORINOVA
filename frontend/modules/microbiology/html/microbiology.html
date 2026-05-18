@@ -1,0 +1,653 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}🦠 Microbiology — NEXUS ALIS-X{% endblock %}
+{% block module_id %}microbiology{% endblock %}
+{% block nav_active_microbiology %}active{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{% static 'modules/microbiology/css/microbiology.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="micro-app">
+
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <div class="module-header">
+    <div class="mh-left">
+      <h1 class="page-title">🦠 Microbiology Department</h1>
+      <span class="mh-subtitle">Bacteriology · Antibiogram · Parasitology · MDR Surveillance</span>
+    </div>
+    <div class="mh-right">
+      <div class="stat-chip" id="hdr-pending">⏳ <span id="stat-pending">—</span> Pending</div>
+      <div class="stat-chip critical" id="hdr-critical">🚨 <span id="stat-critical">—</span> Critical</div>
+      <div class="stat-chip mdr" id="hdr-mdr">⚠️ <span id="stat-mdr">—</span> MDR</div>
+    </div>
+  </div>
+
+  <!-- ── Tabs ───────────────────────────────────────────────────────── -->
+  <nav class="tab-nav" id="micro-tabs">
+    <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+    <button class="tab-btn" data-tab="bacteriology">🧫 Bacteriology</button>
+    <button class="tab-btn" data-tab="antibiogram">💊 Antibiogram</button>
+    <button class="tab-btn" data-tab="parasitology">🔬 Parasitology</button>
+    <button class="tab-btn" data-tab="validation">✅ Validation</button>
+    <button class="tab-btn" data-tab="book">📖 Critical Book</button>
+  </nav>
+
+  <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
+  <div class="tab-pane active" id="tab-dashboard">
+    <div class="kpi-row" id="micro-kpis">
+      <div class="kpi-card"><div class="kpi-val" id="kpi-pending">—</div><div class="kpi-lbl">Cultures Pending</div></div>
+      <div class="kpi-card success"><div class="kpi-val" id="kpi-today">—</div><div class="kpi-lbl">Received Today</div></div>
+      <div class="kpi-card danger"><div class="kpi-val" id="kpi-critical">—</div><div class="kpi-lbl">Critical Results</div></div>
+      <div class="kpi-card mdr-card"><div class="kpi-val" id="kpi-mrsa">—</div><div class="kpi-lbl">MRSA Detected</div></div>
+      <div class="kpi-card mdr-card"><div class="kpi-val" id="kpi-esbl">—</div><div class="kpi-lbl">ESBL Detected</div></div>
+    </div>
+    <div class="kpi-row" style="margin-top:.75rem">
+      <div class="kpi-card info"><div class="kpi-val" id="kpi-para-pending">—</div><div class="kpi-lbl">Parasitology Pending</div></div>
+      <div class="kpi-card malaria-card"><div class="kpi-val" id="kpi-malaria">—</div><div class="kpi-lbl">Malaria Pos Today</div></div>
+      <div class="kpi-card dark"><div class="kpi-val" id="kpi-book">—</div><div class="kpi-lbl">Critical Book Entries</div></div>
+    </div>
+
+    <!-- Section queues -->
+    <div class="section-queues">
+      <div class="sq-card bacteriology">
+        <div class="sq-icon">🧫</div>
+        <div class="sq-body">
+          <div class="sq-name">Bacteriology</div>
+          <div class="sq-tests">Blood · Urine · Stool · Sputum · Wound · CSF</div>
+          <div class="sq-count" id="sq-bacteriology">— pending</div>
+        </div>
+        <button class="sq-btn" onclick="switchTab('bacteriology')">View →</button>
+      </div>
+      <div class="sq-card parasitology-sq">
+        <div class="sq-icon">🔬</div>
+        <div class="sq-body">
+          <div class="sq-name">Parasitology</div>
+          <div class="sq-tests">Malaria · Trypanosoma · Intestinal parasites · Staining</div>
+          <div class="sq-count" id="sq-parasitology">— pending</div>
+        </div>
+        <button class="sq-btn" onclick="switchTab('parasitology')">View →</button>
+      </div>
+      <div class="sq-card mdr-sq">
+        <div class="sq-icon">⚠️</div>
+        <div class="sq-body">
+          <div class="sq-name">MDR Organisms</div>
+          <div class="sq-tests">MRSA · ESBL · CRO · VRSA · Sepsis alerts</div>
+          <div class="sq-count" id="sq-mdr">— active</div>
+        </div>
+        <button class="sq-btn" onclick="switchTab('antibiogram')">View →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ BACTERIOLOGY ══════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-bacteriology">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="bact-filter-status" onchange="loadCultures()">
+          <option value="">All Status</option>
+          <option value="PENDING">Pending</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="PRELIMINARY">Preliminary</option>
+          <option value="FINAL">Final</option>
+          <option value="VALIDATED">Validated</option>
+        </select>
+        <select id="bact-filter-specimen" onchange="loadCultures()">
+          <option value="">All Specimens</option>
+          <option value="blood">Blood</option>
+          <option value="urine">Urine</option>
+          <option value="stool">Stool</option>
+          <option value="sputum">Sputum</option>
+          <option value="wound">Wound</option>
+          <option value="csf">CSF</option>
+        </select>
+        <select id="bact-filter-mdr" onchange="loadCultures()">
+          <option value="">All Types</option>
+          <option value="MRSA">MRSA</option>
+          <option value="ESBL">ESBL</option>
+          <option value="CRO">CRO (Carbapenem-R)</option>
+        </select>
+        <input type="date" id="bact-filter-date" onchange="loadCultures()">
+      </div>
+      <button class="btn-primary" onclick="openCultureModal()">+ New Culture</button>
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="cultures-table">
+        <thead>
+          <tr>
+            <th>Culture ID</th><th>Patient</th><th>Specimen</th>
+            <th>Gram Stain</th><th>Growth</th><th>Organism</th>
+            <th>MDR Flags</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="cultures-tbody">
+          <tr><td colspan="9" class="empty-state">Loading cultures…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ ANTIBIOGRAM ══════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-antibiogram">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <input type="text" id="abg-search" placeholder="Culture ID or patient…" oninput="filterAntibiogram()">
+        <select id="abg-filter-mdr" onchange="loadMDRList()">
+          <option value="">All MDR Flags</option>
+          <option value="MRSA">MRSA</option>
+          <option value="ESBL">ESBL</option>
+          <option value="CRO">CRO</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- MDR Alert Strip -->
+    <div class="mdr-alert-strip" id="mdr-alert-strip">
+      <div class="mdr-alert-hdr">⚠️ Active MDR Organisms Requiring Action</div>
+      <div id="mdr-list" class="mdr-list">Loading…</div>
+    </div>
+
+    <!-- Antibiogram panel (shows when culture selected) -->
+    <div class="abg-panel" id="abg-panel" style="display:none">
+      <div class="abg-header">
+        <div>
+          <div class="abg-culture-id" id="abg-culture-id">—</div>
+          <div class="abg-organism" id="abg-organism">—</div>
+        </div>
+        <button class="btn-secondary btn-sm" onclick="closeABG()">✕ Close</button>
+      </div>
+
+      <!-- Drug table organised by class -->
+      <div class="abg-table-wrap">
+        <table class="abg-table" id="abg-table">
+          <thead>
+            <tr>
+              <th>Drug Class</th><th>Antibiotic</th>
+              <th class="sir-col S">S</th>
+              <th class="sir-col I">I</th>
+              <th class="sir-col R">R</th>
+              <th>MIC</th><th>Zone (mm)</th><th>Method</th>
+            </tr>
+          </thead>
+          <tbody id="abg-tbody"></tbody>
+        </table>
+      </div>
+      <button class="btn-primary mt-1" onclick="openAddABGModal()">+ Add Antibiotic Result</button>
+    </div>
+  </div>
+
+  <!-- ══ PARASITOLOGY ══════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-parasitology">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="para-filter-category" onchange="loadParasitology()">
+          <option value="">All Categories</option>
+          <option value="BLOOD">Blood Parasites</option>
+          <option value="STOOL">Intestinal Parasites</option>
+          <option value="URINE">Urine</option>
+          <option value="CSF">CSF</option>
+        </select>
+        <select id="para-filter-result" onchange="loadParasitology()">
+          <option value="">All Results</option>
+          <option value="POSITIVE">Positive</option>
+          <option value="NEGATIVE">Negative</option>
+          <option value="PENDING">Pending</option>
+          <option value="TRACE">Trace</option>
+        </select>
+        <input type="date" id="para-filter-date" onchange="loadParasitology()">
+      </div>
+      <button class="btn-primary" onclick="openParaModal()">+ New Parasitology</button>
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="para-table">
+        <thead>
+          <tr>
+            <th>Para ID</th><th>Patient</th><th>Category</th><th>Specimen</th>
+            <th>Parasite</th><th>Result</th><th>Quantity</th><th>Staining</th>
+            <th>RDT</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="para-tbody">
+          <tr><td colspan="11" class="empty-state">Loading parasitology results…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ VALIDATION ═══════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-validation">
+    <div class="validation-header">
+      <h3>Pending Validation Queue</h3>
+      <div class="val-filters">
+        <select id="val-filter-type" onchange="loadValidationQueue()">
+          <option value="cultures">Cultures</option>
+          <option value="parasitology">Parasitology</option>
+        </select>
+      </div>
+      <span class="val-count" id="val-count">Loading…</span>
+    </div>
+    <div id="validation-list" class="validation-list">
+      <div class="empty-state">Loading validation queue…</div>
+    </div>
+  </div>
+
+  <!-- ══ CRITICAL BOOK ═════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-book">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="book-filter-reason" onchange="loadCriticalBook()">
+          <option value="">All Critical Reasons</option>
+          <option value="MRSA">MRSA</option>
+          <option value="ESBL">ESBL</option>
+          <option value="CRO">CRO</option>
+          <option value="SEPSIS">Sepsis</option>
+          <option value="HIGH_PARASITEMIA">High Parasitemia</option>
+          <option value="MDR">MDR Organism</option>
+        </select>
+      </div>
+      <span class="pqc-badge">🔐 PQC-Signed Immutable Archive</span>
+    </div>
+    <div class="results-table-wrap">
+      <table class="data-table" id="book-table">
+        <thead>
+          <tr>
+            <th>Entry #</th><th>Patient</th><th>Organism</th><th>Critical Reason</th>
+            <th>Severity</th><th>Clinician Notified</th><th>Read-back</th>
+            <th>RBC Notified</th><th>Archived</th><th>PQC Hash</th>
+          </tr>
+        </thead>
+        <tbody id="book-tbody">
+          <tr><td colspan="10" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /#micro-app -->
+
+<!-- ═══ MODALS ═══════════════════════════════════════════════════════════════ -->
+
+<!-- New Culture Modal -->
+<div class="modal-overlay" id="culture-modal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>🧫 New Culture Request</h3>
+      <button class="modal-close" onclick="closeModal('culture-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Lab Request ID</label>
+          <input type="number" id="cmod-labreq" placeholder="Lab request ID">
+        </div>
+        <div class="form-row">
+          <label>Patient ID</label>
+          <input type="number" id="cmod-patient" placeholder="Patient ID">
+        </div>
+        <div class="form-row">
+          <label>PID</label>
+          <input type="text" id="cmod-pid" placeholder="PID-XXXX">
+        </div>
+        <div class="form-row">
+          <label>LID</label>
+          <input type="text" id="cmod-lid" placeholder="RW-XXXXXXX">
+        </div>
+        <div class="form-row">
+          <label>Specimen Type</label>
+          <select id="cmod-specimen">
+            <option value="blood">Blood</option>
+            <option value="urine">Urine</option>
+            <option value="stool">Stool</option>
+            <option value="sputum">Sputum</option>
+            <option value="wound">Wound swab</option>
+            <option value="csf">CSF</option>
+            <option value="throat">Throat swab</option>
+            <option value="ear">Ear swab</option>
+            <option value="eye">Eye swab</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Gram Stain Done?</label>
+          <select id="cmod-gram-done" onchange="gramToggle()">
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
+        </div>
+        <div class="form-row" id="gram-result-row" style="display:none">
+          <label>Gram Stain Result</label>
+          <input type="text" id="cmod-gram-result" placeholder="e.g. Gram-negative rods">
+        </div>
+        <div class="form-row" id="gram-morph-row" style="display:none">
+          <label>Morphology</label>
+          <select id="cmod-gram-morph">
+            <option value="">Select…</option>
+            <option value="gram_positive_cocci">Gram+ Cocci</option>
+            <option value="gram_negative_cocci">Gram- Cocci</option>
+            <option value="gram_positive_rods">Gram+ Rods</option>
+            <option value="gram_negative_rods">Gram- Rods</option>
+            <option value="yeast">Yeast cells</option>
+            <option value="no_organisms">No organisms seen</option>
+          </select>
+        </div>
+        <div class="form-row full-width">
+          <label>Specimen Notes</label>
+          <textarea id="cmod-spec-notes" rows="2" placeholder="Collection notes, appearance…"></textarea>
+        </div>
+        <div class="form-row full-width">
+          <label>Notes</label>
+          <textarea id="cmod-notes" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('culture-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitCulture()">Submit Culture</button>
+    </div>
+  </div>
+</div>
+
+<!-- Culture Update / Growth Modal -->
+<div class="modal-overlay" id="growth-modal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>🧫 Update Culture — Growth & Identification</h3>
+      <button class="modal-close" onclick="closeModal('growth-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Growth Status</label>
+          <select id="gmod-growth">
+            <option value="PENDING">Pending</option>
+            <option value="NO_GROWTH">No Growth</option>
+            <option value="GROWTH">Growth</option>
+            <option value="CONTAMINATED">Contaminated</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Growth Days</label>
+          <input type="number" id="gmod-days" min="1" max="42" placeholder="Days to grow">
+        </div>
+        <div class="form-row full-width">
+          <label>Colony Morphology</label>
+          <textarea id="gmod-colony" rows="2" placeholder="Colony description…"></textarea>
+        </div>
+        <div class="form-row">
+          <label>Organism Identified</label>
+          <input type="text" id="gmod-organism" placeholder="e.g. Staphylococcus aureus">
+        </div>
+        <div class="form-row">
+          <label>Organism Count</label>
+          <input type="text" id="gmod-count" placeholder="e.g. >10⁵ CFU/mL">
+        </div>
+        <div class="form-row">
+          <label>Identification Method</label>
+          <select id="gmod-id-method">
+            <option value="">Select…</option>
+            <option value="VITEK2">VITEK 2</option>
+            <option value="MALDI_TOF">MALDI-TOF MS</option>
+            <option value="API">API strip</option>
+            <option value="Biochemical">Biochemical tests</option>
+            <option value="Microscopy">Morphology only</option>
+          </select>
+        </div>
+        <div class="form-row full-width">
+          <label>MDR Flags</label>
+          <div class="checkbox-group">
+            <label class="checkbox-label"><input type="checkbox" id="gmod-mrsa"> MRSA</label>
+            <label class="checkbox-label"><input type="checkbox" id="gmod-esbl"> ESBL producer</label>
+            <label class="checkbox-label"><input type="checkbox" id="gmod-cro"> CRO (Carbapenem-R)</label>
+            <label class="checkbox-label"><input type="checkbox" id="gmod-vrsa"> VRSA</label>
+          </div>
+        </div>
+        <div class="form-row full-width">
+          <label>MDR Note</label>
+          <textarea id="gmod-mdr-note" rows="2" placeholder="Resistance mechanism, treatment note…"></textarea>
+        </div>
+        <div class="form-row">
+          <label>Status</label>
+          <select id="gmod-status">
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="PRELIMINARY">Preliminary</option>
+            <option value="FINAL">Final</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="gmod-critical"> Mark as Critical
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('growth-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitGrowth()">Update Culture</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Antibiogram Entries Modal -->
+<div class="modal-overlay" id="abg-modal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>💊 Add Antibiogram Results</h3>
+      <button class="modal-close" onclick="closeModal('abg-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="abg-entries">
+        <!-- rows added dynamically -->
+      </div>
+      <button class="btn-secondary btn-sm" onclick="addABGRow()">+ Add Row</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('abg-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitABG()">Save Antibiogram</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Parasitology Modal -->
+<div class="modal-overlay" id="para-modal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>🔬 New Parasitology Result</h3>
+      <button class="modal-close" onclick="closeModal('para-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Lab Request ID</label>
+          <input type="number" id="pmod-labreq" placeholder="Lab request ID">
+        </div>
+        <div class="form-row">
+          <label>Patient ID</label>
+          <input type="number" id="pmod-patient" placeholder="Patient ID">
+        </div>
+        <div class="form-row">
+          <label>PID</label>
+          <input type="text" id="pmod-pid" placeholder="PID-XXXX">
+        </div>
+        <div class="form-row">
+          <label>LID</label>
+          <input type="text" id="pmod-lid" placeholder="RW-XXXXXXX">
+        </div>
+        <div class="form-row">
+          <label>Category</label>
+          <select id="pmod-category" onchange="updateParasiteList()">
+            <option value="BLOOD">Blood Parasites</option>
+            <option value="STOOL">Intestinal Parasites</option>
+            <option value="URINE">Urine</option>
+            <option value="CSF">CSF</option>
+            <option value="SKIN">Skin</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Specimen Type</label>
+          <input type="text" id="pmod-specimen" placeholder="e.g. Thick blood smear">
+        </div>
+        <div class="form-row">
+          <label>Parasite</label>
+          <select id="pmod-parasite-select" onchange="fillParasiteName()">
+            <option value="">Select common parasite…</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Parasite Name (free text)</label>
+          <input type="text" id="pmod-parasite-name" placeholder="e.g. Plasmodium falciparum">
+        </div>
+        <div class="form-row">
+          <label>Species / Stage</label>
+          <input type="text" id="pmod-species" placeholder="e.g. falciparum, ring form">
+        </div>
+        <div class="form-row">
+          <label>Result</label>
+          <select id="pmod-result">
+            <option value="PENDING">Pending</option>
+            <option value="POSITIVE">Positive</option>
+            <option value="NEGATIVE">Negative</option>
+            <option value="TRACE">Trace</option>
+            <option value="SUSPICIOUS">Suspicious</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Quantity / Grading</label>
+          <input type="text" id="pmod-quantity" placeholder="e.g. +++, 2+/HPF, 5%">
+        </div>
+        <div class="form-row">
+          <label>Parasitemia %</label>
+          <input type="number" id="pmod-parasitemia" step="0.01" min="0" max="100" placeholder="0.00">
+        </div>
+        <div class="form-row">
+          <label>Staining Technique</label>
+          <select id="pmod-staining">
+            <option value="">Not applicable</option>
+            <option value="Giemsa">Giemsa stain</option>
+            <option value="Leishman">Leishman stain</option>
+            <option value="Wright">Wright stain</option>
+            <option value="ZN">Ziehl-Neelsen (ZN)</option>
+            <option value="Wet_mount">Wet mount preparation</option>
+            <option value="Formalin_ether">Formalin-ether concentration</option>
+            <option value="Auramine">Auramine (fluorescent)</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Preparation</label>
+          <select id="pmod-prep">
+            <option value="">Select…</option>
+            <option value="thick_smear">Thick smear</option>
+            <option value="thin_smear">Thin smear</option>
+            <option value="wet_mount">Wet mount</option>
+            <option value="concentration">Concentration technique</option>
+            <option value="direct">Direct examination</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>RDT Done?</label>
+          <select id="pmod-rdt-done" onchange="rdtToggle()">
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
+        </div>
+        <div class="form-row" id="rdt-result-row" style="display:none">
+          <label>RDT Result</label>
+          <select id="pmod-rdt-result">
+            <option value="POSITIVE">Positive</option>
+            <option value="NEGATIVE">Negative</option>
+            <option value="INVALID">Invalid</option>
+          </select>
+        </div>
+        <div class="form-row" id="rdt-brand-row" style="display:none">
+          <label>RDT Brand</label>
+          <input type="text" id="pmod-rdt-brand" placeholder="e.g. SD Bioline Malaria Ag P.f">
+        </div>
+        <div class="form-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="pmod-critical"> Mark as Critical (high parasitemia / unusual parasite)
+          </label>
+        </div>
+        <div class="form-row full-width">
+          <label>Notes</label>
+          <textarea id="pmod-notes" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('para-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitParasitology()">Save Result</button>
+    </div>
+  </div>
+</div>
+
+<!-- Validate Modal -->
+<div class="modal-overlay" id="validate-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>✅ Validate Result</h3>
+      <button class="modal-close" onclick="closeModal('validate-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="validate-summary" id="validate-summary"></div>
+      <div class="form-row">
+        <label>Validation Note (optional)</label>
+        <textarea id="val-note" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('validate-modal')">Cancel</button>
+      <button class="btn-primary" onclick="confirmValidate()">Validate & Approve</button>
+    </div>
+  </div>
+</div>
+
+<!-- Archive Critical Modal -->
+<div class="modal-overlay" id="archive-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>📖 Archive to Critical Book</h3>
+      <button class="modal-close" onclick="closeModal('archive-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="archive-info">Creates an <strong>immutable</strong> PQC-signed record (ISO 15189).</p>
+      <div class="form-row">
+        <label>Critical Reason</label>
+        <select id="arch-reason">
+          <option value="MRSA">MRSA</option>
+          <option value="ESBL">ESBL</option>
+          <option value="CRO">CRO (Carbapenem-Resistant)</option>
+          <option value="SEPSIS">Sepsis organism</option>
+          <option value="HIGH_PARASITEMIA">High Parasitemia</option>
+          <option value="MDR">MDR Organism</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Clinician Notified</label>
+        <input type="text" id="arch-clinician" placeholder="Dr. / Nurse name">
+      </div>
+      <div class="form-row">
+        <label>Notification Method</label>
+        <select id="arch-method">
+          <option value="phone">📞 Phone</option>
+          <option value="sms">📱 SMS</option>
+          <option value="in_person">🏥 In Person</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="arch-readback"> Read-back confirmed
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('archive-modal')">Cancel</button>
+      <button class="btn-danger" onclick="confirmArchive()">Archive (Immutable)</button>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'modules/microbiology/js/microbiology.js' %}" defer></script>
+{% endblock %}

@@ -1,72 +1,107 @@
-/* JORINOVA NEXUS ALIS-X — Anatomical Pathology & AI Vision */
-.path-main { display:flex; flex-direction:column; flex:1; overflow:hidden; }
-.path-tab-nav { padding:0 var(--space-xl); background:var(--bg-deep); border-bottom:1px solid var(--border-dim); flex-shrink:0; }
-.path-body  { flex:1; overflow-y:auto; }
-.path-iso-pill { display:inline-flex;align-items:center;gap:8px;padding:5px 13px;border-radius:var(--radius-full);background:rgba(138,43,226,.08);border:1px solid rgba(138,43,226,.22);font-size:11px;font-weight:600;color:#b87cff;letter-spacing:.04em; }
-
-/* Slide review layout */
-.path-slide-layout { display:grid; grid-template-columns:300px 1fr; min-height:calc(100vh - 180px); overflow:hidden; }
-.path-slide-left   { border-right:1px solid var(--border-dim); display:flex; flex-direction:column; overflow:hidden; }
-.path-slide-list   { flex:1; overflow-y:auto; }
-.path-slide-right  { display:flex; flex-direction:column; overflow:hidden; }
-
-.path-slide-item {
-  padding:var(--space-md) var(--space-lg); border-bottom:1px solid var(--border-dim);
-  cursor:pointer; transition:background var(--duration-fast);
-  display:flex; align-items:center; gap:var(--space-md);
-}
-.path-slide-item:hover, .path-slide-item.active { background:rgba(0,153,255,.06); }
-.path-slide-icon { font-size:24px; flex-shrink:0; }
-.path-slide-info-name { font-size:var(--text-sm); font-weight:600; color:var(--text-primary); }
-.path-slide-info-meta { font-size:11px; color:var(--text-muted); margin-top:2px; }
-
-.path-viewer-area {
-  flex:1; background:var(--bg-void); display:flex; align-items:center; justify-content:center;
-  position:relative; overflow:hidden; min-height:300px;
-}
-.path-viewer-placeholder { display:flex;flex-direction:column;align-items:center;gap:var(--space-md);color:var(--text-muted);font-size:var(--text-sm);text-align:center; }
-.path-viewer-image { width:100%; height:100%; object-fit:contain; }
-
-.path-mag-bar {
-  position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
-  display:flex; gap:4px; background:rgba(0,0,0,.7); padding:4px 8px; border-radius:var(--radius-md);
-}
-.mag-btn {
-  padding:3px 8px; border-radius:var(--radius-sm); background:var(--bg-surface);
-  border:1px solid var(--border-dim); color:var(--text-secondary); font-size:11px; font-weight:700; cursor:pointer;
-  transition:all var(--duration-fast);
-}
-.mag-btn.active { background:var(--blue-glow); color:#fff; border-color:var(--blue-glow); }
-
-.path-ai-output {
-  border-top:1px solid var(--border-dim); background:var(--bg-surface);
-  padding:var(--space-lg); overflow-y:auto; max-height:350px;
-}
-
-/* AI Vision output */
-.malignancy-gauge-wrap { display:flex; align-items:center; gap:var(--space-lg); }
-.malignancy-gauge-bar  { flex:1; height:20px; border-radius:var(--radius-full); background:var(--bg-glass); overflow:hidden; }
-.malignancy-gauge-fill { height:100%; border-radius:var(--radius-full); transition:width .8s var(--ease-out); }
-.malignancy-pct { font-family:var(--font-display); font-size:22px; font-weight:700; min-width:60px; }
-
-.ai-diff-row { display:flex; align-items:center; justify-content:space-between;
-  padding:5px 0; border-bottom:1px solid var(--border-dim); font-size:var(--text-xs); }
-.ai-diff-name { color:var(--text-secondary); flex:1; }
-.ai-conf-bar  { width:80px; height:6px; background:var(--bg-glass); border-radius:var(--radius-full); overflow:hidden; margin:0 var(--space-sm); }
-.ai-conf-fill { height:100%; background:var(--blue-glow); border-radius:var(--radius-full); }
-.ai-conf-pct  { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); width:32px; text-align:right; }
-
-/* Workflow steps */
-.spec-workflow { display:flex; align-items:center; gap:4px; }
-.spec-step {
-  padding:3px 8px; border-radius:var(--radius-full); font-size:9px; font-weight:700;
-  letter-spacing:.04em; border:1px solid; white-space:nowrap;
-}
-.spec-step.done    { background:rgba(0,230,118,.10); color:var(--alert-green); border-color:var(--alert-green); }
-.spec-step.active  { background:rgba(0,153,255,.15); color:var(--blue-glow);   border-color:var(--blue-glow); animation:pulse-blue .8s infinite; }
-.spec-step.pending { background:transparent; color:var(--text-muted); border-color:var(--border-dim); }
-@keyframes pulse-blue { 0%,100%{opacity:1} 50%{opacity:.5} }
-
-.frozen-alert { background:rgba(255,23,68,.10); border:2px solid var(--alert-red); color:var(--alert-red); padding:3px 10px; border-radius:var(--radius-full); font-size:10px; font-weight:700; animation:pulse-blue .6s infinite; }
-
-@media (max-width:900px) { .path-slide-layout { grid-template-columns:1fr; } }
+/* ── Anatomical Pathology CSS ──────────────────────────────────── */
+#path-app{padding:0 0 2rem;}
+.dept-header{display:flex;justify-content:space-between;align-items:flex-start;padding:1.25rem 1.5rem;border-radius:12px;margin-bottom:1.25rem;gap:1rem;}
+.path-hdr{background:linear-gradient(135deg,#1a0040 0%,#2d0060 40%,#4a1080 100%);color:#fff;}
+.dh-left{display:flex;align-items:flex-start;gap:.85rem;}
+.dh-icon{font-size:2rem;}.dh-title{margin:0;font-size:1.6rem;font-weight:700;}.dh-sub{font-size:.81rem;opacity:.75;margin-top:.2rem;}
+.dh-right{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;}
+.dh-chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:.3rem .8rem;font-size:.82rem;}
+.dh-chip.danger{background:rgba(220,53,69,.35);border-color:#dc3545;}
+.dh-badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:.3rem .9rem;font-size:.78rem;}
+.dept-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:1.25rem;}
+.kpi{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:1.1rem;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.kpi.biopsy-kpi{border-left:4px solid #6366f1;}.kpi.cyto-kpi{border-left:4px solid #3b82f6;}.kpi.malignant{border-left:4px solid #dc3545;}.kpi.ihc-kpi{border-left:4px solid #ec4899;}.kpi.pending-kpi{border-left:4px solid #64748b;}
+.kpi-val{font-size:2rem;font-weight:700;color:#1a0040;line-height:1;}.kpi-lbl{font-size:.78rem;color:#6c757d;margin-top:.4rem;}
+.dept-tabs{display:flex;gap:.5rem;border-bottom:2px solid #e9ecef;margin-bottom:1.25rem;flex-wrap:wrap;}
+.dt{background:none;border:none;padding:.5rem 1rem;border-radius:8px 8px 0 0;font-size:.87rem;font-weight:500;color:#6c757d;cursor:pointer;transition:.2s;}
+.dt:hover{background:#f0f0ff;color:#1a0040;}.dt.active{background:#1a0040;color:#fff;}
+.dept-pane{display:none;}.dept-pane.active{display:block;}
+.dept-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;}
+.dept-filters{display:flex;gap:.5rem;flex-wrap:wrap;}
+.dept-filters select,.dept-filters input{padding:.35rem .6rem;border:1px solid #ced4da;border-radius:6px;font-size:.83rem;background:#fff;}
+.dept-toolbar-right{display:flex;gap:.4rem;}
+.dept-print-btn,.dept-filter-btn{background:none;border:1px solid #ced4da;border-radius:8px;padding:.35rem .65rem;cursor:pointer;}
+.tox-table-wrap{overflow-x:auto;overflow-y:auto;max-height:56vh;border:1px solid #e9ecef;border-radius:8px;}
+.dept-table{width:100%;border-collapse:collapse;font-size:.83rem;min-width:900px;}
+.dept-table thead th{background:#1a0040;color:#fff;padding:.6rem .75rem;text-align:left;white-space:nowrap;position:sticky;top:0;z-index:2;}
+.dept-table tbody td{padding:.55rem .75rem;border-bottom:1px solid #f0f0f0;vertical-align:middle;}
+.dept-table tbody tr:hover td{background:#f5f0ff;}
+.dept-empty{text-align:center;color:#6c757d;padding:2rem;}
+/* Section queues */
+.path-sq-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.25rem;}
+.sq-card{display:flex;flex-direction:column;gap:.5rem;background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:1rem;box-shadow:0 2px 6px rgba(0,0,0,.05);}
+.sq-card.biopsy-sq{border-left:4px solid #6366f1;}.sq-card.cyto-sq{border-left:4px solid #3b82f6;}.sq-card.ihc-sq{border-left:4px solid #ec4899;}.sq-card.ai-sq{border-left:4px solid #06b6d4;}
+.sq-icon{font-size:1.75rem;}.sq-name{font-weight:700;font-size:.95rem;color:#1a0040;}.sq-tests{font-size:.73rem;color:#6c757d;line-height:1.4;}.sq-cnt{font-size:1.1rem;font-weight:700;}
+.sq-card button{align-self:flex-end;background:none;border:1px solid #1a0040;border-radius:6px;padding:.25rem .7rem;font-size:.79rem;cursor:pointer;}
+/* Workflow pipeline */
+.path-workflow-strip{display:flex;align-items:center;gap:.25rem;background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem;overflow-x:auto;}
+.wf-step{display:flex;flex-direction:column;align-items:center;gap:.2rem;min-width:80px;text-align:center;flex-shrink:0;}
+.wf-step.active-step .wf-icon{background:#1a0040;color:#fff;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;}
+.wf-icon{font-size:1.25rem;}.wf-name{font-size:.72rem;font-weight:600;color:#374151;}.wf-cnt{font-size:1rem;font-weight:700;color:#6c757d;}
+.wf-arrow{font-size:1.2rem;color:#ced4da;flex-shrink:0;}
+/* Dashboard charts */
+.path-dash-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.path-chart-box,.path-recent-box{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:1rem;box-shadow:0 2px 6px rgba(0,0,0,.05);}
+.box-title{font-weight:700;font-size:.92rem;color:#1a0040;margin-bottom:.75rem;}
+/* Cytology Bethesda bar */
+.cyto-bethesda-bar{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;padding:.5rem .75rem;background:#f8f9fa;border-radius:8px;margin-bottom:.75rem;font-size:.79rem;}
+.cyto-bethesda-bar strong{margin-right:.25rem;}
+.beth-cat{padding:.15rem .5rem;border-radius:6px;font-size:.74rem;font-weight:600;}
+.beth-nil{background:#d4edda;color:#155724;}.beth-asc{background:#fff3cd;color:#856404;}.beth-lsil{background:#ffeeba;color:#856404;}.beth-asch{background:#f8d7da;color:#721c24;}.beth-hsil{background:#f5c6cb;color:#721c24;font-weight:700;}.beth-agc{background:#e2d9f3;color:#4a1d96;}.beth-scc{background:#dc3545;color:#fff;font-weight:700;}.beth-adeno{background:#7c3aed;color:#fff;}
+/* IHC reference strip */
+.ihc-ref-strip{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem;}
+.ihc-ref-title{font-weight:700;font-size:.88rem;color:#1a0040;margin-bottom:.6rem;}
+.ihc-ref-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.5rem;}
+.ihc-ref-card{background:#f8f9fa;border-radius:8px;padding:.5rem .65rem;font-size:.77rem;}
+.ihc-ref-card strong{display:block;color:#1a0040;margin-bottom:.2rem;}
+/* AI Upload area */
+.ai-upload-area{background:#fff;border:2px dashed #6366f1;border-radius:12px;padding:2rem;text-align:center;margin-bottom:1rem;}
+.ai-upload-icon{font-size:2.5rem;margin-bottom:.5rem;}
+.ai-upload-title{font-weight:700;font-size:1rem;color:#1a0040;margin-bottom:.25rem;}
+.ai-upload-sub{font-size:.82rem;color:#6c757d;margin-bottom:.85rem;}
+.ai-upload-btns{display:flex;gap:.75rem;justify-content:center;}
+/* AI results */
+.ai-vision-disclaimer{background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.3);border-radius:8px;padding:.7rem 1rem;font-size:.82rem;color:#0e7490;margin-bottom:1rem;}
+.ai-result-header{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;}
+.ai-result-title{font-weight:700;font-size:1rem;color:#1a0040;}
+.ai-result-disclaimer{font-size:.78rem;color:#6c757d;flex:1;}
+.ai-result-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.75rem;margin-bottom:1rem;}
+.ai-metric-card{background:#fff;border:1px solid #e9ecef;border-radius:8px;padding:.75rem;text-align:center;}
+.ai-metric-card.danger-metric{border-color:rgba(220,53,69,.3);background:rgba(220,53,69,.04);}
+.ai-metric-val{font-size:1.5rem;font-weight:700;color:#1a0040;}
+.ai-metric-lbl{font-size:.72rem;color:#6c757d;margin-top:.2rem;}
+.ai-interpretation-box{background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:.85rem;margin-bottom:.75rem;}
+.ai-interp-lbl{font-weight:700;font-size:.82rem;color:#1a0040;margin-bottom:.4rem;}
+.ai-action-row{display:flex;gap:.75rem;}
+/* Report composer */
+.report-composer{background:#fff;border:1px solid #e9ecef;border-radius:12px;overflow:hidden;}
+.rc-header{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid #e9ecef;flex-wrap:wrap;gap:.5rem;}
+.rc-header h3{margin:0;font-size:1rem;}
+.rc-tools{display:flex;gap:.5rem;}
+.rc-tools select{padding:.35rem .6rem;border:1px solid #ced4da;border-radius:6px;font-size:.83rem;}
+.rc-body{padding:1rem 1.25rem;display:flex;flex-direction:column;gap:.75rem;}
+.rc-field{display:flex;flex-direction:column;gap:.3rem;}
+.rc-field label{font-size:.82rem;font-weight:600;color:#495057;}
+.rc-field input,.rc-field textarea{padding:.4rem .65rem;border:1px solid #ced4da;border-radius:6px;font-size:.85rem;resize:vertical;}
+.rc-footer{display:flex;justify-content:flex-end;gap:.5rem;padding:.85rem 1.25rem;border-top:1px solid #e9ecef;}
+/* Registry */
+.registry-header-strip{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;}
+.registry-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:.75rem;margin-bottom:1rem;}
+.reg-kpi{background:#fff;border:1px solid #e9ecef;border-radius:8px;padding:.75rem;text-align:center;}
+.reg-kpi-val{font-size:1.5rem;font-weight:700;color:#1a0040;}.reg-kpi-lbl{font-size:.72rem;color:#6c757d;margin-top:.2rem;}
+/* Buttons */
+.btn-primary{background:#1a0040;color:#fff;border:none;padding:.5rem 1rem;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;}
+.btn-primary:hover{background:#2d0060;}.btn-secondary{background:#f8f9fa;color:#1a0040;border:1px solid #ced4da;padding:.5rem 1rem;border-radius:8px;font-size:.85rem;cursor:pointer;}
+.dept-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:9000;backdrop-filter:blur(3px);}
+.dept-modal{background:#fff;border-radius:14px;width:90%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.dept-modal-wide{max-width:760px;}
+.dept-modal-hdr{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid #e9ecef;position:sticky;top:0;background:#fff;z-index:1;}
+.dept-modal-hdr h3{margin:0;font-size:1.05rem;}.dept-modal-hdr button{background:none;border:none;font-size:1.2rem;cursor:pointer;color:#6c757d;}
+.dept-modal-body{padding:1rem 1.25rem;}
+.dept-modal-ftr{display:flex;justify-content:flex-end;gap:.75rem;padding:1rem 1.25rem;border-top:1px solid #e9ecef;position:sticky;bottom:0;background:#fff;}
+.dept-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+.dept-form-row{display:flex;flex-direction:column;gap:.3rem;}.dept-form-row.full-col{grid-column:span 2;}
+.dept-form-row label{font-size:.82rem;font-weight:600;color:#495057;}
+.dept-form-row input,.dept-form-row select,.dept-form-row textarea{padding:.4rem .65rem;border:1px solid #ced4da;border-radius:6px;font-size:.85rem;}
+.dept-form-row textarea{resize:vertical;}
+@media(max-width:900px){.path-sq-grid,.ihc-ref-grid,.ai-result-grid,.registry-kpis{grid-template-columns:1fr 1fr;}.dept-kpis{grid-template-columns:repeat(3,1fr);}.path-dash-row{grid-template-columns:1fr;}.dept-form-grid{grid-template-columns:1fr;}.dept-form-row.full-col{grid-column:span 1;}}

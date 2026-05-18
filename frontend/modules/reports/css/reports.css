@@ -107,3 +107,24 @@
   .reports-charts-row   { grid-template-columns: 1fr; }
   .reports-kpi-row      { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ══ White/Cyan Reports Theme ════════════════════════════════ */
+.lc-page .page-header { display: none; }
+.lc-page .reports-tab-nav { background: #fff; border-bottom: 2px solid #e0f2fe; padding: 0 1rem; }
+.lc-page .tab-btn { color: #64748b; }
+.lc-page .tab-btn.active { background: #0891b2; color: #fff; }
+.lc-page .tab-btn:hover:not(.active) { background: #f0fdff; color: #0891b2; }
+.lc-page .reports-kpi-row .kpi-card,
+.lc-page .chart-card,
+.lc-page .reports-section { background: #fff; border: 1px solid #e0f2fe; box-shadow: 0 1px 4px rgba(8,145,178,.08); }
+.lc-page .kpi-card { border-left: 4px solid #0891b2; color: #0f172a; }
+.lc-page .kpi-val  { color: #0e7490; }
+.lc-page .kpi-lbl  { color: #64748b; }
+.lc-page .chart-card { background: #fff; border: 1px solid #e0f2fe; }
+.lc-page .reports-table thead th { background: #0891b2; color: #fff; }
+.lc-page .reports-table tbody tr:hover td { background: #f0fdff; }
+.lc-page .reports-table tbody td { border-color: #e0f2fe; color: #0f172a; }
+/* Clock helpers */
+#rpt-shift-icon, #rpt-shift-name, #rpt-clock { font-size: .72rem; }
+/* Print/export helpers */
+.exportReports, .printReports { cursor: pointer; }

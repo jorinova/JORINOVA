@@ -1,0 +1,1276 @@
+/* ============================================================
+   WORKLIST PREPARATION PAGE — ALIS-X
+   White / Cyan Futuristic Theme
+   All colours hardcoded as hex (no CSS variable bleed).
+   ============================================================ */
+
+/* ── Force white background on every ancestor ── */
+html,
+body,
+#app-main,
+.wp-page {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* ── Page wrapper ── */
+.wp-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   HEADER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.wp-header {
+  background: #ffffff;
+  border-bottom: 1.5px solid #e0f2fe;
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(6, 182, 212, 0.07);
+}
+
+.wp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.wp-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #06b6d4 0%, #0e7490 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
+}
+
+.wp-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.wp-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.wp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Back link ── */
+.wp-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #0891b2;
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid #e0f2fe;
+  background: #f0f9ff;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+.wp-back-link:hover {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0e7490;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PATIENT BANNER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.wp-patient-banner {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-bottom: 1px solid #bae6fd;
+  padding: 16px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.wp-patient-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.wp-patient-info {
+  flex: 1;
+  min-width: 200px;
+}
+
+.wp-patient-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.wp-patient-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.wp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+}
+
+.wp-badge-blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.wp-badge-grey {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.wp-badge-red {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.wp-badge-stat {
+  background: #dc2626;
+  color: #ffffff;
+  animation: wp-pulse 1.4s ease-in-out infinite;
+}
+
+.wp-badge-urgent {
+  background: #ea580c;
+  color: #ffffff;
+}
+
+.wp-badge-routine {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.wp-badge-biohazard {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+@keyframes wp-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+
+.wp-request-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.wp-lab-id {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0369a1;
+  letter-spacing: 0.05em;
+  background: #e0f2fe;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid #bae6fd;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   MAIN CONTENT AREA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.wp-content {
+  flex: 1;
+  padding: 24px 28px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.wp-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0891b2;
+  margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wp-section-title i {
+  font-size: 14px;
+}
+
+/* ── High-risk toggle row ── */
+.wp-highrisk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.wp-highrisk-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+}
+.wp-highrisk-label i {
+  font-size: 18px;
+  color: #d97706;
+}
+
+.wp-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.wp-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.wp-toggle-track {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: #cbd5e1;
+  position: relative;
+  transition: background 0.2s;
+}
+.wp-toggle input:checked + .wp-toggle-track {
+  background: #f59e0b;
+}
+.wp-toggle-thumb {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  transition: left 0.2s;
+}
+.wp-toggle input:checked ~ .wp-toggle-track .wp-toggle-thumb,
+.wp-toggle input:checked + .wp-toggle-track .wp-toggle-thumb {
+  left: 23px;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TUBE GROUP CARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.wp-tube-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.wp-tube-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.wp-tube-card:hover {
+  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.10);
+  border-color: #7dd3fc;
+}
+
+.wp-tube-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Coloured left stripe on the card (set via JS inline style) */
+.wp-tube-card {
+  border-left-width: 5px;
+  border-left-style: solid;
+}
+
+.wp-tube-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2.5px solid rgba(255,255,255,0.6);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.wp-tube-info {
+  flex: 1;
+}
+
+.wp-tube-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.wp-tube-dept {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.wp-sid-preview {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  background: #f0f9ff;
+  color: #0369a1;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid #bae6fd;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.wp-tube-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wp-tube-select {
+  font-size: 12px;
+  color: #334155;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 5px 26px 5px 10px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  max-width: 200px;
+}
+.wp-tube-select:focus {
+  outline: none;
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.12);
+}
+
+.wp-tube-vol {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+/* ── Test list inside a tube group ── */
+.wp-test-list {
+  padding: 10px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wp-test-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #334155;
+  padding: 7px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+  transition: background 0.1s;
+}
+.wp-test-item:hover {
+  background: #f0f9ff;
+  border-color: #e0f2fe;
+}
+
+.wp-test-icon {
+  font-size: 12px;
+  color: #06b6d4;
+  flex-shrink: 0;
+}
+
+.wp-test-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.wp-test-dept {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.wp-test-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: #059669;
+  white-space: nowrap;
+}
+
+/* ── Empty state ── */
+.wp-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: #94a3b8;
+}
+.wp-empty i {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+.wp-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #64748b;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   SUMMARY BAR (bottom of groups)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.wp-summary-bar {
+  background: #f0f9ff;
+  border: 1.5px solid #bae6fd;
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.wp-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.wp-summary-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0369a1;
+  line-height: 1;
+}
+
+.wp-summary-label {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.wp-summary-divider {
+  width: 1px;
+  height: 40px;
+  background: #bae6fd;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CONFIRM BUTTON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.wp-confirm-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-bottom: 40px;
+}
+
+.wp-btn-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 32px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.4);
+  transition: all 0.18s;
+  position: relative;
+  overflow: hidden;
+}
+.wp-btn-confirm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(14, 165, 233, 0.5);
+  background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+}
+.wp-btn-confirm:active {
+  transform: translateY(0);
+}
+.wp-btn-confirm:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.wp-btn-confirm .wp-btn-spinner {
+  display: none;
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: wp-spin 0.7s linear infinite;
+}
+.wp-btn-confirm.loading .wp-btn-spinner { display: inline-block; }
+.wp-btn-confirm.loading .wp-btn-icon   { display: none; }
+
+@keyframes wp-spin {
+  to { transform: rotate(360deg); }
+}
+
+.wp-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #64748b;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+.wp-btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   LOADING SKELETON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.wp-skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 400% 100%;
+  animation: wp-shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+@keyframes wp-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.wp-skeleton-card {
+  height: 120px;
+  border-radius: 14px;
+  margin-bottom: 14px;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TOAST NOTIFICATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.wp-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.wp-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #0f172a;
+  color: #f1f5f9;
+  padding: 13px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  transform: translateX(110%);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 0.3s ease;
+  pointer-events: auto;
+  max-width: 380px;
+}
+.wp-toast.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+.wp-toast.success { border-left: 4px solid #22c55e; }
+.wp-toast.error   { border-left: 4px solid #ef4444; }
+.wp-toast.info    { border-left: 4px solid #06b6d4; }
+.wp-toast.warning { border-left: 4px solid #f59e0b; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   BILLING MODAL OVERLAY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.wp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.wp-modal-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.wp-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.25), 0 0 0 1px rgba(6,182,212,0.1);
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(24px) scale(0.97);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.wp-modal-overlay.active .wp-modal {
+  transform: translateY(0) scale(1);
+}
+
+.wp-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0f2fe;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  flex-shrink: 0;
+}
+
+.wp-modal-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #06b6d4, #0284c7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.wp-modal-title {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.wp-modal-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.wp-modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 16px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.wp-modal-close:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.wp-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+/* ── Billing items table ── */
+.billing-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.billing-items-table th {
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1.5px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.billing-items-table td {
+  padding: 9px 10px;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.billing-items-table tr:last-child td {
+  border-bottom: none;
+}
+
+.billing-items-table tr:hover td {
+  background: #f0f9ff;
+}
+
+.billing-item-name {
+  font-weight: 500;
+}
+
+.billing-item-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.billing-auto-badge {
+  font-size: 10px;
+  background: #d1fae5;
+  color: #065f46;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.billing-waived {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+.billing-price {
+  font-weight: 700;
+  color: #059669;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.billing-qty-input {
+  width: 52px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px;
+  font-size: 13px;
+  color: #0f172a;
+  background: #ffffff;
+}
+.billing-qty-input:focus {
+  outline: none;
+  border-color: #06b6d4;
+}
+
+.billing-remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #dc2626;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  transition: background 0.1s;
+  opacity: 0.6;
+}
+.billing-remove-btn:hover {
+  background: #fee2e2;
+  opacity: 1;
+}
+
+/* ── Add "other" item row ── */
+.billing-add-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.billing-search-wrap {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+
+.billing-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 32px;
+  font-size: 13px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.billing-search-input:focus {
+  outline: none;
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+.billing-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.billing-search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1.5px solid #e0f2fe;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  z-index: 100;
+  max-height: 220px;
+  overflow-y: auto;
+  display: none;
+}
+.billing-search-dropdown.open {
+  display: block;
+}
+
+.billing-search-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #334155;
+  transition: background 0.1s;
+  gap: 8px;
+}
+.billing-search-option:hover {
+  background: #f0f9ff;
+}
+
+.billing-search-opt-name {
+  font-weight: 500;
+  flex: 1;
+}
+
+.billing-search-opt-price {
+  font-weight: 700;
+  color: #059669;
+  white-space: nowrap;
+}
+
+/* ── Billing totals ── */
+.billing-totals {
+  background: #f0f9ff;
+  border: 1.5px solid #bae6fd;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+
+.billing-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #475569;
+  padding: 4px 0;
+}
+
+.billing-total-row.grand {
+  border-top: 1.5px solid #bae6fd;
+  margin-top: 8px;
+  padding-top: 10px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.billing-grand-amount {
+  color: #0369a1;
+}
+
+/* ── Payment method ── */
+.billing-payment-section {
+  margin-top: 12px;
+}
+
+.billing-payment-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.billing-payment-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.billing-payment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 22px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.15s;
+  user-select: none;
+}
+.billing-payment-pill:hover {
+  border-color: #7dd3fc;
+  color: #0369a1;
+  background: #f0f9ff;
+}
+.billing-payment-pill.selected {
+  border-color: #0ea5e9;
+  background: #0ea5e9;
+  color: #ffffff;
+}
+
+/* ── Modal footer ── */
+.wp-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e0f2fe;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.wp-modal-dismiss {
+  font-size: 13px;
+  color: #64748b;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 8px;
+  transition: background 0.15s;
+  font-weight: 500;
+}
+.wp-modal-dismiss:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.wp-modal-btn-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 28px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
+  transition: all 0.18s;
+}
+.wp-modal-btn-confirm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.45);
+}
+.wp-modal-btn-confirm:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.wp-modal-btn-skip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #64748b;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.wp-modal-btn-skip:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* ── Success splash ── */
+.wp-success-splash {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.wp-success-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #ffffff;
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 8px 28px rgba(34, 197, 94, 0.35);
+  animation: wp-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes wp-pop {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.wp-success-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.wp-success-msg {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.wp-success-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.wp-print-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 26px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
+  transition: all 0.18s;
+}
+.wp-print-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.45);
+}
+
+.wp-done-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #64748b;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.wp-done-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* ── Notes textarea ── */
+.billing-notes-input {
+  width: 100%;
+  font-size: 13px;
+  color: #334155;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  resize: vertical;
+  min-height: 54px;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  margin-top: 4px;
+  font-family: inherit;
+}
+.billing-notes-input:focus {
+  outline: none;
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+/* ── Section divider ── */
+.billing-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin: 16px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.billing-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+/* ── Waiver toggle per item ── */
+.billing-waive-toggle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 5px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+.billing-waive-toggle input {
+  accent-color: #ef4444;
+  cursor: pointer;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   RESPONSIVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@media (max-width: 720px) {
+  .wp-header        { padding: 12px 16px; }
+  .wp-patient-banner{ padding: 12px 16px; }
+  .wp-content       { padding: 16px; }
+  .wp-modal         { border-radius: 14px 14px 0 0; align-self: flex-end; max-height: 95vh; }
+  .wp-modal-overlay { align-items: flex-end; padding: 0; }
+  .wp-summary-bar   { flex-direction: column; }
+}

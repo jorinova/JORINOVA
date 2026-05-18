@@ -11,33 +11,54 @@
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+<style>
+/* White/cyan override for dashboard */
+#app-main { background: var(--lc-bg, #f0fdff) !important; }
+.shift-bar { background: #fff !important; border-bottom: 1px solid #bae6fd !important; }
+.shift-bar * { color: #0e7490 !important; }
+.dashboard-main { background: var(--lc-bg, #f0fdff); }
+.dashboard-body { background: var(--lc-bg, #f0fdff); }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-main">
+<div class="dashboard-main lc-page">
 
-  <!-- ── Header ── -->
-  <header class="dashboard-header">
-    <div class="dash-title-wrap">
-      <div class="page-icon-wrap"><span style="font-size:20px">🖥️</span></div>
-      <div>
-        <h1 class="dash-title">Operational Dashboard</h1>
-        <div class="dash-date">
-          <span id="dash-date-label">{{ today|date:"l, d F Y" }}</span>
-          <span style="color:var(--border-mid);margin:0 6px">·</span>
-          <span class="text-mono" id="dash-live-time"></span>
-          <span style="color:var(--border-mid);margin:0 6px">·</span>
-          <span id="dash-shift-tag" style="color:var(--cyan-dim);font-size:11px"></span>
-        </div>
+  <!-- ══ HEADER — MAX 2.5 cm ═══════════════════════════════════
+       White background · Cyan accent border · Compact layout
+       ════════════════════════════════════════════════════════ -->
+  <header class="lc-header" style="border-bottom-color:#0891b2">
+    <img src="{% static 'shared/assets/logos/jorinova-logo.jpeg' %}" alt="JORINOVA" class="lc-logo">
+    <div class="lc-header-titles">
+      <div class="lc-header-title">🖥️ Operational Dashboard</div>
+      <div class="lc-header-subtitle">
+        JORINOVA NEXUS ALIS-X · ISO 15189 ·
+        <span id="dash-date-label">{{ today.strftime("%A, %d %B %Y") }}</span>
       </div>
     </div>
-    <div class="dash-header-right">
-      <button class="refresh-btn" id="refresh-btn" type="button">
+    <div class="lc-header-shift">
+      <span id="dash-shift-icon">☀️</span>
+      <span id="dash-shift-name">Morning</span>
+      <span>·</span>
+      <time id="dash-clock" class="text-mono">--:--:--</time>
+    </div>
+    <!-- Live KPI pills in header -->
+    <div class="lc-stat-pill" id="dash-hdr-patients">
+      <span class="v" id="hdr-patients">—</span><span class="l">Patients</span>
+    </div>
+    <div class="lc-stat-pill warn" id="dash-hdr-pending">
+      <span class="v" id="hdr-pending">—</span><span class="l">Pending</span>
+    </div>
+    <div class="lc-stat-pill crit" id="dash-hdr-critical">
+      <span class="v" id="hdr-critical">—</span><span class="l">Critical</span>
+    </div>
+    <div class="lc-header-right">
+      <button class="lc-tool-btn" id="refresh-btn" type="button" onclick="loadDashboard()">
         <i class="fas fa-arrows-rotate"></i> Refresh
       </button>
-      <div class="user-chip" title="{{ request.user.get_full_name }}">
-        <div class="user-avatar">{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}</div>
-        <span class="user-name">{{ request.user.get_full_name }}</span>
+      <div class="dash-user-chip">
+        <div class="dash-user-avatar">{{ request_user.first_name[0:1]|upper }}{{ request_user.last_name[0:1]|upper }}</div>
+        <span style="font-size:.75rem;color:#0e7490;font-weight:600">{{ request_user.full_name }}</span>
       </div>
     </div>
   </header>

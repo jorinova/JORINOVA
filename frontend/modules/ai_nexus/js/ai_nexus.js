@@ -133,10 +133,108 @@
       </div>`).join('');
   }
 
+  /* Flag check + interpret (AI Nexus) */
+  async function postJSON(url, payload) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': window.NEXUS?.csrf || '',
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload),
+    });
+    const txt = await res.text();
+    let data;
+    try { data = JSON.parse(txt); } catch (_) { data = { detail: txt }; }
+    if (!res.ok) {
+      const msg = data?.detail || data?.message || `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+    return data;
+  }
+
+  function readForm() {
+    const test_code = document.getElementById('ai-test-code')?.value?.trim() || '';
+    const valueStr  = document.getElementById('ai-test-value')?.value;
+    const unit       = document.getElementById('ai-test-unit')?.value?.trim() || '';
+    const sex        = document.getElementById('ai-test-sex')?.value || '';
+    const ageStr     = document.getElementById('ai-test-age')?.value;
+    const ref_range  = document.getElementById('ai-test-ref')?.value?.trim() || '';
+
+    const value = valueStr === '' || valueStr === null || valueStr === undefined ? null : Number(valueStr);
+    const age   = ageStr   === '' || ageStr   === null || ageStr   === undefined ? 0 : Number(ageStr);
+
+    return { test_code, value, unit, sex, age, ref_range };
+  }
+
+  function showResult(obj) {
+    const wrap = document.getElementById('ai-flag-result');
+    const pre  = document.getElementById('ai-flag-result-pre');
+    if (!wrap || !pre) return;
+    pre.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+    wrap.style.display = 'block';
+  }
+
+  function toastError(msg) {
+    window.NEXUS?.Toast?.error?.('AI Nexus Error', msg);
+  }
+
+  function initFlagInterpret() {
+    const btnFlag = document.getElementById('ai-btn-flag-check');
+    const btnFull = document.getElementById('ai-btn-interpret');
+    if (!btnFlag || !btnFull) return;
+
+    btnFlag.addEventListener('click', async () => {
+      const f = readForm();
+      if (!f.test_code) return toastError('Test code is required');
+      if (f.value === null || Number.isNaN(f.value)) return toastError('Test value must be a number');
+
+      try {
+        const payload = {
+          test_code: f.test_code,
+          value: f.value,
+          unit: f.unit,
+          sex: f.sex,
+          age: f.age,
+        };
+        const data = await postJSON('/api/v1/ai/flag-check', payload);
+        showResult({ layer: data?.layer || 'rules_engine', result: data });
+      } catch (e) {
+        toastError(e?.message || String(e));
+      }
+    });
+
+    btnFull.addEventListener('click', async () => {
+      const f = readForm();
+      if (!f.test_code) return toastError('Test code is required');
+      if (f.value === null || Number.isNaN(f.value)) return toastError('Test value must be a number');
+
+      try {
+        const payload = {
+          test_code: f.test_code,
+          test_name: f.test_code, // UI doesn’t have name; backend accepts any string
+          value: String(f.value),
+          unit: f.unit,
+          sex: f.sex,
+          age: f.age,
+          flag: '',
+          ref_range: f.ref_range,
+        };
+        const data = await postJSON('/api/v1/ai/interpret', payload);
+        showResult({ result: data });
+      } catch (e) {
+        toastError(e?.message || String(e));
+      }
+    });
+  }
+
   function init() {
     initTabs();
     loadDashboard();
     setTimeout(() => { loadAnomalyFeed(); loadPredictionsFeed(); }, 100);
+    initFlagInterpret();
   }
   document.addEventListener('DOMContentLoaded', init);
 })();
+

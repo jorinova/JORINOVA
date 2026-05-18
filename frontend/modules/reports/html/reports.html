@@ -9,29 +9,40 @@
 <link rel="stylesheet" href="{% static 'modules/reports/css/reports.css' %}">
 {% endblock %}
 
-{% block content %}
-<div class="reports-main">
+{% block extra_head %}
+<style>
+#app-main { background: var(--lc-bg,#f0fdff) !important; }
+.shift-bar { background:#fff !important; border-bottom:1px solid #bae6fd !important; }
+.shift-bar *{ color:#0e7490 !important; }
+.reports-main { background: var(--lc-bg,#f0fdff); }
+</style>
+{% endblock %}
 
-  <header class="page-header">
-    <div class="page-header-left">
-      <div class="page-icon-wrap" style="background:rgba(255,214,0,0.08);border-color:rgba(255,214,0,0.18);color:var(--gold)">
-        <span style="font-size:20px">🔮</span>
-      </div>
-      <div>
-        <h1 class="page-title">Reports &amp; Analytics</h1>
-        <div class="page-subtitle">{{ today|date:"l, d F Y" }} · ALIS-X Intelligence</div>
-      </div>
+{% block content %}
+<div class="reports-main lc-page">
+
+  <!-- ══ HEADER — MAX 2.5 cm (White/Cyan) ════════════════════ -->
+  <header class="lc-header" style="border-bottom-color:#0891b2">
+    <img src="{% static 'shared/assets/logos/jorinova-logo.jpeg' %}" alt="JORINOVA" class="lc-logo">
+    <div class="lc-header-titles">
+      <div class="lc-header-title">🔮 Reports &amp; Analytics</div>
+      <div class="lc-header-subtitle">JORINOVA NEXUS ALIS-X · ISO 15189 · Epidemiology · TAT · Department Intelligence</div>
     </div>
-    <div class="page-header-right">
-      <select class="fi" style="width:auto;padding:6px 12px;font-size:var(--text-xs)" id="report-period">
+    <div class="lc-header-shift">
+      <span id="rpt-shift-icon">☀️</span>
+      <span id="rpt-shift-name">Morning</span>
+      <span>·</span>
+      <time id="rpt-clock">--:--:--</time>
+    </div>
+    <div class="lc-header-right">
+      <select class="lc-select" id="report-period" onchange="loadReports()" style="font-size:.78rem">
         <option value="today">📅 Today</option>
-        <option value="week">📆 This Week</option>
-        <option value="month" selected>🗓️ This Month</option>
-        <option value="quarter">📊 Quarter</option>
+        <option value="7">📆 7 Days</option>
+        <option value="30" selected>🗓️ 30 Days</option>
+        <option value="90">📊 90 Days</option>
       </select>
-      <button class="btn btn-primary btn-sm" id="export-btn">
-        <span>📤</span> Export
-      </button>
+      <button class="lc-header-btn" id="export-btn" onclick="exportReports()">📤 Export</button>
+      <button class="lc-header-btn ghost" onclick="printReports()">🖨️ Print</button>
     </div>
   </header>
 
@@ -250,4 +261,27 @@
 {% block module_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 <script src="{% static 'modules/reports/js/reports.js' %}" defer></script>
+<script>
+/* Reports clock + helpers */
+function _rptTick(){
+  const n=new Date(),h=n.getHours();
+  const[name,icon]=h>=6&&h<14?['Morning','☀️']:h>=14&&h<22?['Afternoon','🌤️']:['Night','🌙'];
+  ['rpt-shift-icon','rpt-shift-name','rpt-clock'].forEach((id,i)=>{
+    const e=document.getElementById(id);
+    if(e) e.textContent=[icon,name,n.toLocaleTimeString('en-GB')][i];
+  });
+}
+setInterval(_rptTick,1000); _rptTick();
+function exportReports(){
+  if(window.NexusPrint) NexusPrint.printAll('reports-table');
+  else window.print();
+}
+function printReports(){
+  window.print();
+}
+function loadReports(){
+  const period=document.getElementById('report-period')?.value||'30';
+  console.log('Loading reports for period:', period);
+}
+</script>
 {% endblock %}

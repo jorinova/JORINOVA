@@ -1,0 +1,399 @@
+{% extends "shared/html/base.html" %}
+{% load static %}
+
+{% block title %}🛡️ Immunology — NEXUS ALIS-X{% endblock %}
+{% block module_id %}immunology{% endblock %}
+{% block nav_active_lab %}active{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{% static 'modules/immunology/css/immunology.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="imm-app">
+
+  <!-- ── Header ────────────────────────────────────────────────── -->
+  <div class="module-header">
+    <div class="mh-left">
+      <h1 class="page-title">🛡️ Immunology Department</h1>
+      <span class="mh-subtitle">Autoimmune · Allergy · HIV · Hepatitis · Tumour Markers · ELISA · Flow Cytometry</span>
+    </div>
+    <div class="mh-right">
+      <div class="stat-chip" id="hdr-pending">⏳ <span id="stat-pending">—</span> Pending</div>
+      <div class="stat-chip critical" id="hdr-critical">🚨 <span id="stat-critical">—</span> Critical</div>
+    </div>
+  </div>
+
+  <!-- ── Tabs ──────────────────────────────────────────────────── -->
+  <nav class="tab-nav" id="imm-tabs">
+    <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+    <button class="tab-btn" data-tab="hiv">🔴 HIV/AIDS</button>
+    <button class="tab-btn" data-tab="hepatitis">🟡 Hepatitis</button>
+    <button class="tab-btn" data-tab="autoimmune">🛡️ Autoimmune</button>
+    <button class="tab-btn" data-tab="allergy">🌿 Allergy Panel</button>
+    <button class="tab-btn" data-tab="markers">🔵 Tumour Markers</button>
+    <button class="tab-btn" data-tab="flowcyto">🔬 Flow Cytometry</button>
+    <button class="tab-btn" data-tab="validation">✅ Validation</button>
+  </nav>
+
+  <!-- ══ DASHBOARD ════════════════════════════════════════════════ -->
+  <div class="tab-pane active" id="tab-dashboard">
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="kpi-val" id="kpi-pending">—</div><div class="kpi-lbl">Pending Results</div></div>
+      <div class="kpi-card success"><div class="kpi-val" id="kpi-today">—</div><div class="kpi-lbl">Completed Today</div></div>
+      <div class="kpi-card danger"><div class="kpi-val" id="kpi-hiv-pos">—</div><div class="kpi-lbl">HIV Reactive</div></div>
+      <div class="kpi-card warning"><div class="kpi-val" id="kpi-hep-pos">—</div><div class="kpi-lbl">HBsAg Positive</div></div>
+      <div class="kpi-card info"><div class="kpi-val" id="kpi-autoimmune">—</div><div class="kpi-lbl">Autoimmune Positive</div></div>
+    </div>
+
+    <div class="section-queues">
+      <div class="sq-card hiv-sq">
+        <div class="sq-icon">🔴</div>
+        <div class="sq-body">
+          <div class="sq-name">HIV Testing</div>
+          <div class="sq-tests">HIV Rapid · HIV ELISA · HIV Confirmatory · CD4 Count · Viral Load Link</div>
+          <div class="sq-count" id="sq-hiv">— pending</div>
+        </div>
+        <button class="sq-btn" onclick="switchTab('hiv')">View →</button>
+      </div>
+      <div class="sq-card hep-sq">
+        <div class="sq-icon">🟡</div>
+        <div class="sq-body">
+          <div class="sq-name">Viral Hepatitis</div>
+          <div class="sq-tests">HBsAg · HBcAb · HBeAg · Anti-HCV · HCV PCR Link</div>
+          <div class="sq-count" id="sq-hep">— pending</div>
+        </div>
+        <button class="sq-btn" onclick="switchTab('hepatitis')">View →</button>
+      </div>
+      <div class="sq-card auto-sq">
+        <div class="sq-icon">🛡️</div>
+        <div class="sq-body">
+          <div class="sq-name">Autoimmune</div>
+          <div class="sq-tests">ANA · ANCA · RF · Anti-dsDNA · C3 · C4 · ASO · CRP</div>
+          <div class="sq-count" id="sq-auto">— pending</div>
+        </div>
+        <button class="sq-btn" onclick="switchTab('autoimmune')">View →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ HIV/AIDS ══════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-hiv">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="hiv-filter-test" onchange="loadHIV()">
+          <option value="">All HIV Tests</option>
+          <option value="HIV_RAPID">HIV Rapid Test</option>
+          <option value="HIV_ELISA">HIV ELISA</option>
+          <option value="HIV_CONFIRM">HIV Confirmatory (WB)</option>
+          <option value="CD4">CD4 Count</option>
+          <option value="HIV_PCR">HIV RNA (PCR)</option>
+        </select>
+        <select id="hiv-filter-result" onchange="loadHIV()">
+          <option value="">All Results</option>
+          <option value="REACTIVE">Reactive / Positive</option>
+          <option value="NON_REACTIVE">Non-Reactive</option>
+          <option value="INDETERMINATE">Indeterminate</option>
+          <option value="PENDING">Pending</option>
+        </select>
+        <input type="date" id="hiv-filter-date" onchange="loadHIV()">
+      </div>
+      <button class="btn-primary" onclick="openResultModal('HIV')">+ Enter HIV Result</button>
+    </div>
+
+    <!-- BSL-2 Alert -->
+    <div class="bsl-alert">
+      <strong>⚠️ BSL-2 ZONE</strong> — All HIV-reactive samples must be handled with enhanced PPE.
+      Positive results require confirmatory testing before reporting.
+      Reactive results must trigger pre/post-test counselling referral.
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="hiv-table">
+        <thead>
+          <tr>
+            <th>Lab ID</th><th>Patient</th><th>Test</th><th>Method</th>
+            <th>Result</th><th>S/CO Ratio</th><th>Confirmatory</th>
+            <th>Counselling</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="hiv-tbody">
+          <tr><td colspan="10" class="empty-state">Loading HIV results…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ HEPATITIS ════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-hepatitis">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="hep-filter-test" onchange="loadHep()">
+          <option value="">All Hepatitis Tests</option>
+          <option value="HBSAG">HBsAg (Hepatitis B Surface Antigen)</option>
+          <option value="HBCAB">HBcAb (Hepatitis B Core Antibody)</option>
+          <option value="HBEAG">HBeAg (Hepatitis B e-Antigen)</option>
+          <option value="ANTI_HCV">Anti-HCV (Hepatitis C Antibody)</option>
+          <option value="ANTI_HAV">Anti-HAV (Hepatitis A)</option>
+          <option value="ANTI_HEV">Anti-HEV (Hepatitis E)</option>
+        </select>
+        <select id="hep-filter-result" onchange="loadHep()">
+          <option value="">All Results</option>
+          <option value="REACTIVE">Reactive</option>
+          <option value="NON_REACTIVE">Non-Reactive</option>
+          <option value="PENDING">Pending</option>
+        </select>
+        <input type="date" id="hep-filter-date" onchange="loadHep()">
+      </div>
+      <button class="btn-primary" onclick="openResultModal('HEP')">+ Enter Hepatitis Result</button>
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="hep-table">
+        <thead>
+          <tr>
+            <th>Lab ID</th><th>Patient</th><th>Test</th><th>Result</th>
+            <th>S/CO Ratio</th><th>Method</th><th>Notes</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="hep-tbody">
+          <tr><td colspan="9" class="empty-state">Loading hepatitis results…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ AUTOIMMUNE ════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-autoimmune">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="auto-filter-test" onchange="loadAutoimmune()">
+          <option value="">All Autoimmune Tests</option>
+          <option value="ANA">ANA (Anti-Nuclear Antibody)</option>
+          <option value="ANTI_DSDNA">Anti-dsDNA</option>
+          <option value="ANCA">ANCA (c-ANCA / p-ANCA)</option>
+          <option value="RF">Rheumatoid Factor (RF)</option>
+          <option value="ANTI_CCP">Anti-CCP</option>
+          <option value="C3">Complement C3</option>
+          <option value="C4">Complement C4</option>
+          <option value="ASO">ASO Titre</option>
+          <option value="CRP">CRP</option>
+          <option value="ESR_SERO">ESR (Serology)</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openResultModal('AUTO')">+ Enter Autoimmune Result</button>
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="auto-table">
+        <thead>
+          <tr>
+            <th>Lab ID</th><th>Patient</th><th>Test</th><th>Result</th>
+            <th>Unit</th><th>Ref Range</th><th>Flag</th><th>Pattern</th>
+            <th>AI Interpretation</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="auto-tbody">
+          <tr><td colspan="11" class="empty-state">Loading autoimmune results…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ ALLERGY PANEL ════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-allergy">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="alg-filter-class" onchange="loadAllergy()">
+          <option value="">All Allergen Classes</option>
+          <option value="food">Food Allergens</option>
+          <option value="inhalant">Inhalant Allergens</option>
+          <option value="drug">Drug Allergens</option>
+          <option value="insect">Insect Venom</option>
+          <option value="latex">Latex</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openResultModal('ALLERGY')">+ Enter Allergy Panel</button>
+    </div>
+
+    <!-- Allergy grade legend -->
+    <div class="allergy-legend">
+      <strong>IgE Class:</strong>
+      <span class="grade grade-0">0 &lt;0.1</span>
+      <span class="grade grade-1">1 0.1–0.35</span>
+      <span class="grade grade-2">2 0.35–0.7</span>
+      <span class="grade grade-3">3 0.7–3.5</span>
+      <span class="grade grade-4">4 3.5–17.5</span>
+      <span class="grade grade-5">5 17.5–50</span>
+      <span class="grade grade-6">6 &gt;50 kUA/L</span>
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="alg-table">
+        <thead>
+          <tr>
+            <th>Lab ID</th><th>Patient</th><th>Allergen</th><th>Class</th>
+            <th>IgE (kUA/L)</th><th>Grade</th><th>Clinical Significance</th>
+            <th>Date</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="alg-tbody">
+          <tr><td colspan="9" class="empty-state">Loading allergy panel…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ TUMOUR MARKERS ════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-markers">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="mrk-filter-test" onchange="loadMarkers()">
+          <option value="">All Tumour Markers</option>
+          <option value="AFP">AFP (Hepatocellular)</option>
+          <option value="CEA">CEA (Colorectal)</option>
+          <option value="PSA">PSA (Prostate)</option>
+          <option value="CA_125">CA-125 (Ovarian)</option>
+          <option value="CA_19_9">CA 19-9 (Pancreatic)</option>
+          <option value="CA_15_3">CA 15-3 (Breast)</option>
+          <option value="CA_72_4">CA 72-4 (Gastric)</option>
+          <option value="NSE">NSE (Lung / SCLC)</option>
+          <option value="CYFRA">CYFRA 21-1 (Lung)</option>
+          <option value="HCG">β-hCG (Germ cell)</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openResultModal('MARKER')">+ Enter Tumour Marker</button>
+    </div>
+
+    <div class="marker-warning">
+      ⚠️ <strong>Clinical note:</strong> Tumour markers alone are NOT diagnostic of malignancy.
+      Results must be interpreted in clinical context by the responsible clinician.
+      All abnormal results trigger oncology/pathology review recommendation.
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="mrk-table">
+        <thead>
+          <tr>
+            <th>Lab ID</th><th>Patient</th><th>Marker</th><th>Value</th>
+            <th>Unit</th><th>Ref Range</th><th>Flag</th><th>Trend</th>
+            <th>AI Note</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="mrk-tbody">
+          <tr><td colspan="11" class="empty-state">Loading tumour marker results…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ FLOW CYTOMETRY ════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-flowcyto">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="fc-filter-panel" onchange="loadFlowCyto()">
+          <option value="">All Panels</option>
+          <option value="CD4_CD8">CD4/CD8 (HIV Monitoring)</option>
+          <option value="LYMPHOMA">Lymphoma Immunophenotyping</option>
+          <option value="LEUKEMIA">Leukaemia Phenotyping</option>
+          <option value="NK_CELLS">NK Cell Panel</option>
+          <option value="B_CELLS">B-Cell Enumeration</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openResultModal('FLOWCYTO')">+ Enter Flow Cytometry</button>
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="fc-table">
+        <thead>
+          <tr>
+            <th>Lab ID</th><th>Patient</th><th>Panel</th>
+            <th>CD4 count (cells/µL)</th><th>CD8 count</th><th>CD4:CD8</th>
+            <th>CD4 %</th><th>Interpretation</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="fc-tbody">
+          <tr><td colspan="10" class="empty-state">Loading flow cytometry results…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ VALIDATION ════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-validation">
+    <div class="validation-header">
+      <h3>Pending Validation Queue</h3>
+      <select id="imm-val-type" onchange="loadImmValidation()">
+        <option value="hiv">HIV Results</option>
+        <option value="hepatitis">Hepatitis</option>
+        <option value="autoimmune">Autoimmune</option>
+        <option value="markers">Tumour Markers</option>
+      </select>
+      <span class="val-count" id="imm-val-count">Loading…</span>
+    </div>
+    <div id="imm-val-list" class="validation-list">
+      <div class="empty-state">Loading validation queue…</div>
+    </div>
+  </div>
+
+</div><!-- /#imm-app -->
+
+<!-- ── Result Entry Modal ──────────────────────────────────────── -->
+<div class="modal-overlay" id="result-modal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3 id="result-modal-title">🛡️ Enter Immunology Result</h3>
+      <button class="modal-close" onclick="closeModal('result-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row"><label>Lab Request ID</label><input type="number" id="rmod-labreq" placeholder="Lab request ID"></div>
+        <div class="form-row"><label>Patient ID</label><input type="number" id="rmod-patient" placeholder="Patient ID"></div>
+        <div class="form-row"><label>PID</label><input type="text" id="rmod-pid" placeholder="PID-XXXX"></div>
+        <div class="form-row"><label>LID</label><input type="text" id="rmod-lid" placeholder="RW-XXXXXXX"></div>
+        <div class="form-row"><label>Test Name</label><input type="text" id="rmod-test" placeholder="e.g. HIV ELISA, HBsAg, ANA"></div>
+        <div class="form-row"><label>Test Code</label><input type="text" id="rmod-code" placeholder="e.g. HIV_ELISA"></div>
+        <div class="form-row"><label>Result</label>
+          <select id="rmod-result">
+            <option value="REACTIVE">Reactive / Positive</option>
+            <option value="NON_REACTIVE">Non-Reactive / Negative</option>
+            <option value="INDETERMINATE">Indeterminate</option>
+            <option value="PENDING">Pending</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Numeric Value (if applicable)</label><input type="number" id="rmod-value" step="0.01" placeholder="e.g. 3.5"></div>
+        <div class="form-row"><label>Unit</label><input type="text" id="rmod-unit" placeholder="e.g. kUA/L, IU/mL, ratio"></div>
+        <div class="form-row"><label>S/CO Ratio (ELISA)</label><input type="number" id="rmod-sco" step="0.01" placeholder="Signal/Cutoff ratio"></div>
+        <div class="form-row"><label>Method</label>
+          <select id="rmod-method">
+            <option value="RAPID">Rapid Immunochromatography</option>
+            <option value="ELISA">ELISA</option>
+            <option value="CLIA">Chemiluminescence (CLIA)</option>
+            <option value="WB">Western Blot</option>
+            <option value="PCR">PCR / Molecular</option>
+            <option value="FLOW">Flow Cytometry</option>
+            <option value="NEPHELOMETRY">Nephelometry</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Result Source</label>
+          <select id="rmod-source">
+            <option value="MANUAL">👤 Manual Entry</option>
+            <option value="AUTOMATED">🤖 Automated Analyzer</option>
+          </select>
+        </div>
+        <div class="form-row full-width"><label>Clinical Notes</label><textarea id="rmod-notes" rows="2"></textarea></div>
+      </div>
+
+      <!-- AI Interpretation Panel -->
+      <div id="aip-result-modal" style="margin-top:.75rem"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('result-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitResult()">Save Result</button>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'modules/immunology/js/immunology.js' %}" defer></script>
+{% endblock %}

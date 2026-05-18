@@ -27,7 +27,10 @@
       "Read(//d/JORINOVA NEXUS/backend/**)",
       "PowerShell(Get-ChildItem \"d:\\\\JORINOVA NEXUS\\\\backend\\\\apps\" -Directory | ForEach-Object { $name = $_.Name; $files = \\(Get-ChildItem $_.FullName -File | Select-Object -ExpandProperty Name\\) -join \", \"; \"$name`: $files\" })",
       "PowerShell(cd \"d:\\\\JORINOVA NEXUS\\\\backend\"; python manage.py check 2>&1 | Where-Object { $_ -match \"ERROR|AttributeError|inline|admin\\\\.\" } | Select-Object -First 10)",
-      "Bash(Get-ChildItem -Path \"d:\\\\JORINOVA NEXUS\\\\frontend\\\\modules\\\\\" -Directory | Select-Object -ExpandProperty Name)"
+      "Bash(Get-ChildItem -Path \"d:\\\\JORINOVA NEXUS\\\\frontend\\\\modules\\\\\" -Directory | Select-Object -ExpandProperty Name)",
+      "PowerShell(Remove-Item -Recurse -Force \"d:\\\\JORINOVA NEXUS\\\\backend\\\\apps\\\\nexuscare\" -Confirm:$false)",
+      "PowerShell(Remove-Item -Recurse -Force \"d:\\\\JORINOVA NEXUS\\\\frontend\\\\modules\\\\nexuscare\" -Confirm:$false)",
+      "Bash(python manage.py check)"
     ]
   }
 }

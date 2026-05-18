@@ -3,93 +3,455 @@
 
 {% block title %}🔧 Analyzers & IoT — NEXUS ALIS-X{% endblock %}
 {% block module_id %}iot-analyzers{% endblock %}
+{% block nav_active_lab %}active{% endblock %}
 
-{% block module_css %}
+{% block head_extra %}
 <link rel="stylesheet" href="{% static 'modules/iot_analyzers/css/iot_analyzers.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 {% endblock %}
 
 {% block content %}
-<div class="iot-main">
+<div id="iot-app">
 
-  <header class="page-header">
-    <div class="page-header-left">
-      <div class="page-icon-wrap" style="background:rgba(0,255,150,0.08);border-color:rgba(0,255,150,0.22);color:#00FF96">
-        <span style="font-size:20px">🔧</span>
-      </div>
-      <div>
-        <h1 class="page-title">🔧 Analyzer &amp; IoT Hub</h1>
-        <div class="page-subtitle">{{ today|date:"l, d F Y" }} · Real-time Device Monitoring · Calibration · Connectivity</div>
-      </div>
+  <div class="dept-header iot-hdr">
+    <div class="dh-left">
+      <div class="dh-icon">🔧</div>
+      <div><h1 class="dh-title">Analyzer &amp; IoT Hub</h1>
+        <div class="dh-sub">Device Monitoring · Calibration · Maintenance · ASTM/HL7 Connectivity · Result Streaming</div></div>
     </div>
-    <div class="page-header-right">
-      <div class="iot-live-indicator"><span class="iot-live-dot"></span> Live Monitoring</div>
-      <button class="btn btn-ghost btn-sm" id="iot-refresh-all"><i class="fas fa-arrows-rotate"></i> Refresh All</button>
+    <div class="dh-right">
+      <div class="dh-chip online">🟢 <span id="stat-online">—</span> Online</div>
+      <div class="dh-chip offline">🔴 <span id="stat-offline">—</span> Offline</div>
+      <div class="dh-chip warn">⚠️ <span id="stat-warn">—</span> Warnings</div>
+      <div class="dh-badge">📡 Live Monitoring</div>
     </div>
-  </header>
-
-  <div class="tab-nav iot-tab-nav" role="tablist">
-    <button class="tab-btn active" data-pane="iot-dashboard-pane">🖥️ Dashboard</button>
-    <button class="tab-btn" data-pane="iot-calibration-pane">📐 Calibration &amp; QC</button>
-    <button class="tab-btn" data-pane="iot-maintenance-pane">🔧 Maintenance</button>
-    <button class="tab-btn" data-pane="iot-connectivity-pane">📡 Connectivity</button>
   </div>
 
-  <div class="iot-body">
+  <div class="dept-kpis">
+    <div class="kpi kpi-online"><div class="kpi-val" id="kpi-devices">—</div><div class="kpi-lbl">Total Devices</div></div>
+    <div class="kpi kpi-tests"><div class="kpi-val" id="kpi-tests-today">—</div><div class="kpi-lbl">Tests Today (all)</div></div>
+    <div class="kpi kpi-calib"><div class="kpi-val" id="kpi-calib-due">—</div><div class="kpi-lbl">Calibration Due</div></div>
+    <div class="kpi kpi-maint"><div class="kpi-val" id="kpi-maint-due">—</div><div class="kpi-lbl">Maintenance Due</div></div>
+    <div class="kpi kpi-alerts"><div class="kpi-val" id="kpi-alerts">—</div><div class="kpi-lbl">Active Alerts</div></div>
+  </div>
 
-    <!-- DASHBOARD -->
-    <div class="tab-pane active" id="iot-dashboard-pane">
-      <div class="iot-summary-strip">
-        <div class="iot-summary-item"><span style="font-size:20px">🟢</span><div><div class="iot-sum-val" id="sum-online">—</div><div class="iot-sum-lbl">Online</div></div></div>
-        <div class="iot-summary-item"><span style="font-size:20px">🔴</span><div><div class="iot-sum-val" id="sum-offline" style="color:var(--alert-red)">—</div><div class="iot-sum-lbl">Offline</div></div></div>
-        <div class="iot-summary-item"><span style="font-size:20px">🟡</span><div><div class="iot-sum-val" id="sum-warning" style="color:var(--alert-orange)">—</div><div class="iot-sum-lbl">Warnings</div></div></div>
-        <div class="iot-summary-item"><span style="font-size:20px">⚠️</span><div><div class="iot-sum-val" id="sum-alerts" style="color:var(--alert-red)">—</div><div class="iot-sum-lbl">Active Alerts</div></div></div>
-        <div class="iot-summary-item"><span style="font-size:20px">📊</span><div><div class="iot-sum-val" id="sum-today">—</div><div class="iot-sum-lbl">Tests Today</div></div></div>
-      </div>
-      <div class="analyzer-grid" id="analyzer-grid">
-        <!-- populated by JS -->
-      </div>
-    </div>
+  <nav class="dept-tabs">
+    <button class="dt active" data-tab="dashboard">🖥️ Dashboard</button>
+    <button class="dt" data-tab="devices">⚙️ Device Registry</button>
+    <button class="dt" data-tab="calibration">📐 Calibration &amp; QC</button>
+    <button class="dt" data-tab="maintenance">🔧 Maintenance</button>
+    <button class="dt" data-tab="connectivity">📡 Connectivity &amp; ASTM</button>
+    <button class="dt" data-tab="streaming">📊 Result Streaming</button>
+    <button class="dt" data-tab="alerts">🚨 Alerts &amp; Errors</button>
+  </nav>
 
-    <!-- CALIBRATION -->
-    <div class="tab-pane" id="iot-calibration-pane">
-      <div style="padding:var(--space-xl)">
-        <h2 style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary);margin-bottom:var(--space-lg)">📐 Calibration Schedule</h2>
-        <table class="nx-table">
-          <thead><tr><th>🔬 Analyzer</th><th>Calibrator</th><th>Frequency</th><th>Last Cal</th><th>Next Cal</th><th>⏰ Due In</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody id="cal-table-body"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- MAINTENANCE -->
-    <div class="tab-pane" id="iot-maintenance-pane">
-      <div style="padding:var(--space-xl)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-lg)">
-          <h2 style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary)">🔧 Maintenance Log</h2>
-          <button class="btn btn-primary btn-sm">➕ Log Maintenance</button>
+  <!-- ══ DASHBOARD ════════════════════════════════════════════════ -->
+  <div class="dept-pane active" id="tab-dashboard">
+    <div class="iot-device-grid" id="iot-device-grid">
+      <!-- Device cards populated by JS -->
+      <div class="iot-device-card online">
+        <div class="iot-dev-status-dot online"></div>
+        <div class="iot-dev-icon">🩸</div>
+        <div class="iot-dev-name">Sysmex XN-550</div>
+        <div class="iot-dev-type">Haematology Analyzer</div>
+        <div class="iot-dev-dept">Hematology</div>
+        <div class="iot-dev-tests">142 tests today</div>
+        <div class="iot-dev-last">Last result: 2 min ago</div>
+        <div class="iot-dev-qc">QC: ✅ Pass</div>
+        <div class="iot-dev-actions">
+          <button onclick="switchTab('calibration')">📐 Calibrate</button>
+          <button onclick="switchTab('streaming')">📊 Results</button>
         </div>
-        <table class="nx-table">
-          <thead><tr><th>🔬 Analyzer</th><th>Task</th><th>Type</th><th>Performed By</th><th>Date</th><th>Next Due</th><th>Status</th></tr></thead>
-          <tbody id="maint-table-body"></tbody>
-        </table>
+      </div>
+      <div class="iot-device-card online">
+        <div class="iot-dev-status-dot online"></div>
+        <div class="iot-dev-icon">🧪</div>
+        <div class="iot-dev-name">Cobas c311</div>
+        <div class="iot-dev-type">Chemistry Analyzer</div>
+        <div class="iot-dev-dept">Biochemistry</div>
+        <div class="iot-dev-tests">89 tests today</div>
+        <div class="iot-dev-last">Last result: 5 min ago</div>
+        <div class="iot-dev-qc">QC: ⚠️ 1₂s Warning</div>
+        <div class="iot-dev-actions">
+          <button onclick="switchTab('calibration')">📐 Calibrate</button>
+          <button onclick="switchTab('alerts')">🚨 Alerts</button>
+        </div>
+      </div>
+      <div class="iot-device-card online">
+        <div class="iot-dev-status-dot online"></div>
+        <div class="iot-dev-icon">🩺</div>
+        <div class="iot-dev-name">Stago STA-R Max</div>
+        <div class="iot-dev-type">Coagulation Analyzer</div>
+        <div class="iot-dev-dept">Coagulation</div>
+        <div class="iot-dev-tests">37 tests today</div>
+        <div class="iot-dev-last">Last result: 12 min ago</div>
+        <div class="iot-dev-qc">QC: ✅ Pass</div>
+        <div class="iot-dev-actions">
+          <button onclick="switchTab('calibration')">📐 Calibrate</button>
+          <button onclick="switchTab('streaming')">📊 Results</button>
+        </div>
+      </div>
+      <div class="iot-device-card warn">
+        <div class="iot-dev-status-dot warn"></div>
+        <div class="iot-dev-icon">🦠</div>
+        <div class="iot-dev-name">GeneXpert GX-IV</div>
+        <div class="iot-dev-type">Molecular (PCR)</div>
+        <div class="iot-dev-dept">Molecular Biology</div>
+        <div class="iot-dev-tests">12 tests today</div>
+        <div class="iot-dev-last">Last result: 1 h ago</div>
+        <div class="iot-dev-qc">QC: ⚠️ Low probe signal</div>
+        <div class="iot-dev-actions">
+          <button onclick="switchTab('maintenance')">🔧 Maintain</button>
+          <button onclick="switchTab('alerts')">🚨 Alerts</button>
+        </div>
+      </div>
+      <div class="iot-device-card offline">
+        <div class="iot-dev-status-dot offline"></div>
+        <div class="iot-dev-icon">🩸</div>
+        <div class="iot-dev-name">Stago Compact</div>
+        <div class="iot-dev-type">Coagulation (backup)</div>
+        <div class="iot-dev-dept">Coagulation</div>
+        <div class="iot-dev-tests">0 tests today</div>
+        <div class="iot-dev-last">Last seen: 2 days ago</div>
+        <div class="iot-dev-qc">QC: ⏸️ Offline</div>
+        <div class="iot-dev-actions">
+          <button onclick="switchTab('maintenance')">🔧 Diagnose</button>
+        </div>
+      </div>
+      <div class="iot-device-card online">
+        <div class="iot-dev-status-dot online"></div>
+        <div class="iot-dev-icon">💉</div>
+        <div class="iot-dev-name">BioSystem A25</div>
+        <div class="iot-dev-type">ELISA Reader</div>
+        <div class="iot-dev-dept">Serology / Immunology</div>
+        <div class="iot-dev-tests">28 tests today</div>
+        <div class="iot-dev-last">Last result: 18 min ago</div>
+        <div class="iot-dev-qc">QC: ✅ Pass</div>
+        <div class="iot-dev-actions">
+          <button onclick="switchTab('calibration')">📐 Calibrate</button>
+          <button onclick="switchTab('streaming')">📊 Results</button>
+        </div>
       </div>
     </div>
 
-    <!-- CONNECTIVITY -->
-    <div class="tab-pane" id="iot-connectivity-pane">
-      <div style="padding:var(--space-xl)">
-        <h2 style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary);margin-bottom:var(--space-lg)">📡 LIS Connectivity Status</h2>
-        <table class="nx-table">
-          <thead><tr><th>🔬 Analyzer</th><th>Protocol</th><th>Direction</th><th>Last Msg</th><th>Orders Sent</th><th>Results Received</th><th>Status</th></tr></thead>
-          <tbody id="conn-table-body"></tbody>
-        </table>
+    <div class="iot-dash-row">
+      <div class="iot-chart-box"><div class="box-title">Test Volume by Analyzer — Today</div><canvas id="iot-vol-chart" height="200"></canvas></div>
+      <div class="iot-status-box"><div class="box-title">Recent Events</div><div id="iot-recent-events">
+        <div class="iot-event ok">✅ Sysmex XN-550 — QC Level 2 passed (09:15)</div>
+        <div class="iot-event warn">⚠️ Cobas c311 — Westgard 1₂s warning glucose (10:22)</div>
+        <div class="iot-event ok">✅ GeneXpert — Cartridge loaded, run started (11:05)</div>
+        <div class="iot-event error">🔴 GeneXpert — Low probe signal warning (11:07)</div>
+        <div class="iot-event ok">✅ Stago STA-R — Calibration completed (08:30)</div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ══ DEVICE REGISTRY ══════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-devices">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="dev-dept-f" onchange="loadDevices()">
+          <option value="">All Departments</option>
+          <option value="HEM">Hematology</option><option value="BIOCHEM">Biochemistry</option>
+          <option value="COAG">Coagulation</option><option value="MICRO">Microbiology</option>
+          <option value="MOL">Molecular</option><option value="SERO">Serology</option>
+        </select>
+        <select id="dev-status-f" onchange="loadDevices()">
+          <option value="">All Status</option>
+          <option value="ONLINE">Online</option><option value="OFFLINE">Offline</option>
+          <option value="MAINTENANCE">In Maintenance</option><option value="CALIBRATION">In Calibration</option>
+        </select>
+      </div>
+      <div class="dept-toolbar-right">
+        <button class="dept-print-btn" onclick="NexusPrint?.printAll('dev-table')">🖨️</button>
+        <button class="btn-primary" onclick="openModal('dev-modal')">+ Register Analyzer</button>
       </div>
     </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="dev-table">
+        <thead><tr><th>Status</th><th>Analyzer Name</th><th>Type</th><th>Department</th>
+          <th>Manufacturer</th><th>Model</th><th>Serial #</th>
+          <th>Installation Date</th><th>Warranty Until</th>
+          <th>Last Calibration</th><th>Last Maintenance</th>
+          <th>Connectivity</th><th>Tests Today</th><th>Actions</th></tr></thead>
+        <tbody id="dev-tbody"><tr><td colspan="14" class="dept-empty">Loading device registry…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
 
+  <!-- ══ CALIBRATION & QC ══════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-calibration">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="cal-analyzer-f" onchange="loadCalibration()">
+          <option value="">All Analyzers</option>
+          <option value="SYSMEX_XN550">Sysmex XN-550</option>
+          <option value="COBAS_C311">Cobas c311</option>
+          <option value="STAGO_STARMAX">Stago STA-R Max</option>
+          <option value="GENEXPERT">GeneXpert GX-IV</option>
+          <option value="BIOSYSTEM_A25">BioSystem A25</option>
+        </select>
+        <select id="cal-type-f" onchange="loadCalibration()">
+          <option value="">All Types</option>
+          <option value="FULL_CAL">Full Calibration</option>
+          <option value="RECAL">Re-calibration</option>
+          <option value="QC_ONLY">QC Run</option>
+          <option value="REAGENT_LOT">New Reagent Lot</option>
+        </select>
+        <select id="cal-status-f" onchange="loadCalibration()">
+          <option value="">All Status</option>
+          <option value="PASS">Pass ✅</option>
+          <option value="WARN">Warning ⚠️</option>
+          <option value="FAIL">Fail ❌</option>
+        </select>
+        <input type="date" id="cal-date-f" onchange="loadCalibration()">
+      </div>
+      <div class="dept-toolbar-right">
+        <button class="dept-print-btn" onclick="NexusPrint?.printAll('cal-table')">🖨️</button>
+        <button class="btn-primary" onclick="openModal('cal-modal')">+ Record Calibration</button>
+      </div>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="cal-table">
+        <thead><tr><th>Date / Time</th><th>Analyzer</th><th>Calibration Type</th>
+          <th>Reagent Lot</th><th>Calibrator Lot</th><th>Control L1</th>
+          <th>Control L2</th><th>Control L3</th><th>Westgard</th>
+          <th>Status</th><th>Operator</th><th>Actions</th></tr></thead>
+        <tbody id="cal-tbody"><tr><td colspan="12" class="dept-empty">Loading calibration records…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ MAINTENANCE ══════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-maintenance">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="maint-analyzer-f" onchange="loadMaintenance()">
+          <option value="">All Analyzers</option>
+          <option value="SYSMEX_XN550">Sysmex XN-550</option>
+          <option value="COBAS_C311">Cobas c311</option>
+        </select>
+        <select id="maint-type-f" onchange="loadMaintenance()">
+          <option value="">All Types</option>
+          <option value="DAILY">Daily maintenance</option>
+          <option value="WEEKLY">Weekly</option>
+          <option value="MONTHLY">Monthly</option>
+          <option value="QUARTERLY">Quarterly / PM</option>
+          <option value="BREAKDOWN">Breakdown repair</option>
+          <option value="ENGINEER_VISIT">Engineer service visit</option>
+        </select>
+        <select id="maint-status-f" onchange="loadMaintenance()">
+          <option value="">All Status</option>
+          <option value="COMPLETED">Completed</option>
+          <option value="PENDING">Pending</option>
+          <option value="OVERDUE">Overdue ⚠️</option>
+          <option value="SCHEDULED">Scheduled</option>
+        </select>
+      </div>
+      <div class="dept-toolbar-right">
+        <button class="dept-print-btn" onclick="NexusPrint?.printAll('maint-table')">🖨️</button>
+        <button class="btn-primary" onclick="openModal('maint-modal')">+ Record Maintenance</button>
+      </div>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="maint-table">
+        <thead><tr><th>Date</th><th>Analyzer</th><th>Type</th><th>Description</th>
+          <th>Parts Replaced</th><th>Performed By</th><th>Engineer Name</th>
+          <th>Duration (h)</th><th>Next Due</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="maint-tbody"><tr><td colspan="11" class="dept-empty">Loading maintenance records…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ CONNECTIVITY & ASTM ══════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-connectivity">
+    <div class="conn-protocol-info">
+      <div class="proto-card"><div class="proto-icon">📡</div><div class="proto-name">ASTM E1394</div><div class="proto-desc">Low-level analyzer communication protocol. Bidirectional: orders → analyzer, results → LIS.</div></div>
+      <div class="proto-card"><div class="proto-icon">🔗</div><div class="proto-name">HL7 v2.5</div><div class="proto-desc">Healthcare standard messaging for result transmission and order management.</div></div>
+      <div class="proto-card"><div class="proto-icon">🌐</div><div class="proto-name">FHIR R4</div><div class="proto-desc">Modern REST API for interoperability. Used for hospital system integration.</div></div>
+      <div class="proto-card"><div class="proto-icon">💾</div><div class="proto-name">Direct File</div><div class="proto-desc">CSV/TXT flat file import for analyzers without network connectivity.</div></div>
+    </div>
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="conn-analyzer-f" onchange="loadConnectivity()">
+          <option value="">All Analyzers</option>
+          <option value="SYSMEX">Sysmex XN-550</option>
+          <option value="COBAS">Cobas c311</option>
+          <option value="STAGO">Stago STA-R</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openModal('conn-modal')">+ Configure Connection</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="conn-table">
+        <thead><tr><th>Analyzer</th><th>Protocol</th><th>Host / Port</th>
+          <th>Baud Rate</th><th>Connection Status</th><th>Last Ping</th>
+          <th>Messages Today</th><th>Errors Today</th>
+          <th>Auto-import</th><th>Middleware</th><th>Actions</th></tr></thead>
+        <tbody id="conn-tbody">
+          <tr>
+            <td>Sysmex XN-550</td><td><span class="proto-badge">ASTM E1394</span></td>
+            <td>192.168.1.101:8080</td><td>9600 baud</td>
+            <td><span style="color:#28a745;font-weight:600">🟢 Connected</span></td>
+            <td>2 min ago</td><td>142</td><td>0</td>
+            <td>✅ Enabled</td><td>IntelliSpace</td>
+            <td><button class="btn-primary btn-sm" onclick="">Test</button></td>
+          </tr>
+          <tr>
+            <td>Cobas c311</td><td><span class="proto-badge">HL7 v2.5</span></td>
+            <td>192.168.1.102:2575</td><td>N/A</td>
+            <td><span style="color:#28a745;font-weight:600">🟢 Connected</span></td>
+            <td>5 min ago</td><td>89</td><td>2</td>
+            <td>✅ Enabled</td><td>Roche Middleware</td>
+            <td><button class="btn-primary btn-sm" onclick="">Test</button></td>
+          </tr>
+          <tr>
+            <td>GeneXpert GX-IV</td><td><span class="proto-badge">Direct File</span></td>
+            <td>\\share\genexpert\results</td><td>N/A</td>
+            <td><span style="color:#ffc107;font-weight:600">⚠️ Warning</span></td>
+            <td>1 h ago</td><td>12</td><td>1</td>
+            <td>✅ Enabled</td><td>None</td>
+            <td><button class="btn-danger btn-sm" onclick="">Check</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ RESULT STREAMING ══════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-streaming">
+    <div class="stream-header">
+      <div class="stream-live-badge">⚡ LIVE — Results arriving from analyzers</div>
+      <div class="stream-controls">
+        <button id="stream-pause-btn" class="btn-secondary" onclick="toggleStreamPause()">⏸️ Pause</button>
+        <select id="stream-analyzer-f">
+          <option value="all">All Analyzers</option>
+          <option value="SYSMEX">Sysmex XN-550</option>
+          <option value="COBAS">Cobas c311</option>
+          <option value="STAGO">Stago STA-R</option>
+        </select>
+      </div>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="stream-table">
+        <thead><tr><th>⏱️ Time</th><th>Analyzer</th><th>Patient / LID</th>
+          <th>Test</th><th>Result</th><th>Unit</th><th>Flag</th>
+          <th>Import Status</th><th>Actions</th></tr></thead>
+        <tbody id="stream-tbody">
+          <tr><td>10:32:15</td><td>Sysmex XN-550</td><td>RW-0000142</td><td>Haemoglobin</td><td><strong>11.2</strong></td><td>g/dL</td><td><span style="background:#fff3cd;color:#856404;padding:.1rem .4rem;border-radius:6px;font-size:.78rem">L</span></td><td><span style="color:#28a745">✅ Imported</span></td><td><button class="btn-primary" style="font-size:.78rem;padding:.2rem .5rem">Review</button></td></tr>
+          <tr><td>10:31:48</td><td>Cobas c311</td><td>RW-0000141</td><td>Glucose</td><td><strong>7.8</strong></td><td>mmol/L</td><td><span style="background:#fff3cd;color:#856404;padding:.1rem .4rem;border-radius:6px;font-size:.78rem">H</span></td><td><span style="color:#28a745">✅ Imported</span></td><td><button class="btn-primary" style="font-size:.78rem;padding:.2rem .5rem">Review</button></td></tr>
+          <tr><td>10:30:02</td><td>Stago STA-R</td><td>RW-0000140</td><td>PT / INR</td><td><strong>2.8</strong></td><td>INR</td><td><span style="background:#f8d7da;color:#721c24;padding:.1rem .4rem;border-radius:6px;font-size:.78rem;font-weight:700">H</span></td><td><span style="color:#28a745">✅ Imported</span></td><td><button class="btn-danger" style="font-size:.78rem;padding:.2rem .5rem">🚨 Critical</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ ALERTS ════════════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-alerts">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="alert-level-f" onchange="loadAlerts()">
+          <option value="">All Levels</option>
+          <option value="CRITICAL">🔴 Critical</option>
+          <option value="ERROR">🟠 Error</option>
+          <option value="WARNING">🟡 Warning</option>
+          <option value="INFO">🔵 Info</option>
+        </select>
+        <select id="alert-analyzer-f" onchange="loadAlerts()">
+          <option value="">All Analyzers</option>
+          <option value="SYSMEX">Sysmex XN-550</option>
+          <option value="COBAS">Cobas c311</option>
+        </select>
+      </div>
+      <button class="btn-secondary" onclick="loadAlerts()">🔄 Refresh</button>
+    </div>
+    <div id="alerts-list">
+      <div class="iot-alert error"><span class="iot-alert-time">10:22</span><span class="iot-alert-source">Cobas c311</span><span class="iot-alert-msg">⚠️ Westgard 1₂s warning on glucose L2 control — result accepted but flagged</span><span class="iot-alert-action"><button class="btn-primary" style="font-size:.78rem;padding:.2rem .5rem">Acknowledge</button></span></div>
+      <div class="iot-alert warn"><span class="iot-alert-time">11:07</span><span class="iot-alert-source">GeneXpert GX-IV</span><span class="iot-alert-msg">⚠️ Module 1 probe signal below threshold (FAM channel) — result flagged</span><span class="iot-alert-action"><button class="btn-primary" style="font-size:.78rem;padding:.2rem .5rem">View</button></span></div>
+      <div class="iot-alert info"><span class="iot-alert-time">08:15</span><span class="iot-alert-source">Sysmex XN-550</span><span class="iot-alert-msg">🔵 Reagent DIFF remaining: 4 days. Reorder recommended.</span><span class="iot-alert-action"><button class="btn-secondary" style="font-size:.78rem;padding:.2rem .5rem">Dismiss</button></span></div>
+    </div>
+  </div>
+
+</div><!-- /#iot-app -->
+
+<!-- ═══ MODALS ════════════════════════════════════════════════ -->
+
+<!-- Register Device Modal -->
+<div class="dept-modal-overlay" id="dev-modal" style="display:none">
+  <div class="dept-modal dept-modal-wide">
+    <div class="dept-modal-hdr"><h3>⚙️ Register New Analyzer</h3><button onclick="closeModal('dev-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Analyzer Name</label><input type="text" id="dev-name" placeholder="e.g. Sysmex XN-550"></div>
+        <div class="dept-form-row"><label>Type</label>
+          <select id="dev-type"><option value="HEMATOLOGY">Haematology</option><option value="CHEMISTRY">Chemistry</option><option value="COAGULATION">Coagulation</option><option value="SEROLOGY">Serology/ELISA</option><option value="MOLECULAR">Molecular/PCR</option><option value="URINALYSIS">Urinalysis</option><option value="BLOOD_BANK">Blood Bank</option><option value="OTHER">Other</option></select></div>
+        <div class="dept-form-row"><label>Department</label>
+          <select id="dev-dept-m"><option value="HEM">Hematology</option><option value="BIOCHEM">Biochemistry</option><option value="COAG">Coagulation</option><option value="MICRO">Microbiology</option><option value="MOL">Molecular</option><option value="SERO">Serology</option></select></div>
+        <div class="dept-form-row"><label>Manufacturer</label><input type="text" id="dev-manufacturer" placeholder="e.g. Sysmex, Roche, Abbott"></div>
+        <div class="dept-form-row"><label>Model</label><input type="text" id="dev-model" placeholder="Model number"></div>
+        <div class="dept-form-row"><label>Serial Number</label><input type="text" id="dev-serial"></div>
+        <div class="dept-form-row"><label>Installation Date</label><input type="date" id="dev-install"></div>
+        <div class="dept-form-row"><label>Warranty Until</label><input type="date" id="dev-warranty"></div>
+        <div class="dept-form-row"><label>Connectivity Protocol</label>
+          <select id="dev-protocol"><option value="ASTM">ASTM E1394</option><option value="HL7">HL7 v2.5</option><option value="FHIR">FHIR R4</option><option value="FILE">Direct file import</option><option value="NONE">No connectivity</option></select></div>
+        <div class="dept-form-row"><label>IP Address / Port</label><input type="text" id="dev-ip" placeholder="192.168.x.x:port"></div>
+        <div class="dept-form-row"><label>Calibration Interval (days)</label><input type="number" id="dev-cal-interval" value="30" min="1"></div>
+        <div class="dept-form-row"><label>Maintenance Interval (days)</label><input type="number" id="dev-maint-interval" value="90" min="1"></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('dev-modal')">Cancel</button><button class="btn-primary" onclick="submitDevice()">Register Analyzer</button></div>
   </div>
 </div>
-{% endblock %}
 
-{% block module_scripts %}
+<!-- Calibration Modal -->
+<div class="dept-modal-overlay" id="cal-modal" style="display:none">
+  <div class="dept-modal dept-modal-wide">
+    <div class="dept-modal-hdr"><h3>📐 Record Calibration / QC</h3><button onclick="closeModal('cal-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Analyzer</label>
+          <select id="cal-analyzer-m"><option value="SYSMEX_XN550">Sysmex XN-550</option><option value="COBAS_C311">Cobas c311</option><option value="STAGO">Stago STA-R Max</option></select></div>
+        <div class="dept-form-row"><label>Type</label>
+          <select id="cal-type-m"><option value="FULL_CAL">Full Calibration</option><option value="RECAL">Re-calibration</option><option value="QC_ONLY">QC Run only</option><option value="REAGENT_LOT">New Reagent Lot</option></select></div>
+        <div class="dept-form-row"><label>Reagent Lot</label><input type="text" id="cal-reagent-lot"></div>
+        <div class="dept-form-row"><label>Calibrator Lot</label><input type="text" id="cal-calib-lot"></div>
+        <div class="dept-form-row"><label>Control L1 Result</label><input type="number" step="0.01" id="cal-l1"></div>
+        <div class="dept-form-row"><label>Control L2 Result</label><input type="number" step="0.01" id="cal-l2"></div>
+        <div class="dept-form-row"><label>Control L3 Result</label><input type="number" step="0.01" id="cal-l3"></div>
+        <div class="dept-form-row"><label>Westgard Status</label>
+          <select id="cal-westgard"><option value="PASS">Pass — all rules met</option><option value="WARN_1_2S">Warning 1₂s</option><option value="FAIL_1_3S">Reject 1₃s</option><option value="FAIL_2_2S">Reject 2₂s</option><option value="FAIL_R_4S">Reject R₄s</option></select></div>
+        <div class="dept-form-row"><label>Operator</label><input type="text" id="cal-operator-m"></div>
+        <div class="dept-form-row full-col"><label>Notes</label><textarea id="cal-notes-m" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('cal-modal')">Cancel</button><button class="btn-primary" onclick="submitCalibration()">Save Record</button></div>
+  </div>
+</div>
+
+<!-- Maintenance Modal -->
+<div class="dept-modal-overlay" id="maint-modal" style="display:none">
+  <div class="dept-modal dept-modal-wide">
+    <div class="dept-modal-hdr"><h3>🔧 Record Maintenance</h3><button onclick="closeModal('maint-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Analyzer</label>
+          <select id="maint-analyzer-m"><option value="SYSMEX_XN550">Sysmex XN-550</option><option value="COBAS_C311">Cobas c311</option><option value="STAGO">Stago STA-R</option><option value="GENEXPERT">GeneXpert</option></select></div>
+        <div class="dept-form-row"><label>Maintenance Type</label>
+          <select id="maint-type-m"><option value="DAILY">Daily cleaning</option><option value="WEEKLY">Weekly PM</option><option value="MONTHLY">Monthly PM</option><option value="QUARTERLY">Quarterly engineer service</option><option value="BREAKDOWN">Breakdown repair</option></select></div>
+        <div class="dept-form-row full-col"><label>Description of Work Done</label><textarea id="maint-desc-m" rows="2" placeholder="What was done, cleaned, replaced…"></textarea></div>
+        <div class="dept-form-row"><label>Parts Replaced</label><input type="text" id="maint-parts" placeholder="e.g. Sample probe, sheath filter"></div>
+        <div class="dept-form-row"><label>Performed By</label><input type="text" id="maint-by-m" placeholder="Lab staff or engineer"></div>
+        <div class="dept-form-row"><label>Engineer Name</label><input type="text" id="maint-eng" placeholder="If external engineer"></div>
+        <div class="dept-form-row"><label>Duration (hours)</label><input type="number" step="0.5" id="maint-duration" min="0.5"></div>
+        <div class="dept-form-row"><label>Next Maintenance Due</label><input type="date" id="maint-next-due"></div>
+        <div class="dept-form-row"><label>Status</label>
+          <select id="maint-status-m"><option value="COMPLETED">Completed</option><option value="PARTIAL">Partially completed</option><option value="PENDING_PARTS">Pending parts</option></select></div>
+        <div class="dept-form-row full-col"><label>Notes</label><textarea id="maint-notes-m" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('maint-modal')">Cancel</button><button class="btn-primary" onclick="submitMaintenance()">Save Record</button></div>
+  </div>
+</div>
+
 <script src="{% static 'modules/iot_analyzers/js/iot_analyzers.js' %}" defer></script>
 {% endblock %}

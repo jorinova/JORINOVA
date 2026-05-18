@@ -1,0 +1,322 @@
+###############################################################################
+# JORINOVA NEXUS ALIS-X — Production Docker Compose
+# ===================================================
+#
+# PROFILES:
+#   dev      → SQLite + FastAPI only (local development, no Docker needed)
+#   offline  → PostgreSQL + FastAPI  (hospital with no internet, no AI)
+#   standard → PostgreSQL + FastAPI + Redis + Ollama AI (recommended pilot)
+#   full     → standard + Nginx HTTPS + Celery + Flower monitoring
+#
+# USAGE:
+#   Development (no Docker needed):
+#     cd backend && python main.py
+#
+#   Offline hospital deployment:
+#     docker compose --profile offline up -d
+#
+#   Standard pilot deployment (recommended):
+#     docker compose --profile standard up -d
+#
+#   Full production with HTTPS:
+#     docker compose --profile full up -d
+#
+###############################################################################
+version: '3.9'
+
+# ── Common API service definition ─────────────────────────────────────────────
+x-api-common: &api-common
+  build:
+    context:    ./backend
+    dockerfile: Dockerfile
+  env_file:     ./backend/.env.production
+  volumes:
+    - media_data:/app/media
+    - log_data:/app/logs
+  networks:
+    - alis_net
+  restart: unless-stopped
+
+# ── Common healthcheck ─────────────────────────────────────────────────────────
+x-api-health: &api-health
+  healthcheck:
+    test: ['CMD', 'curl', '-sf', 'http://localhost:8000/api/v1/health']
+    interval: 30s
+    timeout:  10s
+    retries:  5
+    start_period: 30s
+
+
+services:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TIER 1 — Database (always first)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: alis_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${DB_NAME:-alis_x}
+      POSTGRES_USER:     ${DB_USER:-alis_x_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-CHANGE_THIS_STRONG_PASSWORD}
+      PGDATA:            /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    ports:
+      - '127.0.0.1:5432:5432'   # localhost only — NOT exposed externally
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-alis_x_user} -d ${DB_NAME:-alis_x}']
+      interval: 10s
+      timeout:  5s
+      retries:  10
+    networks:
+      - alis_net
+    profiles: ['offline', 'standard', 'full']
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TIER 2 — Cache & Message Broker
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  redis:
+    image: redis:7-alpine
+    container_name: alis_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+        --save 60 1000
+        --requirepass ${REDIS_PASSWORD:-CHANGE_REDIS_PASSWORD}
+        --bind 0.0.0.0
+    volumes:
+      - redis_data:/data
+    ports:
+      - '127.0.0.1:6379:6379'  # localhost only
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD:-CHANGE_REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout:  5s
+      retries:  5
+    networks:
+      - alis_net
+    profiles: ['standard', 'full']
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TIER 3 — Database Migration (runs once, then exits)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  migrate:
+    <<: *api-common
+    container_name: alis_migrate
+    command: python scripts/migrate.py
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+    profiles: ['offline', 'standard', 'full']
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TIER 4 — FastAPI Application
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  api:
+    <<: [*api-common, *api-health]
+    container_name: alis_api
+    command: >
+      gunicorn main:app
+        --workers 4
+        --worker-class uvicorn.workers.UvicornWorker
+        --bind 0.0.0.0:8000
+        --timeout 120
+        --keep-alive 5
+        --access-logfile /app/logs/access.log
+        --error-logfile  /app/logs/error.log
+        --log-level info
+        --forwarded-allow-ips="*"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - '127.0.0.1:8000:8000'  # Behind Nginx — not exposed directly in full profile
+    profiles: ['offline', 'standard', 'full']
+
+  # Expose API directly (standard profile — no Nginx)
+  api-exposed:
+    <<: [*api-common, *api-health]
+    container_name: alis_api_std
+    command: >
+      gunicorn main:app
+        --workers 4
+        --worker-class uvicorn.workers.UvicornWorker
+        --bind 0.0.0.0:8000
+        --timeout 120
+        --keep-alive 5
+        --access-logfile /app/logs/access.log
+        --error-logfile  /app/logs/error.log
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - '0.0.0.0:8000:8000'    # Directly exposed (standard profile only)
+    profiles: ['standard']
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TIER 5 — Background Workers (Celery)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  worker:
+    <<: *api-common
+    container_name: alis_worker
+    command: >
+      celery -A services.celery_app worker
+        --loglevel=info
+        --queues=default,ai_local,reports,notifications,surveillance
+        --concurrency=2
+        --max-tasks-per-child=100
+    depends_on:
+      - redis
+      - api
+    profiles: ['full']
+
+  beat:
+    <<: *api-common
+    container_name: alis_beat
+    command: >
+      celery -A services.celery_app beat
+        --loglevel=info
+        --schedule=/app/logs/celerybeat-schedule
+    depends_on:
+      - redis
+    profiles: ['full']
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TIER 6 — Local AI (Ollama)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: alis_ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      - OLLAMA_NUM_PARALLEL=1
+      - OLLAMA_MAX_LOADED_MODELS=1
+    ports:
+      - '127.0.0.1:11434:11434'
+    healthcheck:
+      test: ['CMD', 'curl', '-sf', 'http://localhost:11434/api/tags']
+      interval: 30s
+      timeout:  15s
+      retries:  5
+      start_period: 60s
+    networks:
+      - alis_net
+    profiles: ['standard', 'full']
+
+  ollama-init:
+    image: curlimages/curl:latest
+    container_name: alis_ollama_init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo '>>> Pulling phi3:mini (offline LLM)...' &&
+        curl -s -X POST http://ollama:11434/api/pull
+          -H 'Content-Type: application/json'
+          -d '{\"name\":\"phi3:mini\",\"stream\":false}' &&
+        echo '>>> Model ready.'
+      "
+    networks:
+      - alis_net
+    restart: 'no'
+    profiles: ['standard', 'full']
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TIER 7 — Reverse Proxy + SSL (Full profile only)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: alis_nginx
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./frontend:/usr/share/nginx/html:ro
+      - media_data:/usr/share/nginx/media:ro
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+      - log_data:/var/log/nginx
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - alis_net
+    profiles: ['full']
+
+  # Let's Encrypt certificate manager
+  certbot:
+    image: certbot/certbot:latest
+    container_name: alis_certbot
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    profiles: ['full']
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TIER 8 — Monitoring
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  flower:
+    <<: *api-common
+    container_name: alis_flower
+    command: >
+      celery -A services.celery_app flower
+        --port=5555
+        --url_prefix=flower
+        --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-CHANGE_FLOWER_PASSWORD}
+    ports:
+      - '127.0.0.1:5555:5555'
+    depends_on:
+      - redis
+    profiles: ['full']
+
+
+# ══ Volumes ════════════════════════════════════════════════════════════════════
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  media_data:
+    driver: local
+  log_data:
+    driver: local
+  ollama_models:
+    driver: local
+  certbot_certs:
+    driver: local
+  certbot_www:
+    driver: local
+
+
+# ══ Networks ════════════════════════════════════════════════════════════════════
+networks:
+  alis_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

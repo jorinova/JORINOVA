@@ -2,281 +2,354 @@
 {% load static %}
 
 {% block title %}🧬 MedGenome — NEXUS ALIS-X{% endblock %}
-{% block module_id %}genome{% endblock %}
+{% block module_id %}genomics{% endblock %}
+{% block nav_active_lab %}active{% endblock %}
 
-{% block module_css %}
+{% block head_extra %}
 <link rel="stylesheet" href="{% static 'modules/genomics/css/genomics.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 {% endblock %}
 
 {% block content %}
-<div class="genome-main" data-theme-mode="medgenome" id="app-main-inner">
+<div id="genome-app">
 
-  <header class="page-header genome-header">
-    <div class="page-header-left">
-      <div class="page-icon-wrap" style="background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.28);color:#A78BFA">
-        <span style="font-size:20px">🧬</span>
-      </div>
-      <div>
-        <h1 class="page-title" style="color:#DDE4FF">MedGenome Intelligence</h1>
-        <div class="page-subtitle" style="color:rgba(139,92,246,0.7)">{{ today|date:"l, d F Y" }} · DNA Sequencing · Variant Analysis · Molecular Epidemiology</div>
-      </div>
+  <div class="dept-header genome-hdr">
+    <div class="dh-left">
+      <div class="dh-icon">🧬</div>
+      <div><h1 class="dh-title">MedGenome — Genomic Intelligence</h1>
+        <div class="dh-sub">NGS · Variant Detection · Novel Pattern Discovery · Genomic DB Integration · Pharmacogenomics</div></div>
     </div>
-    <div class="page-header-right">
-      <div class="genome-live-badge">
-        <div class="genome-live-dot"></div>
-        <span>🧬 Analysis Engine Live</span>
-      </div>
-      <button class="btn btn-sm" style="background:rgba(139,92,246,0.15);border-color:rgba(139,92,246,0.35);color:#A78BFA">
-        <span>➕</span> New Analysis
-      </button>
+    <div class="dh-right">
+      <div class="dh-chip">🧬 <span id="stat-variants">—</span> Variants Today</div>
+      <div class="dh-chip danger">⚠️ <span id="stat-novel">—</span> Novel</div>
+      <div class="dh-badge">🔒 Geneticist Validation Required</div>
     </div>
-  </header>
-
-  <!-- Genome KPI strip -->
-  <div class="genome-kpi-strip">
-    <div class="gkpi"><span class="gkpi-emoji">🧬</span><div class="gkpi-val">—</div><div class="gkpi-lbl">Samples Sequenced</div></div>
-    <div class="gkpi"><span class="gkpi-emoji">🔬</span><div class="gkpi-val">—</div><div class="gkpi-lbl">Variants Detected</div></div>
-    <div class="gkpi"><span class="gkpi-emoji">🚨</span><div class="gkpi-val" style="color:#FF6B8A">—</div><div class="gkpi-lbl">Pathogenic</div></div>
-    <div class="gkpi"><span class="gkpi-emoji">⚠️</span><div class="gkpi-val" style="color:#FFD600">—</div><div class="gkpi-lbl">VUS</div></div>
-    <div class="gkpi"><span class="gkpi-emoji">✅</span><div class="gkpi-val" style="color:#00E676">—</div><div class="gkpi-lbl">Benign</div></div>
-    <div class="gkpi"><span class="gkpi-emoji">⏳</span><div class="gkpi-val">—</div><div class="gkpi-lbl">In Pipeline</div></div>
   </div>
 
-  <!-- Tabs -->
-  <div class="tab-nav genome-tabs" style="background:rgba(4,6,16,0.9);border-bottom:1px solid rgba(130,80,240,0.18);padding:0 var(--space-xl)">
-    <button class="tab-btn active genome-tab" data-pane="gp-sequencing">🧬 Sequencing Queue</button>
-    <button class="tab-btn genome-tab" data-pane="gp-variants">🔬 Variant Report</button>
-    <button class="tab-btn genome-tab" data-pane="gp-phylo">🌳 Phylogenetics</button>
-    <button class="tab-btn genome-tab" data-pane="gp-mol-epi">🌍 Molecular Epi</button>
-    <button class="tab-btn genome-tab" data-pane="gp-qc">📊 QC Metrics</button>
+  <div class="dept-kpis">
+    <div class="kpi kpi-ngs"><div class="kpi-val" id="kpi-ngs">—</div><div class="kpi-lbl">NGS Runs This Week</div></div>
+    <div class="kpi kpi-pathogenic"><div class="kpi-val" id="kpi-pathogenic">—</div><div class="kpi-lbl">Pathogenic Variants</div></div>
+    <div class="kpi kpi-novel"><div class="kpi-val" id="kpi-novel">—</div><div class="kpi-lbl">Novel Variants</div></div>
+    <div class="kpi kpi-vus"><div class="kpi-val" id="kpi-vus">—</div><div class="kpi-lbl">VUS (Uncertain)</div></div>
+    <div class="kpi kpi-pharma"><div class="kpi-val" id="kpi-pharma">—</div><div class="kpi-lbl">Pharmacogenomics</div></div>
   </div>
 
-  <div class="genome-body">
+  <nav class="dept-tabs">
+    <button class="dt active" data-tab="dashboard">📊 Dashboard</button>
+    <button class="dt" data-tab="ngs-runs">🔬 NGS Runs</button>
+    <button class="dt" data-tab="variants">🧬 Variant Database</button>
+    <button class="dt" data-tab="novel">⚠️ Novel Patterns</button>
+    <button class="dt" data-tab="cancer-genetics">🎗️ Cancer Genetics</button>
+    <button class="dt" data-tab="pharmacogenomics">💊 Pharmacogenomics</button>
+    <button class="dt" data-tab="db-integration">🌐 Genomic DB Links</button>
+    <button class="dt" data-tab="reports">📝 Reports</button>
+  </nav>
 
-    <!-- ── SEQUENCING QUEUE ── -->
-    <div class="tab-pane active" id="gp-sequencing">
-      <div class="genome-queue-layout">
-        <div class="genome-table-wrap glass-panel" style="overflow:hidden;flex:1">
-          <div class="chart-header">
-            <div class="chart-title" style="color:#DDE4FF"><span>🧬</span> Active Sequencing Jobs</div>
-            <div style="display:flex;gap:var(--space-sm);margin-left:auto">
-              <select class="fi" style="width:auto;font-size:var(--text-xs);padding:6px 10px;background:rgba(14,22,60,0.8);border-color:rgba(130,80,240,0.25);color:#DDE4FF">
-                <option>All platforms</option><option>🔬 Illumina</option><option>🧪 Nanopore</option><option>💡 PacBio</option>
-              </select>
-            </div>
-          </div>
-          <table class="nx-table">
-            <thead><tr>
-              <th>🔖 Run ID</th><th>🧬 Sample</th><th>👤 Patient</th>
-              <th>🔬 Platform</th><th>🧪 Test Type</th><th>📊 Coverage</th>
-              <th>⏱️ Progress</th><th>📋 Status</th>
-            </tr></thead>
-            <tbody>
-              <tr>
-                <td style="font-family:var(--font-mono);font-size:11px;color:#A78BFA">SEQ-2025-0041</td>
-                <td>SMP-A1044</td><td>DEMO — Uwimana J.</td>
-                <td><span class="badge" style="background:rgba(0,229,255,0.1);border-color:rgba(0,229,255,0.25);color:#00E5FF">Illumina NovaSeq</span></td>
-                <td>WGS 30×</td>
-                <td><div class="coverage-bar"><div class="coverage-fill" style="width:78%;background:linear-gradient(90deg,#8B5CF6,#A78BFA)"></div></div><span style="font-family:var(--font-mono);font-size:11px">28.4×</span></td>
-                <td>
-                  <div class="genome-progress-wrap">
-                    <div class="genome-progress-bar" style="--pct:78%"></div>
-                    <span style="font-family:var(--font-mono);font-size:11px;color:#A78BFA">78%</span>
-                  </div>
-                </td>
-                <td><span class="badge" style="background:rgba(0,229,255,0.08);border-color:rgba(0,229,255,0.2);color:#00E5FF;animation:pulse-normal 2.5s infinite">🔄 Running</span></td>
-              </tr>
-              <tr>
-                <td style="font-family:var(--font-mono);font-size:11px;color:#A78BFA">SEQ-2025-0040</td>
-                <td>SMP-A1041</td><td>DEMO — Mutoni M.</td>
-                <td><span class="badge" style="background:rgba(139,92,246,0.1);border-color:rgba(139,92,246,0.25);color:#A78BFA">Nanopore MinION</span></td>
-                <td>WES 100×</td>
-                <td><div class="coverage-bar"><div class="coverage-fill" style="width:100%;background:linear-gradient(90deg,#00E676,#00C853)"></div></div><span style="font-family:var(--font-mono);font-size:11px">102.1×</span></td>
-                <td>
-                  <div class="genome-progress-wrap">
-                    <div class="genome-progress-bar" style="--pct:100%;background:linear-gradient(90deg,#00E676,#00C853)"></div>
-                    <span style="font-family:var(--font-mono);font-size:11px;color:#00E676">100%</span>
-                  </div>
-                </td>
-                <td><span class="badge badge-green">✅ Complete</span></td>
-              </tr>
-              <tr>
-                <td style="font-family:var(--font-mono);font-size:11px;color:#A78BFA">SEQ-2025-0039</td>
-                <td>SMP-A1038</td><td>DEMO — Nzabahimana C.</td>
-                <td><span class="badge" style="background:rgba(0,229,255,0.1);border-color:rgba(0,229,255,0.25);color:#00E5FF">Illumina MiSeq</span></td>
-                <td>16S rRNA</td>
-                <td><div class="coverage-bar"><div class="coverage-fill" style="width:45%;background:linear-gradient(90deg,#FFD600,#FFA500)"></div></div><span style="font-family:var(--font-mono);font-size:11px">11.2×</span></td>
-                <td>
-                  <div class="genome-progress-wrap">
-                    <div class="genome-progress-bar" style="--pct:45%;background:linear-gradient(90deg,#FFD600,#FFA500)"></div>
-                    <span style="font-family:var(--font-mono);font-size:11px;color:#FFD600">45%</span>
-                  </div>
-                </td>
-                <td><span class="badge badge-blue" style="animation:pulse-normal 2.5s infinite">🔄 Aligning</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <!-- Sidebar: QC quick view -->
-        <div class="genome-side-panel glass-panel">
-          <div class="genome-side-title">🔬 Live QC Metrics</div>
-          <div class="genome-qc-metric">
-            <div class="gqc-label">Q30 Score</div>
-            <div class="gqc-bar"><div class="gqc-fill" style="width:91%"></div></div>
-            <div class="gqc-val">91.2%</div>
-          </div>
-          <div class="genome-qc-metric">
-            <div class="gqc-label">Cluster Density</div>
-            <div class="gqc-bar"><div class="gqc-fill" style="width:85%;background:rgba(0,229,255,0.7)"></div></div>
-            <div class="gqc-val">1,120 k/mm²</div>
-          </div>
-          <div class="genome-qc-metric">
-            <div class="gqc-label">Yield (Gb)</div>
-            <div class="gqc-bar"><div class="gqc-fill" style="width:78%;background:rgba(0,230,118,0.7)"></div></div>
-            <div class="gqc-val">156 Gb</div>
-          </div>
-          <div class="genome-qc-metric">
-            <div class="gqc-label">Error Rate</div>
-            <div class="gqc-bar"><div class="gqc-fill" style="width:4%;background:rgba(255,23,68,0.7)"></div></div>
-            <div class="gqc-val" style="color:#FF6B8A">0.12%</div>
-          </div>
-          <div class="genome-side-title" style="margin-top:var(--space-md)">🧬 Variant Summary</div>
-          <div class="genome-variant-legend">
-            <div class="gv-row"><div class="gv-dot" style="background:#FF6B8A"></div><span>Pathogenic</span><span class="gv-count">7</span></div>
-            <div class="gv-row"><div class="gv-dot" style="background:#FFD600"></div><span>VUS</span><span class="gv-count">23</span></div>
-            <div class="gv-row"><div class="gv-dot" style="background:#00E676"></div><span>Benign</span><span class="gv-count">142</span></div>
-            <div class="gv-row"><div class="gv-dot" style="background:#7A88CC"></div><span>SNP (known)</span><span class="gv-count">891</span></div>
-          </div>
-        </div>
-      </div>
-    </div><!-- /sequencing -->
-
-    <!-- ── VARIANT REPORT ── -->
-    <div class="tab-pane" id="gp-variants">
-      <div class="glass-panel" style="overflow:hidden">
-        <div class="chart-header">
-          <div class="chart-title" style="color:#DDE4FF"><span>🔬</span> Variant Classification Report</div>
-          <div style="display:flex;gap:var(--space-sm);margin-left:auto">
-            <select class="fi" style="width:auto;font-size:var(--text-xs);background:rgba(14,22,60,0.8);border-color:rgba(130,80,240,0.25);color:#DDE4FF">
-              <option>All classifications</option><option>🚨 Pathogenic</option><option>⚠️ VUS</option><option>✅ Benign</option>
-            </select>
-          </div>
-        </div>
-        <table class="nx-table">
-          <thead><tr>
-            <th>🔖 Variant ID</th><th>🧬 Gene</th><th>📋 Mutation</th>
-            <th>🌐 Chromosome</th><th>📊 Frequency</th><th>⚡ Classification</th>
-            <th>🔗 Database</th><th>📝 ACMG</th>
-          </tr></thead>
-          <tbody>
-            <tr>
-              <td style="font-family:var(--font-mono);font-size:11px">VAR-001-2025</td>
-              <td style="font-weight:600;color:#A78BFA">BRCA1</td>
-              <td style="font-family:var(--font-mono);font-size:11px">c.5266dupC</td>
-              <td>Chr17:43094692</td>
-              <td style="font-family:var(--font-mono)">0.002%</td>
-              <td><span class="badge" style="background:rgba(255,23,68,0.1);border-color:rgba(255,23,68,0.28);color:#FF6B8A">🚨 Pathogenic</span></td>
-              <td><span class="badge badge-cyan">ClinVar</span></td>
-              <td><span class="badge badge-red">Class V</span></td>
-            </tr>
-            <tr>
-              <td style="font-family:var(--font-mono);font-size:11px">VAR-002-2025</td>
-              <td style="font-weight:600;color:#A78BFA">TP53</td>
-              <td style="font-family:var(--font-mono);font-size:11px">p.Arg175His</td>
-              <td>Chr17:7675088</td>
-              <td style="font-family:var(--font-mono)">0.008%</td>
-              <td><span class="badge" style="background:rgba(255,23,68,0.1);border-color:rgba(255,23,68,0.28);color:#FF6B8A">🚨 Pathogenic</span></td>
-              <td><span class="badge badge-cyan">COSMIC</span></td>
-              <td><span class="badge badge-red">Class V</span></td>
-            </tr>
-            <tr>
-              <td style="font-family:var(--font-mono);font-size:11px">VAR-003-2025</td>
-              <td style="font-weight:600;color:#A78BFA">CFTR</td>
-              <td style="font-family:var(--font-mono);font-size:11px">c.1521_1523del</td>
-              <td>Chr7:117548628</td>
-              <td style="font-family:var(--font-mono)">1.2%</td>
-              <td><span class="badge badge-yellow">⚠️ VUS</span></td>
-              <td><span class="badge badge-grey">dbSNP</span></td>
-              <td><span class="badge badge-yellow">Class III</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  <!-- ══ DASHBOARD ════════════════════════════════════════════════ -->
+  <div class="dept-pane active" id="tab-dashboard">
+    <div class="genome-sq-grid">
+      <div class="sq-card ngs-sq"><div class="sq-icon">🔬</div>
+        <div class="sq-body"><div class="sq-name">NGS Pipeline</div>
+          <div class="sq-tests">Whole exome · Panel sequencing · RNA-seq · Targeted amplicon · CNV · Structural variants</div>
+          <div class="sq-cnt" id="sq-ngs">— runs</div></div>
+        <button onclick="switchTab('ngs-runs')">View →</button></div>
+      <div class="sq-card variant-sq"><div class="sq-icon">🧬</div>
+        <div class="sq-body"><div class="sq-name">Variant Classification</div>
+          <div class="sq-tests">Pathogenic · Likely pathogenic · VUS · Likely benign · Benign (ACMG 2015)</div>
+          <div class="sq-cnt" id="sq-variants">— variants</div></div>
+        <button onclick="switchTab('variants')">View →</button></div>
+      <div class="sq-card novel-sq"><div class="sq-icon">⚠️</div>
+        <div class="sq-body"><div class="sq-name">Novel Pattern Discovery</div>
+          <div class="sq-tests">Unknown mutations · Unusual variant combinations · New pathogen strains · Emerging resistance patterns</div>
+          <div class="sq-cnt" id="sq-novel-c">— novel variants</div></div>
+        <button onclick="switchTab('novel')">View →</button></div>
+      <div class="sq-card db-sq"><div class="sq-icon">🌐</div>
+        <div class="sq-body"><div class="sq-name">Genomic Database Links</div>
+          <div class="sq-tests">ClinVar · dbSNP · COSMIC · Ensembl · NCBI GenBank · WHO TB Catalog · Local DB</div>
+          <div class="sq-cnt" id="sq-db">— databases linked</div></div>
+        <button onclick="switchTab('db-integration')">View →</button></div>
     </div>
 
-    <!-- ── PHYLOGENETICS ── -->
-    <div class="tab-pane" id="gp-phylo">
-      <div class="glass-panel" style="padding:var(--space-xl);text-align:center">
-        <div style="font-size:64px;margin-bottom:var(--space-md)">🌳</div>
-        <h2 style="font-family:var(--font-display);font-size:var(--text-xl);color:#DDE4FF">Phylogenetic Analysis</h2>
-        <p style="color:#7A88CC;font-size:var(--text-sm);max-width:480px;margin:16px auto;line-height:1.7">
-          Maximum likelihood and Bayesian phylogenetic tree construction from multi-sequence alignments.
-          Integrates with NCBI, GISAID, and national pathogen databases for comparative genomics.
-        </p>
-        <div style="display:flex;gap:var(--space-md);justify-content:center;margin-top:var(--space-xl);flex-wrap:wrap">
-          <div class="genome-feature-badge"><span>🌍</span> GISAID Integration</div>
-          <div class="genome-feature-badge"><span>🧬</span> BEAST2 Pipeline</div>
-          <div class="genome-feature-badge"><span>🔗</span> NCBI GenBank</div>
-          <div class="genome-feature-badge"><span>📊</span> iTOL Visualization</div>
+    <div class="genome-dash-row">
+      <div class="genome-chart-box"><div class="box-title">Variant Classification Distribution</div>
+        <canvas id="genome-chart" height="220"></canvas></div>
+      <div class="genome-db-status">
+        <div class="box-title">Genomic Database Sync Status</div>
+        <div class="db-status-list">
+          <div class="db-status-item"><span class="db-name">ClinVar</span><span class="db-sync ok">🟢 Synced — 2 h ago</span><span class="db-version">v2024.12</span></div>
+          <div class="db-status-item"><span class="db-name">dbSNP</span><span class="db-sync ok">🟢 Synced — 4 h ago</span><span class="db-version">Build 156</span></div>
+          <div class="db-status-item"><span class="db-name">COSMIC</span><span class="db-sync ok">🟢 Synced — Daily</span><span class="db-version">v98</span></div>
+          <div class="db-status-item"><span class="db-name">WHO TB Catalog</span><span class="db-sync ok">🟢 Synced</span><span class="db-version">v2023</span></div>
+          <div class="db-status-item"><span class="db-name">Local Hospital DB</span><span class="db-sync ok">🟢 Live</span><span class="db-version">Internal</span></div>
+          <div class="db-status-item"><span class="db-name">Ensembl</span><span class="db-sync warn">🟡 Updating…</span><span class="db-version">GRCh38.p14</span></div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- ── MOLECULAR EPI ── -->
-    <div class="tab-pane" id="gp-mol-epi">
-      <div class="glass-panel" style="padding:var(--space-xl);text-align:center">
-        <div style="font-size:64px;margin-bottom:var(--space-md)">🌍</div>
-        <h2 style="font-family:var(--font-display);font-size:var(--text-xl);color:#DDE4FF">Molecular Epidemiology</h2>
-        <p style="color:#7A88CC;font-size:var(--text-sm);max-width:480px;margin:16px auto;line-height:1.7">
-          Track transmission chains, identify outbreak clusters, and map geographic spread of pathogen variants
-          using whole-genome sequencing data. Powered by Nexus AI clustering algorithms.
-        </p>
-        <div style="display:flex;gap:var(--space-md);justify-content:center;margin-top:var(--space-xl);flex-wrap:wrap">
-          <div class="genome-feature-badge"><span>🗺️</span> Geographic Mapping</div>
-          <div class="genome-feature-badge"><span>🔗</span> Transmission Chains</div>
-          <div class="genome-feature-badge"><span>🤖</span> AI Clustering</div>
-          <div class="genome-feature-badge"><span>📡</span> Real-time Alerts</div>
-        </div>
+  <!-- ══ NGS RUNS ══════════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-ngs-runs">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="ngs-type-f" onchange="loadNGS()">
+          <option value="">All NGS Types</option>
+          <option value="WES">Whole Exome (WES)</option>
+          <option value="WGS">Whole Genome (WGS)</option>
+          <option value="PANEL">Gene Panel</option>
+          <option value="RNA_SEQ">RNA-seq</option>
+          <option value="AMPLICON">Targeted Amplicon</option>
+        </select>
+        <select id="ngs-status-f" onchange="loadNGS()">
+          <option value="">All Status</option>
+          <option value="QUEUED">Queued</option>
+          <option value="RUNNING">Running</option>
+          <option value="QC_CHECK">QC Check</option>
+          <option value="ANALYSIS">Analysis</option>
+          <option value="COMPLETE">Complete</option>
+          <option value="FAILED">Failed</option>
+        </select>
+        <input type="date" id="ngs-date-f" onchange="loadNGS()">
+      </div>
+      <div class="dept-toolbar-right">
+        <button class="dept-print-btn" onclick="NexusPrint?.printAll('ngs-table')">🖨️</button>
+        <button class="btn-primary" onclick="openModal('ngs-modal')">+ New NGS Run</button>
       </div>
     </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="ngs-table">
+        <thead><tr><th>Run ID</th><th>Patient</th><th>NGS Type</th><th>Panel / Gene Set</th>
+          <th>Sequencer</th><th>Coverage (×)</th><th>Total Reads</th>
+          <th>Q30 Score</th><th>Variants Found</th><th>Status</th><th>Analyst</th><th>Actions</th></tr></thead>
+        <tbody id="ngs-tbody"><tr><td colspan="12" class="dept-empty">Loading NGS runs…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
 
-    <!-- ── QC METRICS ── -->
-    <div class="tab-pane" id="gp-qc">
-      <div class="genome-qc-grid">
-        {% for m in "12345678" %}
-        <div class="genome-qc-card glass-panel">
-          <div class="gqc-card-title">{% cycle "📊 Q30 Score" "🧬 Yield (Gb)" "🔬 Coverage Depth" "⚠️ Error Rate" "🔗 Mapping Rate" "🧪 Duplication %" "📈 Insert Size" "✅ Pass Rate" %}</div>
-          <div class="gqc-card-val" style="color:{% cycle '#A78BFA' '#00E5FF' '#00E676' '#FF6B8A' '#00E676' '#FFD600' '#A78BFA' '#00E676' %}">
-            {% cycle "91.2%" "156 Gb" "28.4×" "0.12%" "98.7%" "3.2%" "350 bp" "94.8%" %}
-          </div>
-          <div class="gqc-card-sub">{% cycle "Excellent" "Above target" "30× target" "Very low" "High confidence" "Within limit" "Optimal" "QC pass" %}</div>
-        </div>
-        {% endfor %}
+  <!-- ══ VARIANT DATABASE ══════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-variants">
+    <div class="acmg-ref-bar">
+      <strong>ACMG 2015 Classification:</strong>
+      <span class="acmg-class pathogenic">Pathogenic</span>
+      <span class="acmg-class likely-path">Likely Pathogenic</span>
+      <span class="acmg-class vus">VUS</span>
+      <span class="acmg-class likely-benign">Likely Benign</span>
+      <span class="acmg-class benign">Benign</span>
+    </div>
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <input type="text" class="dept-search" id="var-search" placeholder="Gene, variant, HGVS notation…" oninput="loadVariants()">
+        <select id="var-class-f" onchange="loadVariants()">
+          <option value="">All Classifications</option>
+          <option value="PATHOGENIC">Pathogenic</option>
+          <option value="LIKELY_PATHOGENIC">Likely Pathogenic</option>
+          <option value="VUS">VUS</option>
+          <option value="LIKELY_BENIGN">Likely Benign</option>
+          <option value="BENIGN">Benign</option>
+          <option value="NOVEL">Novel (unclassified)</option>
+        </select>
+        <select id="var-type-f" onchange="loadVariants()">
+          <option value="">All Variant Types</option>
+          <option value="SNV">SNV (Single Nucleotide)</option>
+          <option value="INDEL">Insertion/Deletion</option>
+          <option value="CNV">Copy Number Variation</option>
+          <option value="FUSION">Gene Fusion</option>
+          <option value="STRUCTURAL">Structural Variant</option>
+        </select>
+      </div>
+      <div class="dept-toolbar-right">
+        <button class="dept-print-btn" onclick="NexusPrint?.printAll('var-table')">🖨️</button>
+        <button class="btn-primary" onclick="openModal('var-modal')">+ Enter Variant</button>
       </div>
     </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="var-table">
+        <thead><tr><th>Variant ID</th><th>Patient</th><th>Gene</th><th>HGVS (c.)</th>
+          <th>Protein (p.)</th><th>Chr. Position</th><th>Type</th>
+          <th>ACMG Class</th><th>ClinVar</th><th>COSMIC</th>
+          <th>Allele Freq.</th><th>Inheritance</th><th>AI Note</th><th>Validated</th><th>Actions</th></tr></thead>
+        <tbody id="var-tbody"><tr><td colspan="15" class="dept-empty">Loading variant database…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
 
-  </div><!-- /genome-body -->
+  <!-- ══ NOVEL PATTERNS ════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-novel">
+    <div class="novel-alert-box">
+      🔬 <strong>Novel Variant Detection Engine:</strong> AI compares each new variant against all connected genomic databases.
+      No database match triggers a novel variant flag — requiring geneticist review before reporting.
+      Novel variants may represent: new disease mutations, new pathogen strains, emerging resistance patterns, or sequencing artefacts.
+    </div>
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="novel-status-f" onchange="loadNovel()">
+          <option value="">All Status</option>
+          <option value="PENDING_REVIEW">Pending Review</option>
+          <option value="UNDER_INVESTIGATION">Under Investigation</option>
+          <option value="CONFIRMED_NOVEL">Confirmed Novel</option>
+          <option value="ARTEFACT">Sequencing Artefact</option>
+        </select>
+        <select id="novel-confidence-f" onchange="loadNovel()">
+          <option value="">All Confidence</option>
+          <option value="HIGH">High (&gt;85%)</option>
+          <option value="MEDIUM">Medium (60–85%)</option>
+          <option value="LOW">Low (&lt;60%)</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openModal('novel-modal')">+ Report Novel Variant</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="novel-table">
+        <thead><tr><th>Novel ID</th><th>Patient</th><th>Gene / Region</th>
+          <th>Sequence Change</th><th>Mutation Type</th><th>AI Confidence</th>
+          <th>DB Match?</th><th>Predicted Impact</th><th>Alert Level</th>
+          <th>Status</th><th>Assigned Geneticist</th><th>Actions</th></tr></thead>
+        <tbody id="novel-tbody"><tr><td colspan="12" class="dept-empty">Loading novel variant records…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ CANCER GENETICS ══════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-cancer-genetics">
+    <div class="cancer-panels-strip">
+      <div class="cp-card brca"><div class="cp-name">BRCA1/2</div><div class="cp-desc">Hereditary breast &amp; ovarian cancer · PARP inhibitor eligibility</div></div>
+      <div class="cp-card lynch"><div class="cp-name">Lynch Syndrome</div><div class="cp-desc">MLH1 · MSH2 · MSH6 · PMS2 · EPCAM · Colorectal / endometrial cancer</div></div>
+      <div class="cp-card egfr"><div class="cp-name">EGFR / KRAS</div><div class="cp-desc">Lung &amp; colorectal cancer · Targeted therapy selection · Resistance mutations</div></div>
+      <div class="cp-card her2"><div class="cp-name">HER2 Amplification</div><div class="cp-desc">Breast / gastric cancer · Trastuzumab eligibility</div></div>
+      <div class="cp-card braf"><div class="cp-name">BRAF V600E</div><div class="cp-desc">Melanoma / colorectal · Vemurafenib / dabrafenib eligibility</div></div>
+      <div class="cp-card msi"><div class="cp-name">MSI / MMR</div><div class="cp-desc">Microsatellite instability · Pembrolizumab eligibility</div></div>
+    </div>
+    <div class="dept-toolbar">
+      <button class="btn-primary" onclick="openModal('cancer-modal')">+ Enter Cancer Genetics Result</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="cancer-table">
+        <thead><tr><th>Patient</th><th>Cancer Type</th><th>Gene Panel</th><th>Mutation</th>
+          <th>ACMG Class</th><th>Therapeutic Implication</th><th>Eligibility</th>
+          <th>Hereditary Risk</th><th>Validated</th><th>Actions</th></tr></thead>
+        <tbody id="cancer-tbody"><tr><td colspan="10" class="dept-empty">Loading cancer genetics cases…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ PHARMACOGENOMICS ══════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-pharmacogenomics">
+    <div class="pharma-intro">
+      💊 <strong>Pharmacogenomics:</strong> Genetic variants that affect drug metabolism and response.
+      Results guide prescribers on drug selection, dosing, and contraindications.
+    </div>
+    <div class="pharma-gene-grid">
+      <div class="pg-card"><div class="pg-gene">CYP2D6</div><div class="pg-drugs">Codeine · Tamoxifen · Antidepressants</div><div class="pg-pheno">Poor / Intermediate / Normal / Ultrarapid metaboliser</div></div>
+      <div class="pg-card"><div class="pg-gene">CYP2C19</div><div class="pg-drugs">Clopidogrel · PPIs · Antidepressants</div><div class="pg-pheno">Poor / Intermediate / Normal / Rapid metaboliser</div></div>
+      <div class="pg-card"><div class="pg-gene">TPMT / NUDT15</div><div class="pg-drugs">Azathioprine · 6-Mercaptopurine</div><div class="pg-pheno">Myelosuppression risk</div></div>
+      <div class="pg-card"><div class="pg-gene">HLA-B*5701</div><div class="pg-drugs">Abacavir (HIV)</div><div class="pg-pheno">Hypersensitivity reaction</div></div>
+      <div class="pg-card"><div class="pg-gene">DPYD</div><div class="pg-drugs">5-Fluorouracil · Capecitabine</div><div class="pg-pheno">Severe toxicity risk</div></div>
+      <div class="pg-card"><div class="pg-gene">VKORC1 / CYP2C9</div><div class="pg-drugs">Warfarin dosing</div><div class="pg-pheno">Warfarin sensitivity / resistance</div></div>
+    </div>
+    <div class="dept-toolbar">
+      <button class="btn-primary" onclick="openModal('pharma-modal')">+ Enter PGx Result</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="pharma-table">
+        <thead><tr><th>Patient</th><th>Gene</th><th>Genotype</th><th>Phenotype</th>
+          <th>Affected Drugs</th><th>Recommendation</th><th>Validated</th><th>Actions</th></tr></thead>
+        <tbody id="pharma-tbody"><tr><td colspan="8" class="dept-empty">Loading pharmacogenomics results…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ GENOMIC DB INTEGRATION ════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-db-integration">
+    <div class="db-grid">
+      <div class="db-card clinvar"><div class="db-logo">🔬</div><div class="db-name">ClinVar (NCBI)</div><div class="db-desc">Clinical variant classifications. 1.2M variants. Updated monthly.</div><div class="db-stat">Last sync: 2 h ago · v2024.12</div><button class="btn-secondary" onclick="syncDB('clinvar')">🔄 Sync Now</button></div>
+      <div class="db-card dbsnp"><div class="db-logo">🧬</div><div class="db-name">dbSNP</div><div class="db-desc">Known genetic variants across populations. Reference SNP IDs.</div><div class="db-stat">Last sync: 4 h ago · Build 156</div><button class="btn-secondary" onclick="syncDB('dbsnp')">🔄 Sync Now</button></div>
+      <div class="db-card cosmic"><div class="db-logo">🎗️</div><div class="db-name">COSMIC</div><div class="db-desc">Cancer somatic mutations. Cancer gene census. Fusion genes.</div><div class="db-stat">Last sync: Daily · v98</div><button class="btn-secondary" onclick="syncDB('cosmic')">🔄 Sync Now</button></div>
+      <div class="db-card ensembl"><div class="db-logo">🌐</div><div class="db-name">Ensembl Genome</div><div class="db-desc">Reference genome annotation. Gene/transcript coordinates.</div><div class="db-stat">GRCh38.p14 · Updating…</div><button class="btn-secondary" onclick="syncDB('ensembl')">🔄 Sync Now</button></div>
+      <div class="db-card genbank"><div class="db-logo">📦</div><div class="db-name">NCBI GenBank</div><div class="db-desc">Nucleotide sequences. Pathogen genomes. Reference sequences.</div><div class="db-stat">Last sync: 6 h ago</div><button class="btn-secondary" onclick="syncDB('genbank')">🔄 Sync Now</button></div>
+      <div class="db-card who-tb"><div class="db-logo">🦠</div><div class="db-name">WHO TB Resistance Catalog</div><div class="db-desc">Mycobacterium tuberculosis resistance mutations. MDR/XDR markers.</div><div class="db-stat">v2023 · Offline cached</div><button class="btn-secondary" onclick="syncDB('who_tb')">🔄 Sync Now</button></div>
+      <div class="db-card local"><div class="db-logo">🏥</div><div class="db-name">Local Hospital DB</div><div class="db-desc">Institution-specific variant database. Patient-linked genomic records.</div><div class="db-stat">Live · Always connected</div><button class="btn-secondary" disabled>Live</button></div>
+    </div>
+  </div>
+
+  <!-- ══ REPORTS ════════════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-reports">
+    <div class="genome-report-composer">
+      <div class="rc-header"><h3>🧬 Genomic Report Composer</h3>
+        <div class="rc-tools">
+          <select id="genome-report-template" onchange="loadGenomeTemplate()">
+            <option value="">Select template…</option>
+            <option value="HEREDITARY_CANCER">Hereditary Cancer Panel</option>
+            <option value="PHARMACOGENOMICS">Pharmacogenomics Report</option>
+            <option value="ONCOLOGY_SOMATIC">Somatic Oncology Panel</option>
+            <option value="CARRIER_SCREENING">Carrier Screening</option>
+            <option value="VARIANT_OF_INTEREST">Variant of Interest</option>
+          </select>
+          <button class="btn-secondary" onclick="aiGenomeInterpret()">🤖 AI Interpret</button>
+        </div>
+      </div>
+      <div class="rc-body">
+        <div class="rc-field"><label>Patient / Sample ID</label><input type="text" id="grc-patient" placeholder="PID or Sample ID"></div>
+        <div class="rc-field"><label>Test Ordered</label><input type="text" id="grc-test" placeholder="e.g. BRCA1/2 Panel, Hereditary Cancer Gene Panel"></div>
+        <div class="rc-field"><label>Clinical Indication</label><textarea id="grc-indication" rows="2" placeholder="Reason for testing, family history, cancer type…"></textarea></div>
+        <div class="rc-field"><label>Variants Detected</label><textarea id="grc-variants-txt" rows="4" placeholder="List all variants with HGVS notation, classification, and clinical significance…"></textarea></div>
+        <div class="rc-field"><label>Interpretation</label><textarea id="grc-interpretation" rows="4" placeholder="Clinical interpretation, disease association, actionability…"></textarea></div>
+        <div class="rc-field"><label>Recommendations</label><textarea id="grc-recommendations" rows="3" placeholder="Genetic counselling, family screening, surveillance, treatment implications…"></textarea></div>
+      </div>
+      <div class="rc-footer">
+        <button class="btn-secondary" onclick="toast('Genome report draft saved.','info')">💾 Save Draft</button>
+        <button class="btn-primary" onclick="window.print()">🖨️ Print Report</button>
+        <button class="btn-primary" onclick="toast('Genome report signed out.','success')">✅ Sign Report</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#genome-app -->
+
+<!-- ═══ MODALS ════════════════════════════════════════════════ -->
+<div class="dept-modal-overlay" id="ngs-modal" style="display:none">
+  <div class="dept-modal dept-modal-wide">
+    <div class="dept-modal-hdr"><h3>🔬 New NGS Run</h3><button onclick="closeModal('ngs-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Patient ID</label><input type="number" id="ngs-pat"></div>
+        <div class="dept-form-row"><label>NGS Type</label>
+          <select id="ngs-type-m"><option value="WES">Whole Exome (WES)</option><option value="WGS">Whole Genome (WGS)</option><option value="PANEL">Gene Panel</option><option value="RNA_SEQ">RNA-seq</option><option value="AMPLICON">Targeted Amplicon</option></select></div>
+        <div class="dept-form-row"><label>Panel / Gene Set</label><input type="text" id="ngs-panel" placeholder="e.g. BRCA1/2, Hereditary Cancer 50, MSK-IMPACT"></div>
+        <div class="dept-form-row"><label>Sequencer</label>
+          <select id="ngs-seq"><option value="ILLUMINA_NOVASEQ">Illumina NovaSeq</option><option value="ILLUMINA_MISEQ">Illumina MiSeq</option><option value="ION_TORRENT">Ion Torrent</option><option value="NANOPORE">Oxford Nanopore</option><option value="PACBIO">PacBio</option></select></div>
+        <div class="dept-form-row"><label>Target Coverage (×)</label><input type="number" id="ngs-coverage" placeholder="e.g. 100"></div>
+        <div class="dept-form-row"><label>Sample Type</label>
+          <select id="ngs-sample-type"><option value="FFPE">FFPE Tissue</option><option value="FRESH">Fresh Tissue</option><option value="BLOOD">Blood (germline)</option><option value="SALIVA">Saliva</option><option value="CELL_LINE">Cell line</option></select></div>
+        <div class="dept-form-row"><label>Assigned Analyst</label><input type="text" id="ngs-analyst"></div>
+        <div class="dept-form-row"><label>Expected TAT (days)</label><input type="number" id="ngs-tat" value="14" min="1"></div>
+        <div class="dept-form-row full-col"><label>Clinical Indication</label><textarea id="ngs-indication" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('ngs-modal')">Cancel</button><button class="btn-primary" onclick="submitNGS()">Create NGS Run</button></div>
+  </div>
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.genome-tabs .tab-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.genome-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.genome-body .tab-pane').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById(btn.dataset.pane)?.classList.add('active');
-    });
-  });
-  /* Demo KPI */
-  var kpis = [24, 1063, 7, 23, 142, 3];
-  document.querySelectorAll('.gkpi-val').forEach(function(el, i) { el.textContent = kpis[i] || '—'; });
-});
-</script>
-{% endblock %}
+<div class="dept-modal-overlay" id="var-modal" style="display:none">
+  <div class="dept-modal dept-modal-wide">
+    <div class="dept-modal-hdr"><h3>🧬 Enter Variant</h3><button onclick="closeModal('var-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Patient ID</label><input type="number" id="var-pat"></div>
+        <div class="dept-form-row"><label>Gene Name</label><input type="text" id="var-gene" placeholder="e.g. BRCA1, EGFR, TP53"></div>
+        <div class="dept-form-row"><label>HGVS (cDNA)</label><input type="text" id="var-hgvs-c" placeholder="c.5266dupC"></div>
+        <div class="dept-form-row"><label>HGVS (Protein)</label><input type="text" id="var-hgvs-p" placeholder="p.Gln1756Profs*74"></div>
+        <div class="dept-form-row"><label>Variant Type</label>
+          <select id="var-type-m"><option value="SNV">SNV</option><option value="INDEL">Indel</option><option value="CNV">CNV</option><option value="FUSION">Gene Fusion</option><option value="STRUCTURAL">Structural</option></select></div>
+        <div class="dept-form-row"><label>ACMG Classification</label>
+          <select id="var-acmg"><option value="PATHOGENIC">Pathogenic</option><option value="LIKELY_PATHOGENIC">Likely Pathogenic</option><option value="VUS">VUS</option><option value="LIKELY_BENIGN">Likely Benign</option><option value="BENIGN">Benign</option><option value="NOVEL">Novel — unclassified</option></select></div>
+        <div class="dept-form-row"><label>Allele Frequency</label><input type="number" step="0.001" id="var-af" placeholder="0.0–1.0"></div>
+        <div class="dept-form-row"><label>Inheritance</label>
+          <select id="var-inheritance"><option value="">Unknown</option><option value="AD">Autosomal Dominant</option><option value="AR">Autosomal Recessive</option><option value="XL">X-linked</option><option value="SOMATIC">Somatic (acquired)</option></select></div>
+        <div class="dept-form-row full-col"><label>Clinical Significance</label><textarea id="var-significance" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('var-modal')">Cancel</button><button class="btn-primary" onclick="submitVariant()">Save Variant</button></div>
+  </div>
+</div>
 
-{% block module_scripts %}
 <script src="{% static 'modules/genomics/js/genomics.js' %}" defer></script>
 {% endblock %}

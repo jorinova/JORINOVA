@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}🧬 Biochemistry — NEXUS ALIS-X{% endblock %}
+{% block module_id %}biochemistry{% endblock %}
+{% block nav_active_biochemistry %}active{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{% static 'modules/biochemistry/css/biochemistry.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="biochem-app">
+
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <div class="module-header">
+    <div class="mh-left">
+      <h1 class="page-title">🧬 Biochemistry Department</h1>
+      <span class="mh-subtitle">Worklist · IoT Analyzers · Validation · Critical Archive</span>
+    </div>
+    <div class="mh-right">
+      <div class="stat-chip" id="hdr-pending">⏳ <span id="stat-pending">—</span> Pending</div>
+      <div class="stat-chip critical" id="hdr-critical">🚨 <span id="stat-critical">—</span> Critical</div>
+      <button class="btn-primary" onclick="openWorklistModal()">+ New Worklist</button>
+    </div>
+  </div>
+
+  <!-- ── Tabs ───────────────────────────────────────────────────────── -->
+  <nav class="tab-nav" id="biochem-tabs">
+    <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+    <button class="tab-btn" data-tab="worklist">📋 Worklist</button>
+    <button class="tab-btn" data-tab="results">🧪 Results</button>
+    <button class="tab-btn" data-tab="validation">✅ Validation</button>
+    <button class="tab-btn" data-tab="book">📖 Critical Book</button>
+  </nav>
+
+  <!-- ── DASHBOARD ──────────────────────────────────────────────────── -->
+  <div class="tab-pane active" id="tab-dashboard">
+    <div class="kpi-row" id="biochem-kpis">
+      <div class="kpi-card"><div class="kpi-val" id="kpi-pending">—</div><div class="kpi-lbl">Pending Results</div></div>
+      <div class="kpi-card success"><div class="kpi-val" id="kpi-validated">—</div><div class="kpi-lbl">Validated Today</div></div>
+      <div class="kpi-card danger"><div class="kpi-val" id="kpi-critical">—</div><div class="kpi-lbl">Critical Today</div></div>
+      <div class="kpi-card info"><div class="kpi-val" id="kpi-worklists">—</div><div class="kpi-lbl">Active Worklists</div></div>
+      <div class="kpi-card dark"><div class="kpi-val" id="kpi-book">—</div><div class="kpi-lbl">Critical Book Entries</div></div>
+    </div>
+
+    <!-- Section queues -->
+    <div class="section-queues">
+      <div class="sq-card general">
+        <div class="sq-icon">🟡</div>
+        <div class="sq-body">
+          <div class="sq-name">General Biochemistry</div>
+          <div class="sq-tests">Glucose · Urea · Creatinine · Electrolytes · LFT · Lipids</div>
+          <div class="sq-count" id="sq-general">— pending</div>
+        </div>
+      </div>
+      <div class="sq-card hormones">
+        <div class="sq-icon">🟣</div>
+        <div class="sq-body">
+          <div class="sq-name">Hormones</div>
+          <div class="sq-tests">TSH · T3 · T4 · Cortisol · Prolactin · Testosterone · Estrogen · Insulin</div>
+          <div class="sq-count" id="sq-hormones">— pending</div>
+        </div>
+      </div>
+      <div class="sq-card markers">
+        <div class="sq-icon">🔵</div>
+        <div class="sq-body">
+          <div class="sq-name">Markers & Serology</div>
+          <div class="sq-tests">AFP · CEA · PSA · CA-125 · CRP · HBsAg · Anti-HCV · RF · ASO</div>
+          <div class="sq-count" id="sq-markers">— pending</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── WORKLIST ────────────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-worklist">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="wl-filter-status" onchange="loadWorklist()">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+        </select>
+        <select id="wl-filter-priority" onchange="loadWorklist()">
+          <option value="">All Priority</option>
+          <option value="STAT">STAT</option>
+          <option value="URGENT">Urgent</option>
+          <option value="ROUTINE">Routine</option>
+          <option value="BATCH">Batch</option>
+        </select>
+        <input type="date" id="wl-filter-date" onchange="loadWorklist()">
+      </div>
+      <button class="btn-primary" onclick="openWorklistModal()">+ New Worklist</button>
+    </div>
+
+    <div id="worklist-grid" class="worklist-grid">
+      <div class="empty-state">Loading worklists…</div>
+    </div>
+  </div>
+
+  <!-- ── RESULTS ─────────────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-results">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="res-filter-section" onchange="loadResults()">
+          <option value="">All Sections</option>
+          <option value="GENERAL">General</option>
+          <option value="HORMONES">Hormones</option>
+          <option value="MARKERS">Markers</option>
+        </select>
+        <select id="res-filter-status" onchange="loadResults()">
+          <option value="">All Status</option>
+          <option value="PENDING">Pending</option>
+          <option value="VALIDATED">Validated</option>
+          <option value="RELEASED">Released</option>
+        </select>
+        <select id="res-filter-flag" onchange="loadResults()">
+          <option value="">All Flags</option>
+          <option value="HH">🚨 Critical High</option>
+          <option value="LL">🚨 Critical Low</option>
+          <option value="H">High</option>
+          <option value="L">Low</option>
+          <option value="N">Normal</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openResultModal()">+ Enter Result</button>
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="results-table">
+        <thead>
+          <tr>
+            <th>Patient</th><th>Test</th><th>Section</th>
+            <th>Result</th><th>Unit</th><th>Ref Range</th>
+            <th>Flag</th><th>Source</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="results-tbody">
+          <tr><td colspan="10" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── VALIDATION ──────────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-validation">
+    <div class="validation-header">
+      <h3>Pending Validation Queue</h3>
+      <span class="val-count" id="val-count">0 results awaiting validation</span>
+    </div>
+    <div id="validation-list" class="validation-list">
+      <div class="empty-state">Loading validation queue…</div>
+    </div>
+  </div>
+
+  <!-- ── CRITICAL BOOK ────────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-book">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="book-filter-flag" onchange="loadCriticalBook()">
+          <option value="">All Critical Flags</option>
+          <option value="HH">Critical High (HH)</option>
+          <option value="LL">Critical Low (LL)</option>
+        </select>
+        <select id="book-filter-section" onchange="loadCriticalBook()">
+          <option value="">All Sections</option>
+          <option value="GENERAL">General</option>
+          <option value="HORMONES">Hormones</option>
+          <option value="MARKERS">Markers</option>
+        </select>
+      </div>
+      <span class="pqc-badge">🔐 PQC-Signed Immutable Archive</span>
+    </div>
+    <div class="results-table-wrap">
+      <table class="data-table" id="book-table">
+        <thead>
+          <tr>
+            <th>Entry #</th><th>Patient</th><th>Test</th><th>Section</th>
+            <th>Result</th><th>Flag</th><th>Clinician Notified</th>
+            <th>Read-back</th><th>Archived</th><th>PQC Hash</th>
+          </tr>
+        </thead>
+        <tbody id="book-tbody">
+          <tr><td colspan="10" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── MODALS ──────────────────────────────────────────────────────────────── -->
+
+<!-- New Worklist Modal -->
+<div class="modal-overlay" id="worklist-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>📋 New Worklist</h3>
+      <button class="modal-close" onclick="closeModal('worklist-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>Analyzer / Machine</label>
+        <input type="text" id="wl-analyzer" placeholder="e.g. Cobas 6000, Beckman AU480">
+      </div>
+      <div class="form-row">
+        <label>Priority</label>
+        <select id="wl-priority">
+          <option value="ROUTINE">Routine</option>
+          <option value="URGENT">Urgent</option>
+          <option value="STAT">STAT (Emergency)</option>
+          <option value="BATCH">Batch</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Notes</label>
+        <textarea id="wl-notes" rows="2" placeholder="Optional notes…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('worklist-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitWorklist()">Create Worklist</button>
+    </div>
+  </div>
+</div>
+
+<!-- Result Entry Modal -->
+<div class="modal-overlay" id="result-modal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>🧪 Enter Result</h3>
+      <button class="modal-close" onclick="closeModal('result-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="source-indicator" id="result-source-badge">👤 Manual Entry</div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Lab Request ID</label>
+          <input type="text" id="rmod-labreq" placeholder="LAB-2026-XXXX">
+        </div>
+        <div class="form-row">
+          <label>Section</label>
+          <select id="rmod-section" onchange="sectionChanged()">
+            <option value="GENERAL">🟡 General Biochemistry</option>
+            <option value="HORMONES">🟣 Hormones</option>
+            <option value="MARKERS">🔵 Markers & Serology</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Test Name</label>
+          <input type="text" id="rmod-test-name" placeholder="e.g. Glucose, TSH, AFP">
+        </div>
+        <div class="form-row">
+          <label>Result Value</label>
+          <input type="text" id="rmod-value" oninput="autoFlag()" placeholder="Numeric or text">
+        </div>
+        <div class="form-row">
+          <label>Unit</label>
+          <input type="text" id="rmod-unit" placeholder="e.g. mmol/L, µIU/mL">
+        </div>
+        <div class="form-row">
+          <label>Reference Range</label>
+          <input type="text" id="rmod-ref" placeholder="e.g. 3.9 – 6.1">
+        </div>
+        <div class="form-row">
+          <label>Flag</label>
+          <select id="rmod-flag" onchange="flagChanged()">
+            <option value="N">Normal</option>
+            <option value="L">Low</option>
+            <option value="H">High</option>
+            <option value="LL">🚨 Critical Low (LL)</option>
+            <option value="HH">🚨 Critical High (HH)</option>
+            <option value="POS">Positive</option>
+            <option value="NEG">Negative</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Result Source</label>
+          <select id="rmod-source" onchange="updateSourceBadge()">
+            <option value="MANUAL">👤 Manual Entry</option>
+            <option value="AUTOMATED">🤖 Automated (Analyzer)</option>
+          </select>
+        </div>
+        <div class="form-row" id="analyzer-row" style="display:none">
+          <label>Analyzer Name</label>
+          <input type="text" id="rmod-analyzer" placeholder="e.g. Cobas 6000">
+        </div>
+        <div class="form-row full-width">
+          <label>Notes</label>
+          <textarea id="rmod-notes" rows="2"></textarea>
+        </div>
+      </div>
+
+      <!-- Critical alert panel (shown when HH/LL selected) -->
+      <div class="critical-alert-panel" id="critical-panel" style="display:none">
+        <div class="cap-header">🚨 CRITICAL VALUE — Clinician Notification Required</div>
+        <div class="cap-body">
+          <div class="form-row">
+            <label>Clinician Name</label>
+            <input type="text" id="rmod-clinician" placeholder="Notified clinician…">
+          </div>
+          <div class="form-row">
+            <label>Notification Method</label>
+            <select id="rmod-notif-method">
+              <option value="phone">📞 Phone</option>
+              <option value="sms">📱 SMS</option>
+              <option value="in_person">🏥 In Person</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="rmod-readback"> Read-back confirmed
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('result-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitResult()">Save Result</button>
+    </div>
+  </div>
+</div>
+
+<!-- Validate Modal -->
+<div class="modal-overlay" id="validate-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>✅ Validate Result</h3>
+      <button class="modal-close" onclick="closeModal('validate-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="validate-summary" id="validate-summary"></div>
+      <div class="form-row">
+        <label>Validation Note (optional)</label>
+        <textarea id="val-note" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('validate-modal')">Cancel</button>
+      <button class="btn-primary" onclick="confirmValidate()">Validate & Approve</button>
+    </div>
+  </div>
+</div>
+
+<!-- Archive Critical Modal -->
+<div class="modal-overlay" id="archive-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>📖 Archive to Critical Book</h3>
+      <button class="modal-close" onclick="closeModal('archive-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="archive-info">This will create an <strong>immutable</strong> PQC-signed record in the Critical Book (ISO 15189).</p>
+      <div class="form-row">
+        <label>Clinician Notified</label>
+        <input type="text" id="arch-clinician" placeholder="Dr. / Nurse name">
+      </div>
+      <div class="form-row">
+        <label>Method</label>
+        <select id="arch-method">
+          <option value="phone">Phone</option>
+          <option value="sms">SMS</option>
+          <option value="in_person">In Person</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="arch-readback"> Read-back confirmed
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('archive-modal')">Cancel</button>
+      <button class="btn-danger" onclick="confirmArchive()">Archive (Immutable)</button>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'modules/biochemistry/js/biochemistry.js' %}" defer></script>
+{% endblock %}

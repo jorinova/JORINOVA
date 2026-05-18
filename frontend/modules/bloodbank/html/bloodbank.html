@@ -1,0 +1,358 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}🩸 Blood Bank — NEXUS ALIS-X{% endblock %}
+{% block module_id %}bloodbank{% endblock %}
+{% block nav_active_bloodbank %}active{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{% static 'modules/bloodbank/css/bloodbank.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="bb-app">
+
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <div class="bb-header">
+    <div class="bbh-left">
+      <h1>🩸 Blood Bank</h1>
+      <span class="bbh-sub">Donors · Inventory · Crossmatch · Haemovigilance · Exchange</span>
+    </div>
+    <div class="bbh-right">
+      <div class="bb-stat-chip avail">✅ <strong id="hdr-avail">—</strong> Available</div>
+      <div class="bb-stat-chip exp">⏰ <strong id="hdr-exp">—</strong> Expiring 3d</div>
+      <div class="bb-stat-chip alert">🚨 <strong id="hdr-req">—</strong> Pending Requests</div>
+    </div>
+  </div>
+
+  <!-- ── Blood Group Inventory Bar ──────────────────────────────────── -->
+  <div class="bg-inventory-bar" id="bg-inventory-bar">
+    <!-- Populated by JS -->
+  </div>
+
+  <!-- ── Tabs ───────────────────────────────────────────────────────── -->
+  <nav class="bb-tabs" id="bb-tabs">
+    <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+    <button class="tab-btn" data-tab="donors">🧑‍🤝‍🧑 Donors</button>
+    <button class="tab-btn" data-tab="inventory">🗃️ Blood Inventory</button>
+    <button class="tab-btn" data-tab="requests">📋 Blood Requests</button>
+    <button class="tab-btn" data-tab="crossmatch">🔬 Crossmatch</button>
+    <button class="tab-btn" data-tab="haemovigilance">⚠️ Haemovigilance</button>
+  </nav>
+
+  <!-- ── DASHBOARD ──────────────────────────────────────────────────── -->
+  <div class="tab-pane active" id="tab-dashboard">
+    <div class="bb-kpi-row">
+      <div class="bb-kpi avail">
+        <div class="kv" id="kpi-avail">—</div><div class="kl">Available Bags</div></div>
+      <div class="bb-kpi quar">
+        <div class="kv" id="kpi-quar">—</div><div class="kl">In Quarantine</div></div>
+      <div class="bb-kpi res">
+        <div class="kv" id="kpi-res">—</div><div class="kl">Reserved</div></div>
+      <div class="bb-kpi exp3">
+        <div class="kv" id="kpi-exp3">—</div><div class="kl">Expiring 3d</div></div>
+      <div class="bb-kpi exp7">
+        <div class="kv" id="kpi-exp7">—</div><div class="kl">Expiring 7d</div></div>
+      <div class="bb-kpi expired">
+        <div class="kv" id="kpi-expired">—</div><div class="kl">Expired</div></div>
+    </div>
+
+    <!-- Blood group grid -->
+    <div class="bg-grid-section">
+      <h3>Blood Group Stock</h3>
+      <div class="bg-grid" id="bg-grid"><!-- JS --></div>
+    </div>
+
+    <!-- Summary row -->
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="sc-title">🧑‍🤝‍🧑 Donors</div>
+        <div class="sc-val" id="sum-donors">—</div>
+        <div class="sc-sub" id="sum-eligible">— eligible</div>
+      </div>
+      <div class="summary-card">
+        <div class="sc-title">⚠️ HV Reports</div>
+        <div class="sc-val" id="sum-hv">—</div>
+        <div class="sc-sub">Total filed</div>
+      </div>
+      <div class="summary-card">
+        <div class="sc-title">🚨 Pending Requests</div>
+        <div class="sc-val" id="sum-req">—</div>
+        <div class="sc-sub">Awaiting crossmatch / issue</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DONORS ──────────────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-donors">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <input type="text" id="donor-search" placeholder="🔍 Name / ID / NID…" oninput="loadDonors()">
+        <select id="donor-bg-filter" onchange="loadDonors()">
+          <option value="">All Blood Groups</option>
+          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+          <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+        </select>
+        <select id="donor-eligible-filter" onchange="loadDonors()">
+          <option value="">All</option>
+          <option value="true">Eligible</option>
+          <option value="false">Deferred</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openDonorModal()">+ Register Donor</button>
+    </div>
+    <div class="results-table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>Donor ID</th><th>Name</th><th>Blood Group</th><th>Gender</th>
+          <th>Phone</th><th>Total Donations</th><th>Last Donation</th>
+          <th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="donors-tbody">
+          <tr><td colspan="9" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── BLOOD INVENTORY ─────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-inventory">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="inv-bg-filter" onchange="loadInventory()">
+          <option value="">All Blood Groups</option>
+          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+          <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+        </select>
+        <select id="inv-comp-filter" onchange="loadInventory()">
+          <option value="">All Components</option>
+          <option value="WB">Whole Blood</option>
+          <option value="PRBC">Packed RBC</option>
+          <option value="FFP">Fresh Frozen Plasma</option>
+          <option value="PLT">Platelets</option>
+          <option value="CRYO">Cryoprecipitate</option>
+        </select>
+        <select id="inv-status-filter" onchange="loadInventory()">
+          <option value="">All Status</option>
+          <option value="available">Available</option>
+          <option value="quarantine">Quarantine</option>
+          <option value="reserved">Reserved</option>
+          <option value="issued">Issued</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openAddBagModal()">+ Add Blood Bag</button>
+    </div>
+    <div class="results-table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>Bag #</th><th>Blood Group</th><th>Component</th><th>Volume</th>
+          <th>Location</th><th>Expiry</th><th>Days Left</th>
+          <th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="inventory-tbody">
+          <tr><td colspan="9" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── BLOOD REQUESTS ──────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-requests">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="req-status-filter" onchange="loadRequests()">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="crossmatch">Crossmatching</option>
+          <option value="ready">Ready</option>
+          <option value="issued">Issued</option>
+        </select>
+        <select id="req-urgency-filter" onchange="loadRequests()">
+          <option value="">All Urgency</option>
+          <option value="emergency">🚨 Emergency</option>
+          <option value="urgent">⚡ Urgent</option>
+          <option value="routine">📋 Routine</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openRequestModal()">+ New Blood Request</button>
+    </div>
+    <div class="results-table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>Request ID</th><th>Patient</th><th>Blood Group</th>
+          <th>Component</th><th>Units</th><th>Urgency</th>
+          <th>Ward</th><th>Status</th><th>Created</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="requests-tbody">
+          <tr><td colspan="10" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── CROSSMATCH ──────────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-crossmatch">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="xm-result-filter" onchange="loadCrossmatch()">
+          <option value="">All Results</option>
+          <option value="pending">Pending</option>
+          <option value="compatible">✅ Compatible</option>
+          <option value="incompatible">❌ Incompatible</option>
+          <option value="weak_pos">⚠️ Weak Positive</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openCrossmatchModal()">+ New Crossmatch</button>
+    </div>
+    <div class="results-table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>Blood Bag</th><th>Patient</th><th>Result</th>
+          <th>Method</th><th>Performed By</th><th>Date</th>
+          <th>AI Flag</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="crossmatch-tbody">
+          <tr><td colspan="8" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── HAEMOVIGILANCE ──────────────────────────────────────────────── -->
+  <div class="tab-pane" id="tab-haemovigilance">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="hv-severity-filter" onchange="loadHaemovigilance()">
+          <option value="">All Severities</option>
+          <option value="mild">Mild</option>
+          <option value="moderate">Moderate</option>
+          <option value="severe">Severe</option>
+          <option value="fatal">Fatal</option>
+        </select>
+        <select id="hv-reaction-filter" onchange="loadHaemovigilance()">
+          <option value="">All Reactions</option>
+          <option value="fnhtr">Febrile Non-Haemolytic</option>
+          <option value="allergic">Allergic</option>
+          <option value="abo_haemo">ABO Haemolytic</option>
+          <option value="taco">TACO</option>
+          <option value="trali">TRALI</option>
+          <option value="near_miss">Near Miss</option>
+        </select>
+      </div>
+      <button class="btn-danger" onclick="openHVModal()">⚠️ Report Reaction</button>
+    </div>
+    <div class="results-table-wrap">
+      <table class="data-table">
+        <thead><tr>
+          <th>Report ID</th><th>Patient</th><th>Reaction</th>
+          <th>Severity</th><th>Onset</th><th>Reported By</th>
+          <th>RBC Notified</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="hv-tbody">
+          <tr><td colspan="8" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── MODALS ───────────────────────────────────────────────────────────────── -->
+
+<!-- Register Donor -->
+<div class="modal-overlay" id="donor-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>🧑‍🤝‍🧑 Register Donor</h3>
+      <button class="modal-close" onclick="closeModal('donor-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row"><label>Family Name</label>
+          <input type="text" id="don-fname"></div>
+        <div class="form-row"><label>Other Names</label>
+          <input type="text" id="don-oname"></div>
+        <div class="form-row"><label>Blood Group</label>
+          <select id="don-bg">
+            <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+            <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+          </select></div>
+        <div class="form-row"><label>Gender</label>
+          <select id="don-gender"><option value="M">Male</option><option value="F">Female</option></select></div>
+        <div class="form-row"><label>Date of Birth</label>
+          <input type="date" id="don-dob"></div>
+        <div class="form-row"><label>Phone</label>
+          <input type="text" id="don-phone"></div>
+        <div class="form-row full-width"><label>National ID</label>
+          <input type="text" id="don-nid"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('donor-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitDonor()">Register</button>
+    </div>
+  </div>
+</div>
+
+<!-- Haemovigilance Report -->
+<div class="modal-overlay" id="hv-modal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>⚠️ Report Transfusion Reaction</h3>
+      <button class="modal-close" onclick="closeModal('hv-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row"><label>Patient ID (PID)</label>
+          <input type="text" id="hv-patient" placeholder="PID-2026-XXXXXX"></div>
+        <div class="form-row"><label>Blood Bag #</label>
+          <input type="text" id="hv-bag" placeholder="BB-XXXXXXXX-XXXX"></div>
+        <div class="form-row"><label>Reaction Type</label>
+          <select id="hv-reaction">
+            <option value="fnhtr">Febrile Non-Haemolytic (FNHTR)</option>
+            <option value="allergic">Allergic / Urticarial</option>
+            <option value="abo_haemo">Acute Haemolytic — ABO</option>
+            <option value="del_haemo">Delayed Haemolytic</option>
+            <option value="taco">TACO</option>
+            <option value="trali">TRALI</option>
+            <option value="septic">Septic Transfusion</option>
+            <option value="gvhd">Transfusion-Associated GvHD</option>
+            <option value="near_miss">Near Miss</option>
+            <option value="wrong_blood">Wrong Blood in Tube</option>
+            <option value="other">Other</option>
+          </select></div>
+        <div class="form-row"><label>Severity</label>
+          <select id="hv-severity">
+            <option value="mild">Mild</option>
+            <option value="moderate">Moderate</option>
+            <option value="severe">Severe</option>
+            <option value="fatal">Fatal</option>
+            <option value="near_miss">Near Miss / No Harm</option>
+          </select></div>
+        <div class="form-row"><label>Onset Time</label>
+          <input type="datetime-local" id="hv-onset"></div>
+        <div class="form-row"><label>Volume Transfused (mL)</label>
+          <input type="number" id="hv-volume" placeholder="0"></div>
+        <div class="form-row full-width"><label>Symptoms</label>
+          <textarea id="hv-symptoms" rows="2" placeholder="Documented symptoms at time of reaction…"></textarea></div>
+        <div class="form-row full-width"><label>Clinical Management</label>
+          <textarea id="hv-management" rows="2" placeholder="Actions taken…"></textarea></div>
+        <div class="form-row full-width"><label>Outcome</label>
+          <textarea id="hv-outcome" rows="2"></textarea></div>
+        <div class="form-row"><label class="checkbox-label">
+          <input type="checkbox" id="hv-stopped" checked> Transfusion stopped
+        </label></div>
+        <div class="form-row"><label class="checkbox-label">
+          <input type="checkbox" id="hv-rbc"> Notified to RBC
+        </label></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('hv-modal')">Cancel</button>
+      <button class="btn-danger" onclick="submitHV()">⚠️ File Report</button>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'modules/bloodbank/js/bloodbank.js' %}" defer></script>
+{% endblock %}

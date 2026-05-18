@@ -1,407 +1,620 @@
 {% extends "shared/html/base.html" %}
 {% load static %}
 
-{% block title %}🔴 Hematology AI — NEXUS ALIS-X{% endblock %}
+{% block title %}🔴 Haematology — NEXUS ALIS-X{% endblock %}
 {% block module_id %}hematology{% endblock %}
 {% block nav_active_lab %}active{% endblock %}
-{% block flyout_hema %}active{% endblock %}
 
-{% block module_css %}
+{% block head_extra %}
 <link rel="stylesheet" href="{% static 'modules/hematology/css/hematology.css' %}">
-{% endblock %}
-
-{% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+<style>
+/* White background override */
+#app-main{background:#fff!important;}
+.shift-bar{background:#fff!important;border-bottom:1px solid #e4e8f0!important;}
+.shift-bar *{color:#0e7490!important;}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="hema-main">
+<div class="hem-shell">
 
-  <header class="page-header hema-header">
-    <div class="page-header-left">
-      <div class="page-icon-wrap" style="background:rgba(255,23,68,0.09);border-color:rgba(255,23,68,0.22);color:#FF4466">
-        <span style="font-size:20px">🔴</span>
-      </div>
-      <div>
-        <h1 class="page-title">🔴 Hematology AI Intelligence</h1>
-        <div class="page-subtitle">{{ today|date:"l, d F Y" }} · CBC · Coagulation · Morphology · ISO 15189 DSS</div>
-      </div>
-    </div>
-    <div class="page-header-right">
-      <div class="hema-iso-pill">🔒 Decision Support — Pathologist Validation Required</div>
-    </div>
-  </header>
-
-  <div class="tab-nav hema-tab-nav" role="tablist">
-    <button class="tab-btn active" data-pane="hema-worklist-pane">📋 Worklist</button>
-    <button class="tab-btn" data-pane="hema-cbc-pane">🤖 CBC AI</button>
-    <button class="tab-btn" data-pane="hema-smear-pane">🔬 Peripheral Smear</button>
-    <button class="tab-btn" data-pane="hema-coag-pane">🧬 Coagulation</button>
-    <button class="tab-btn" data-pane="hema-esr-pane">📊 ESR &amp; Inflammation</button>
-    <button class="tab-btn" data-pane="hema-analytics-pane">📈 Analytics</button>
+<!-- ══ HEADER 2.5cm ════════════════════════════════════════════ -->
+<header class="wf-page-header hem-header">
+  <img src="{% static 'shared/assets/logos/jorinova-logo.jpeg' %}" alt="" class="wf-header-logo">
+  <div>
+    <div class="wf-header-title">🔴 Haematology Department</div>
+    <div class="wf-header-sub">CBC · Full Differential · Anaemia Classification · Peripheral Smear · Malaria · ISO 15189</div>
   </div>
+  <span class="hem-dept-badge">HAEMATOLOGY</span>
+  <div class="hem-shift-info">
+    <span id="hem-shift-icon">☀️</span>
+    <span id="hem-shift-name">Morning</span>·<time id="hem-clock">--:--:--</time>
+  </div>
+  <div class="wf-header-right">
+    <div class="hem-iso-pill">🔒 Pathologist Validation Required</div>
+    <button class="wf-btn primary" onclick="openNewCBC()">➕ New CBC</button>
+  </div>
+</header>
 
-  <div class="hema-body">
-
-    <!-- ══════════════ WORKLIST ══════════════ -->
-    <div class="tab-pane active" id="hema-worklist-pane">
-      <div class="worklist-toolbar" style="padding:var(--space-lg) var(--space-xl)">
-        <div class="toolbar-left">
-          <div class="worklist-search-wrap">
-            <i class="fas fa-magnifying-glass"></i>
-            <input type="text" id="hema-search" class="worklist-search" placeholder="Lab ID, patient…">
-          </div>
-          <select id="hema-filter-status" class="filter-select">
-            <option value="">All statuses</option>
-            <option value="pending">Pending</option>
-            <option value="processing">Processing</option>
-            <option value="validated">Validated</option>
-          </select>
-          <select id="hema-filter-priority" class="filter-select">
-            <option value="">All priorities</option>
-            <option value="emergency">🚨 STAT</option>
-            <option value="urgent">⚡ Urgent</option>
-            <option value="routine">Routine</option>
-          </select>
-        </div>
-        <div class="toolbar-right">
-          <button class="btn btn-ghost btn-sm" id="hema-refresh-btn"><i class="fas fa-arrows-rotate"></i></button>
-        </div>
-      </div>
-      <div class="worklist-area">
-        <table class="worklist-table" role="grid">
-          <thead><tr>
-            <th>🧬 Patient</th><th>🔖 Lab ID</th><th>🧪 Tests</th>
-            <th>⏱️ TAT</th><th>⚡ Priority</th><th>📊 Status</th><th style="text-align:right">Actions</th>
-          </tr></thead>
-          <tbody id="hema-worklist-tbody">
-            <tr><td colspan="7"><div class="worklist-loading"><i class="fas fa-spinner"></i> Loading…</div></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ══════════════ CBC AI ══════════════ -->
-    <div class="tab-pane" id="hema-cbc-pane">
-      <div class="hema-cbc-layout">
-
-        <!-- LEFT: Input -->
-        <div class="hema-input-panel">
-          <div class="hema-panel-title">🧪 CBC Entry</div>
-          <div class="hema-input-body">
-            <div class="form-group">
-              <label class="form-label">🧬 Patient (search or manual)</label>
-              <input type="text" id="cbc-patient-search" class="form-input" placeholder="Search patient PID/name…">
-            </div>
-            <div class="form-group">
-              <label class="form-label">🔬 Analyzer</label>
-              <select class="form-input" id="cbc-analyzer">
-                <option>Sysmex XN-1000</option><option>Mindray BC-6800</option>
-                <option>ABX Pentra 80</option><option>Coulter LH-750</option>
-                <option>Manual Entry</option>
-              </select>
-            </div>
-
-            <div class="cbc-section-label">🔴 Red Cell Indices</div>
-            <div class="cbc-param-grid">
-              <div class="cbc-param-item">
-                <label>WBC <span class="cbc-unit">×10³/µL</span></label>
-                <input type="number" step="0.01" class="cbc-input" id="cbc-wbc" placeholder="4.5–11.0">
-                <div class="cbc-ref">Ref: 4.5–11.0</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>RBC <span class="cbc-unit">×10⁶/µL</span></label>
-                <input type="number" step="0.01" class="cbc-input" id="cbc-rbc" placeholder="4.2–5.8">
-                <div class="cbc-ref">Ref: M 4.5–5.8 / F 4.2–5.4</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>HGB <span class="cbc-unit">g/dL</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-hgb" placeholder="12–17">
-                <div class="cbc-ref">Ref: M 13–17 / F 12–16</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>HCT <span class="cbc-unit">%</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-hct" placeholder="37–52">
-                <div class="cbc-ref">Ref: M 40–52 / F 37–48</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>MCV <span class="cbc-unit">fL</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-mcv" placeholder="80–100">
-                <div class="cbc-ref">Ref: 80–100</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>MCH <span class="cbc-unit">pg</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-mch" placeholder="27–33">
-                <div class="cbc-ref">Ref: 27–33</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>MCHC <span class="cbc-unit">g/dL</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-mchc" placeholder="32–36">
-                <div class="cbc-ref">Ref: 32–36</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>RDW <span class="cbc-unit">%</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-rdw" placeholder="11.5–14.5">
-                <div class="cbc-ref">Ref: 11.5–14.5</div>
-              </div>
-            </div>
-
-            <div class="cbc-section-label">⚪ White Cell Differential</div>
-            <div class="cbc-param-grid">
-              <div class="cbc-param-item">
-                <label>NEUT <span class="cbc-unit">%</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-neut" placeholder="50–70">
-                <div class="cbc-ref">Ref: 50–70%</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>LYMPH <span class="cbc-unit">%</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-lymph" placeholder="20–40">
-                <div class="cbc-ref">Ref: 20–40%</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>MONO <span class="cbc-unit">%</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-mono" placeholder="2–8">
-                <div class="cbc-ref">Ref: 2–8%</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>EO <span class="cbc-unit">%</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-eo" placeholder="1–4">
-                <div class="cbc-ref">Ref: 1–4%</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>BASO <span class="cbc-unit">%</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-baso" placeholder="0–1">
-                <div class="cbc-ref">Ref: 0–1%</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>BLAST <span class="cbc-unit">%</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-blast" placeholder="0">
-                <div class="cbc-ref">Ref: 0% (flag if &gt;0)</div>
-              </div>
-            </div>
-
-            <div class="cbc-section-label">🟣 Platelets</div>
-            <div class="cbc-param-grid">
-              <div class="cbc-param-item">
-                <label>PLT <span class="cbc-unit">×10³/µL</span></label>
-                <input type="number" step="1" class="cbc-input" id="cbc-plt" placeholder="150–400">
-                <div class="cbc-ref">Ref: 150–400</div>
-              </div>
-              <div class="cbc-param-item">
-                <label>MPV <span class="cbc-unit">fL</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="cbc-mpv" placeholder="7.5–12.5">
-                <div class="cbc-ref">Ref: 7.5–12.5</div>
-              </div>
-            </div>
-
-            <div class="form-group" style="margin-top:var(--space-md)">
-              <label class="form-label">👤 Patient Gender (for reference ranges)</label>
-              <select class="form-input" id="cbc-gender">
-                <option value="M">Male</option><option value="F">Female</option>
-              </select>
-            </div>
-
-            <button class="btn btn-primary" id="cbc-interpret-btn" style="width:100%;margin-top:var(--space-md)">
-              🤖 Run AI CBC Interpretation
-            </button>
-          </div>
-        </div>
-
-        <!-- RIGHT: AI Output -->
-        <div class="hema-result-panel" id="cbc-result-panel">
-          <div class="hema-result-empty">
-            <div style="font-size:56px">🔴</div>
-            <p>Enter CBC values and click <strong>Run AI Interpretation</strong></p>
-            <p style="font-size:var(--text-xs);opacity:.5">ISO 15189 — Decision Support Only</p>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ══════════════ PERIPHERAL SMEAR ══════════════ -->
-    <div class="tab-pane" id="hema-smear-pane">
-      <div class="hema-cbc-layout">
-        <div class="hema-input-panel">
-          <div class="hema-panel-title">🔬 Peripheral Smear Analysis</div>
-          <div class="hema-input-body">
-            <div class="smear-upload-zone" id="smear-upload-zone">
-              <div class="smear-upload-icon">🔬</div>
-              <div style="font-size:var(--text-sm);color:var(--text-secondary)">Drop microscope image here</div>
-              <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:4px">JPEG · PNG · TIFF</div>
-              <input type="file" id="smear-file-input" accept="image/*" style="display:none">
-              <button class="btn btn-ghost btn-sm" style="margin-top:var(--space-sm)" onclick="document.getElementById('smear-file-input').click()">📁 Browse File</button>
-            </div>
-            <div class="form-group">
-              <label class="form-label">🧪 Stain Type</label>
-              <select class="form-input" id="smear-stain">
-                <option>Leishman</option><option>Giemsa</option><option>Wright</option><option>May-Grünwald Giemsa</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">🎯 Film Type</label>
-              <select class="form-input" id="smear-film">
-                <option>Thin Film (differential)</option><option>Thick Film (parasite)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">🔭 Magnification</label>
-              <select class="form-input" id="smear-mag">
-                <option>100× (oil immersion)</option><option>40×</option><option>10×</option>
-              </select>
-            </div>
-            <button class="btn btn-primary" id="smear-analyze-btn" style="width:100%;margin-top:var(--space-md)">
-              🔬 Analyze Peripheral Smear
-            </button>
-          </div>
-        </div>
-        <div class="hema-result-panel" id="smear-result-panel">
-          <div class="hema-result-empty">
-            <div style="font-size:56px">🔬</div>
-            <p>Upload a peripheral blood smear image to run AI morphology analysis</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════════ COAGULATION ══════════════ -->
-    <div class="tab-pane" id="hema-coag-pane">
-      <div class="hema-cbc-layout">
-        <div class="hema-input-panel">
-          <div class="hema-panel-title">🧬 Coagulation Parameters</div>
-          <div class="hema-input-body">
-            <div class="cbc-param-grid">
-              <div class="cbc-param-item"><label>PT <span class="cbc-unit">sec</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="coag-pt" placeholder="11–13">
-                <div class="cbc-ref">Ref: 11–13 sec</div></div>
-              <div class="cbc-param-item"><label>INR</label>
-                <input type="number" step="0.01" class="cbc-input" id="coag-inr" placeholder="0.8–1.2">
-                <div class="cbc-ref">Ref: 0.8–1.2</div></div>
-              <div class="cbc-param-item"><label>APTT <span class="cbc-unit">sec</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="coag-aptt" placeholder="25–35">
-                <div class="cbc-ref">Ref: 25–35 sec</div></div>
-              <div class="cbc-param-item"><label>Fibrinogen <span class="cbc-unit">g/L</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="coag-fibr" placeholder="2.0–4.0">
-                <div class="cbc-ref">Ref: 2.0–4.0</div></div>
-              <div class="cbc-param-item"><label>D-Dimer <span class="cbc-unit">µg/mL</span></label>
-                <input type="number" step="0.01" class="cbc-input" id="coag-ddimer" placeholder="&lt;0.5">
-                <div class="cbc-ref">Ref: &lt;0.5</div></div>
-              <div class="cbc-param-item"><label>TT <span class="cbc-unit">sec</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="coag-tt" placeholder="14–21">
-                <div class="cbc-ref">Ref: 14–21 sec</div></div>
-            </div>
-            <div class="form-group" style="margin-top:var(--space-md)">
-              <label class="form-label">💊 Anticoagulant therapy?</label>
-              <select class="form-input" id="coag-therapy">
-                <option value="">None</option><option>Warfarin</option><option>Heparin (UFH)</option>
-                <option>LMWH</option><option>Dabigatran</option><option>Rivaroxaban</option><option>Apixaban</option>
-              </select>
-            </div>
-            <button class="btn btn-primary" id="coag-interpret-btn" style="width:100%;margin-top:var(--space-md)">
-              🧬 Interpret Coagulation Profile
-            </button>
-          </div>
-        </div>
-        <div class="hema-result-panel" id="coag-result-panel">
-          <div class="hema-result-empty">
-            <div style="font-size:56px">🧬</div>
-            <p>Enter coagulation parameters to run AI interpretation</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════════ ESR & INFLAMMATION ══════════════ -->
-    <div class="tab-pane" id="hema-esr-pane">
-      <div class="hema-cbc-layout">
-        <div class="hema-input-panel">
-          <div class="hema-panel-title">📊 Inflammatory Markers</div>
-          <div class="hema-input-body">
-            <div class="cbc-param-grid">
-              <div class="cbc-param-item"><label>ESR <span class="cbc-unit">mm/hr</span></label>
-                <input type="number" class="cbc-input" id="infl-esr" placeholder="M &lt;15 / F &lt;20">
-                <div class="cbc-ref">M: &lt;15 / F: &lt;20 / Elderly: &lt;30</div></div>
-              <div class="cbc-param-item"><label>CRP <span class="cbc-unit">mg/L</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="infl-crp" placeholder="&lt;5.0">
-                <div class="cbc-ref">Ref: &lt;5.0 mg/L</div></div>
-              <div class="cbc-param-item"><label>PCT <span class="cbc-unit">µg/L</span></label>
-                <input type="number" step="0.01" class="cbc-input" id="infl-pct" placeholder="&lt;0.5">
-                <div class="cbc-ref">Ref: &lt;0.5 (sepsis &gt;2.0)</div></div>
-              <div class="cbc-param-item"><label>Ferritin <span class="cbc-unit">µg/L</span></label>
-                <input type="number" class="cbc-input" id="infl-ferritin" placeholder="M 30–300">
-                <div class="cbc-ref">M: 30–300 / F: 13–150</div></div>
-              <div class="cbc-param-item"><label>LDH <span class="cbc-unit">U/L</span></label>
-                <input type="number" class="cbc-input" id="infl-ldh" placeholder="135–225">
-                <div class="cbc-ref">Ref: 135–225</div></div>
-              <div class="cbc-param-item"><label>IL-6 <span class="cbc-unit">pg/mL</span></label>
-                <input type="number" step="0.1" class="cbc-input" id="infl-il6" placeholder="&lt;7">
-                <div class="cbc-ref">Ref: &lt;7 pg/mL</div></div>
-            </div>
-            <div class="form-group" style="margin-top:var(--space-md)">
-              <label class="form-label">👤 Patient Gender & Age</label>
-              <div style="display:flex;gap:var(--space-sm)">
-                <select class="form-input" id="infl-gender" style="width:80px">
-                  <option value="M">Male</option><option value="F">Female</option>
-                </select>
-                <input type="number" class="form-input" id="infl-age" placeholder="Age" style="width:70px">
-              </div>
-            </div>
-            <button class="btn btn-primary" id="infl-interpret-btn" style="width:100%;margin-top:var(--space-md)">
-              📊 Interpret Inflammatory Markers
-            </button>
-          </div>
-        </div>
-        <div class="hema-result-panel" id="infl-result-panel">
-          <div class="hema-result-empty">
-            <div style="font-size:56px">📊</div>
-            <p>Enter inflammatory markers to run AI interpretation</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════════ ANALYTICS ══════════════ -->
-    <div class="tab-pane" id="hema-analytics-pane">
-      <div style="padding:var(--space-xl);display:flex;flex-direction:column;gap:var(--space-lg)">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-md)">
-          <div class="hema-kpi-card" style="background:rgba(255,23,68,0.06);border-color:rgba(255,23,68,0.18)">
-            <div style="font-size:24px">🔴</div>
-            <div class="hema-kpi-val" id="kpi-hema-total">—</div>
-            <div class="hema-kpi-lbl">CBC Today</div>
-          </div>
-          <div class="hema-kpi-card" style="background:rgba(255,109,0,0.06);border-color:rgba(255,109,0,0.18)">
-            <div style="font-size:24px">⚠️</div>
-            <div class="hema-kpi-val" id="kpi-hema-abnormal" style="color:var(--alert-orange)">—</div>
-            <div class="hema-kpi-lbl">Abnormal Results</div>
-          </div>
-          <div class="hema-kpi-card" style="background:rgba(255,23,68,0.08);border-color:rgba(255,23,68,0.25)">
-            <div style="font-size:24px">🚨</div>
-            <div class="hema-kpi-val" id="kpi-hema-critical" style="color:var(--alert-red)">—</div>
-            <div class="hema-kpi-lbl">Critical Values</div>
-          </div>
-          <div class="hema-kpi-card" style="background:rgba(0,230,118,0.06);border-color:rgba(0,230,118,0.18)">
-            <div style="font-size:24px">⏱️</div>
-            <div class="hema-kpi-val" id="kpi-hema-tat" style="color:var(--alert-green)">—</div>
-            <div class="hema-kpi-lbl">Avg TAT (min)</div>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--space-lg)">
-          <div class="glass-panel" style="padding:var(--space-lg)">
-            <div class="chart-header"><div class="chart-title">📈 Daily CBC Volume (7 days)</div></div>
-            <div class="chart-canvas-wrap"><canvas id="hema-volume-chart"></canvas></div>
-          </div>
-          <div class="glass-panel" style="padding:var(--space-lg)">
-            <div class="chart-header"><div class="chart-title">🔴 Top Findings</div></div>
-            <div id="hema-top-findings" style="padding-top:var(--space-sm)"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /hema-body -->
+<!-- ══ KPI STRIP — Compact horizontal ══════════════════════════ -->
+<div class="kpi-strip" id="hem-kpis">
+  <a href="#" class="kpi-chip kpi-cyan"    onclick="filterBy('all')"><span class="kpi-chip-icon">🔬</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-total">—</span><span class="kpi-chip-lbl">Total Today</span></div></a>
+  <a href="#" class="kpi-chip kpi-indigo"  onclick="filterBy('pending')"><span class="kpi-chip-icon">⏳</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-pending">—</span><span class="kpi-chip-lbl">Pending</span></div></a>
+  <a href="#" class="kpi-chip kpi-emerald" onclick="filterBy('validated')"><span class="kpi-chip-icon">✅</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-validated">—</span><span class="kpi-chip-lbl">Validated</span></div></a>
+  <a href="#" class="kpi-chip kpi-red"     onclick="filterBy('critical')"><span class="kpi-chip-icon">🚨</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-critical">—</span><span class="kpi-chip-lbl">Critical</span></div></a>
+  <div class="kpi-divider"></div>
+  <a href="#" class="kpi-chip kpi-amber"   onclick="filterBy('anaemia')"><span class="kpi-chip-icon">🩸</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-anaemia">—</span><span class="kpi-chip-lbl">Anaemia</span></div></a>
+  <a href="#" class="kpi-chip kpi-violet"  onclick="switchTab('malaria')"><span class="kpi-chip-icon">🦟</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-malaria">—</span><span class="kpi-chip-lbl">Malaria Pos</span></div></a>
+  <div class="kpi-divider"></div>
+  <a href="#" class="kpi-chip kpi-cyan"    onclick="switchTab('iqc')"><span class="kpi-chip-icon">📐</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-iqc-status">PASS</span><span class="kpi-chip-lbl">IQC Today</span></div></a>
+  <a href="#" class="kpi-chip kpi-indigo"  onclick="switchTab('smear')"><span class="kpi-chip-icon">🔬</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-smears">—</span><span class="kpi-chip-lbl">Smears</span></div></a>
 </div>
-{% endblock %}
 
-{% block module_scripts %}
+<!-- ══ TABS ════════════════════════════════════════════════════ -->
+<nav class="hem-tabs">
+  <button class="hem-tab active" data-tab="worklist">📋 Worklist</button>
+  <button class="hem-tab" data-tab="cbc-entry">🩺 CBC Entry (Sysmex)</button>
+  <button class="hem-tab" data-tab="anaemia">🩸 Anaemia Analysis</button>
+  <button class="hem-tab" data-tab="malaria">🦟 Malaria</button>
+  <button class="hem-tab" data-tab="smear">🔬 Peripheral Smear</button>
+  <button class="hem-tab" data-tab="iqc">📐 IQC</button>
+  <button class="hem-tab" data-tab="book">📖 Critical Book</button>
+</nav>
+
+<!-- ══ WORKLIST ════════════════════════════════════════════════ -->
+<div class="hem-pane active" id="tab-worklist">
+  <div class="wf-toolbar">
+    <div class="wf-toolbar-left">
+      <div class="wf-search"><i class="fas fa-magnifying-glass"></i>
+        <input type="text" id="wl-search" placeholder="Lab ID, PID, patient…" oninput="filterWorklist(this.value)">
+      </div>
+      <select class="wf-select" id="wl-status" onchange="loadWorklist()">
+        <option value="">All Status</option>
+        <option value="PENDING">Pending</option>
+        <option value="PROCESSING">Processing</option>
+        <option value="VALIDATED">Validated</option>
+      </select>
+      <select class="wf-select" id="wl-priority" onchange="loadWorklist()">
+        <option value="">All Priority</option>
+        <option value="stat">🚨 STAT</option>
+        <option value="urgent">⚡ Urgent</option>
+        <option value="routine">Routine</option>
+      </select>
+      <input type="date" id="wl-date" class="wf-date" onchange="loadWorklist()">
+    </div>
+    <div class="wf-toolbar-right">
+      <button class="wf-btn" onclick="NexusPrint?.printAll('wl-table')">🖨️ Print All</button>
+      <button class="wf-btn" onclick="NexusPrint?.printSelected('wl-table')">☑️ Print Sel.</button>
+      <button class="wf-btn" onclick="NexusPrint?.printLast('wl-table')">⏬ Last</button>
+      <button class="wf-btn" onclick="NexusFilter?.open('wl-table')">⚙️ Filter</button>
+      <button class="wf-btn" onclick="loadWorklist()"><i class="fas fa-arrows-rotate"></i></button>
+    </div>
+  </div>
+  <div class="wf-table-wrap">
+    <table class="wf-table" id="wl-table">
+      <thead><tr>
+        <th style="width:36px"><input type="checkbox" onchange="NexusPrint?._toggleAll('wl-table',this.checked)"></th>
+        <th>Lab ID</th><th>Patient / PID</th><th>Priority</th>
+        <th>Tests</th><th>TAT</th><th>Hb</th><th>WBC</th><th>PLT</th>
+        <th>Flag</th><th>Status</th><th class="critical-col">AI Interp.</th>
+        <th style="text-align:right">Actions</th>
+      </tr></thead>
+      <tbody id="wl-tbody"><tr><td colspan="13" style="text-align:center;padding:2rem;color:#94a3b8">
+        <i class="fas fa-spinner fa-spin"></i> Loading haematology worklist…
+      </td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ CBC ENTRY — SYSMEX FORMAT ═══════════════════════════════ -->
+<div class="hem-pane" id="tab-cbc-entry">
+<div class="cbc-entry-shell">
+
+  <!-- Left: Patient + CBC form -->
+  <div class="cbc-form-col">
+    <div class="wf-card">
+      <div class="wf-card-header">
+        <div class="wf-card-title">🩺 CBC Entry — Sysmex XN / Coulter Format</div>
+        <div style="display:flex;gap:.35rem">
+          <select id="cbc-analyzer" class="wf-select" style="font-size:.75rem">
+            <option value="SYSMEX_XN">Sysmex XN-Series</option>
+            <option value="SYSMEX_XT">Sysmex XT-2000i</option>
+            <option value="COULTER">Beckman Coulter</option>
+            <option value="ADVIA">Siemens ADVIA</option>
+            <option value="MANUAL">Manual entry</option>
+          </select>
+          <button class="wf-btn indigo" onclick="autoInterpret()">🤖 Interpret</button>
+          <button class="wf-btn primary" onclick="saveCBC()">✅ Save & Validate</button>
+        </div>
+      </div>
+      <div class="wf-card-body">
+        <div class="cbc-patient-row">
+          <div class="wf-form-group"><label>Lab Request ID</label><input type="number" id="cbc-req-id" class="wf-input" placeholder="Lab request ID"></div>
+          <div class="wf-form-group"><label>Patient ID</label><input type="number" id="cbc-patient-id" class="wf-input" placeholder="Patient ID"></div>
+          <div class="wf-form-group"><label>PID</label><input type="text" id="cbc-pid" class="wf-input" placeholder="PID-XXXX"></div>
+          <div class="wf-form-group"><label>Sex</label><select id="cbc-sex" class="wf-input"><option value="M">Male</option><option value="F">Female</option></select></div>
+          <div class="wf-form-group"><label>Age (years)</label><input type="number" id="cbc-age" class="wf-input" min="0" max="120" value="40"></div>
+          <div class="wf-form-group"><label>Result Source</label><select id="cbc-source" class="wf-input"><option value="AUTOMATED">🤖 Automated</option><option value="MANUAL">👤 Manual</option></select></div>
+        </div>
+
+        <!-- CBC Parameters — Sysmex layout -->
+        <div class="cbc-params-grid">
+
+          <!-- ── RBC PANEL ─────────────────────────────── -->
+          <div class="cbc-section">
+            <div class="wf-section-head"><div class="wf-section-title">🩸 RBC Panel</div><div class="wf-section-line"></div></div>
+            <div class="param-entry-row">
+              <div class="pe-label">HGB<span class="pe-unit">g/dL</span></div>
+              <input type="number" step="0.1" id="p-hgb" class="pe-input" placeholder="—" oninput="flagParam('hgb',this.value,'M',13,17.5,7.0,null)" onchange="onCBCChange()">
+              <span class="pe-ref" id="ref-hgb">13.0–17.5</span><span class="pe-flag" id="flag-hgb"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">RBC<span class="pe-unit">×10¹²/L</span></div>
+              <input type="number" step="0.01" id="p-rbc" class="pe-input" placeholder="—" oninput="onCBCChange()">
+              <span class="pe-ref">4.5–5.9</span><span class="pe-flag" id="flag-rbc"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">HCT<span class="pe-unit">%</span></div>
+              <input type="number" step="0.1" id="p-hct" class="pe-input" placeholder="—">
+              <span class="pe-ref">40–52</span><span class="pe-flag" id="flag-hct"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">MCV<span class="pe-unit">fL</span></div>
+              <input type="number" step="0.1" id="p-mcv" class="pe-input" placeholder="—" oninput="onCBCChange()">
+              <span class="pe-ref">80–100</span><span class="pe-flag" id="flag-mcv"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">MCH<span class="pe-unit">pg</span></div>
+              <input type="number" step="0.1" id="p-mch" class="pe-input" placeholder="—" oninput="onCBCChange()">
+              <span class="pe-ref">27–33</span><span class="pe-flag" id="flag-mch"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">MCHC<span class="pe-unit">g/dL</span></div>
+              <input type="number" step="0.1" id="p-mchc" class="pe-input" placeholder="—" oninput="onCBCChange()">
+              <span class="pe-ref">31.5–35.5</span><span class="pe-flag" id="flag-mchc"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">RDW-CV<span class="pe-unit">%</span></div>
+              <input type="number" step="0.1" id="p-rdw-cv" class="pe-input" placeholder="—" oninput="onCBCChange()">
+              <span class="pe-ref">11.5–14.5</span><span class="pe-flag" id="flag-rdw-cv"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">RDW-SD<span class="pe-unit">fL</span></div>
+              <input type="number" step="0.1" id="p-rdw-sd" class="pe-input" placeholder="—">
+              <span class="pe-ref">37–54</span><span class="pe-flag" id="flag-rdw-sd"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">RETIC%<span class="pe-unit">%</span></div>
+              <input type="number" step="0.01" id="p-retic-p" class="pe-input" placeholder="—">
+              <span class="pe-ref">0.5–2.5</span><span class="pe-flag" id="flag-retic-p"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">RETIC#<span class="pe-unit">×10⁹/L</span></div>
+              <input type="number" step="0.1" id="p-retic-a" class="pe-input" placeholder="—">
+              <span class="pe-ref">25–100</span><span class="pe-flag"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">IRF<span class="pe-unit">%</span></div>
+              <input type="number" step="0.1" id="p-irf" class="pe-input" placeholder="—">
+              <span class="pe-ref">2–14</span><span class="pe-flag"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">NRBC%<span class="pe-unit">%</span></div>
+              <input type="number" step="0.1" id="p-nrbc-p" class="pe-input" placeholder="—">
+              <span class="pe-ref">0</span><span class="pe-flag" id="flag-nrbc"></span>
+            </div>
+          </div>
+
+          <!-- ── WBC DIFFERENTIAL ──────────────────────── -->
+          <div class="cbc-section">
+            <div class="wf-section-head"><div class="wf-section-title">🦷 WBC Total</div><div class="wf-section-line"></div></div>
+            <div class="param-entry-row cbc-total-row">
+              <div class="pe-label pe-label-big">WBC<span class="pe-unit">×10³/µL</span></div>
+              <input type="number" step="0.01" id="p-wbc" class="pe-input pe-input-big" placeholder="—"
+                oninput="flagParam('wbc',this.value,'M',4,11,2,30);onCBCChange()">
+              <span class="pe-ref">4.0–11.0</span><span class="pe-flag pe-flag-big" id="flag-wbc"></span>
+            </div>
+
+            <div class="wf-section-head" style="margin-top:.65rem"><div class="wf-section-title">🔬 WBC Differential — % and Absolute (#)</div><div class="wf-section-line"></div></div>
+            <!-- Differential header -->
+            <div class="diff-header-row">
+              <span></span><span>Name</span><span>%</span><span>#(×10³/µL)</span><span>Ref %</span><span>Flag</span>
+            </div>
+            <!-- Neutrophils -->
+            <div class="diff-row" id="diff-neu">
+              <div class="diff-dot" style="background:#3b82f6"></div>
+              <div class="diff-name">Neutrophils<span class="diff-abbr">NEU</span></div>
+              <input type="number" step="0.1" id="p-neu-p" class="pe-input" placeholder="%"
+                oninput="calcAbsolute('neu');flagDiff('neu',this.value,40,75);onCBCChange()">
+              <input type="number" step="0.01" id="p-neu-a" class="pe-input pe-input-abs" placeholder="#" readonly>
+              <span class="pe-ref">40–75</span><span class="pe-flag" id="flag-neu"></span>
+            </div>
+            <!-- Lymphocytes -->
+            <div class="diff-row" id="diff-lym">
+              <div class="diff-dot" style="background:#10b981"></div>
+              <div class="diff-name">Lymphocytes<span class="diff-abbr">LYM</span></div>
+              <input type="number" step="0.1" id="p-lym-p" class="pe-input" placeholder="%"
+                oninput="calcAbsolute('lym');flagDiff('lym',this.value,20,45);onCBCChange()">
+              <input type="number" step="0.01" id="p-lym-a" class="pe-input pe-input-abs" placeholder="#" readonly>
+              <span class="pe-ref">20–45</span><span class="pe-flag" id="flag-lym"></span>
+            </div>
+            <!-- Monocytes -->
+            <div class="diff-row" id="diff-mon">
+              <div class="diff-dot" style="background:#f59e0b"></div>
+              <div class="diff-name">Monocytes<span class="diff-abbr">MON</span></div>
+              <input type="number" step="0.1" id="p-mon-p" class="pe-input" placeholder="%"
+                oninput="calcAbsolute('mon');flagDiff('mon',this.value,2,10);onCBCChange()">
+              <input type="number" step="0.01" id="p-mon-a" class="pe-input pe-input-abs" placeholder="#" readonly>
+              <span class="pe-ref">2–10</span><span class="pe-flag" id="flag-mon"></span>
+            </div>
+            <!-- Eosinophils -->
+            <div class="diff-row" id="diff-eos">
+              <div class="diff-dot" style="background:#f97316"></div>
+              <div class="diff-name">Eosinophils<span class="diff-abbr">EOS</span></div>
+              <input type="number" step="0.1" id="p-eos-p" class="pe-input" placeholder="%"
+                oninput="calcAbsolute('eos');flagDiff('eos',this.value,1,6);onCBCChange()">
+              <input type="number" step="0.01" id="p-eos-a" class="pe-input pe-input-abs" placeholder="#" readonly>
+              <span class="pe-ref">1–6</span><span class="pe-flag" id="flag-eos"></span>
+            </div>
+            <!-- Basophils -->
+            <div class="diff-row" id="diff-bas">
+              <div class="diff-dot" style="background:#8b5cf6"></div>
+              <div class="diff-name">Basophils<span class="diff-abbr">BAS</span></div>
+              <input type="number" step="0.1" id="p-bas-p" class="pe-input" placeholder="%"
+                oninput="calcAbsolute('bas');flagDiff('bas',this.value,0,1);onCBCChange()">
+              <input type="number" step="0.01" id="p-bas-a" class="pe-input pe-input-abs" placeholder="#" readonly>
+              <span class="pe-ref">0–1</span><span class="pe-flag" id="flag-bas"></span>
+            </div>
+            <!-- Blasts — always abnormal if present -->
+            <div class="diff-row" id="diff-blast" style="background:#fff0f0">
+              <div class="diff-dot" style="background:#dc2626"></div>
+              <div class="diff-name">Blasts<span class="diff-abbr">BLAST</span></div>
+              <input type="number" step="0.1" id="p-blast-p" class="pe-input" placeholder="%" oninput="flagBlasts(this.value)">
+              <input type="number" step="0.01" id="p-blast-a" class="pe-input pe-input-abs" placeholder="#" readonly>
+              <span class="pe-ref" style="color:#dc2626;font-weight:700">0 (NONE)</span>
+              <span class="pe-flag pe-flag-big" id="flag-blast"></span>
+            </div>
+            <!-- Diff total check -->
+            <div class="diff-total-row">
+              <span>Differential Total:</span>
+              <span id="diff-total" style="font-weight:800;font-size:.9rem">0%</span>
+              <span id="diff-check" style="font-size:.75rem"></span>
+            </div>
+          </div>
+
+          <!-- ── PLT PANEL ───────────────────────────── -->
+          <div class="cbc-section">
+            <div class="wf-section-head"><div class="wf-section-title">🩹 Platelet Panel</div><div class="wf-section-line"></div></div>
+            <div class="param-entry-row">
+              <div class="pe-label pe-label-big">PLT<span class="pe-unit">×10³/µL</span></div>
+              <input type="number" step="1" id="p-plt" class="pe-input pe-input-big" placeholder="—"
+                oninput="flagParam('plt',this.value,'U',150,450,20,1000);onCBCChange()">
+              <span class="pe-ref">150–450</span><span class="pe-flag pe-flag-big" id="flag-plt"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">MPV<span class="pe-unit">fL</span></div>
+              <input type="number" step="0.1" id="p-mpv" class="pe-input" placeholder="—">
+              <span class="pe-ref">7.5–12.5</span><span class="pe-flag" id="flag-mpv"></span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">PDW<span class="pe-unit">%</span></div>
+              <input type="number" step="0.1" id="p-pdw" class="pe-input" placeholder="—">
+              <span class="pe-ref">9–17</span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">PCT<span class="pe-unit">%</span></div>
+              <input type="number" step="0.001" id="p-pct" class="pe-input" placeholder="—">
+              <span class="pe-ref">0.15–0.40</span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">P-LCR<span class="pe-unit">%</span></div>
+              <input type="number" step="0.1" id="p-plcr" class="pe-input" placeholder="—">
+              <span class="pe-ref">15–35</span>
+            </div>
+
+            <div class="wf-section-head" style="margin-top:.65rem"><div class="wf-section-title">📊 Other</div><div class="wf-section-line"></div></div>
+            <div class="param-entry-row">
+              <div class="pe-label">ESR<span class="pe-unit">mm/h</span></div>
+              <input type="number" step="1" id="p-esr" class="pe-input" placeholder="—">
+              <span class="pe-ref" id="ref-esr">&lt;15 (M) / &lt;20 (F)</span>
+            </div>
+            <div class="param-entry-row">
+              <div class="pe-label">NRBC%<span class="pe-unit">%</span></div>
+              <input type="number" step="0.1" id="p-nrbc" class="pe-input" placeholder="—">
+              <span class="pe-ref" style="color:#dc2626">0 (Absent)</span>
+            </div>
+
+            <div class="wf-section-head" style="margin-top:.65rem"><div class="wf-section-title">💬 Flags / Comments</div><div class="wf-section-line"></div></div>
+            <div class="cbc-flags-grid" id="cbc-flags-grid">
+              <!-- Analyzer flags (checked by JS) -->
+              <label class="cbc-flag-cb"><input type="checkbox" id="flag-cb-toxic"> Toxic granulation</label>
+              <label class="cbc-flag-cb"><input type="checkbox" id="flag-cb-dohle"> Döhle bodies</label>
+              <label class="cbc-flag-cb"><input type="checkbox" id="flag-cb-left-shift"> Left shift</label>
+              <label class="cbc-flag-cb"><input type="checkbox" id="flag-cb-reactive-lym"> Reactive lymphocytes</label>
+              <label class="cbc-flag-cb"><input type="checkbox" id="flag-cb-target"> Target cells</label>
+              <label class="cbc-flag-cb"><input type="checkbox" id="flag-cb-sickle"> Sickle cells</label>
+              <label class="cbc-flag-cb"><input type="checkbox" id="flag-cb-blasts"> Blasts present</label>
+              <label class="cbc-flag-cb"><input type="checkbox" id="flag-cb-hyperseg"> Hypersegmented neutrophils</label>
+              <label class="cbc-flag-cb"><input type="checkbox" id="flag-cb-sphero"> Spherocytes</label>
+              <label class="cbc-flag-cb"><input type="checkbox" id="flag-cb-schistos"> Schistocytes (TTP/HUS?)</label>
+            </div>
+            <div class="wf-form-group" style="margin-top:.5rem">
+              <label>Morphology Notes</label>
+              <textarea id="cbc-morphology" rows="2" class="wf-input" placeholder="Free text morphology comments (blood film findings)…"></textarea>
+            </div>
+            <div class="wf-form-group">
+              <label class="cbc-flag-cb" style="font-size:.8rem">
+                <input type="checkbox" id="cbc-notify-critical"> 🚨 Mark as Critical — Notify Clinician Immediately
+              </label>
+            </div>
+          </div>
+
+        </div><!-- /cbc-params-grid -->
+      </div><!-- /card-body -->
+    </div><!-- /wf-card -->
+  </div><!-- /cbc-form-col -->
+
+  <!-- Right: Live Interpretation Panel -->
+  <div class="cbc-interp-col">
+
+    <!-- Calculated indices -->
+    <div class="wf-card" id="indices-card">
+      <div class="wf-card-header"><div class="wf-card-title">📐 Calculated Indices</div></div>
+      <div class="wf-card-body">
+        <div class="indices-grid">
+          <div class="index-item">
+            <div class="idx-name">Mentzer Index<div class="idx-formula">MCV ÷ RBC</div></div>
+            <div class="idx-val" id="idx-mentzer">—</div>
+            <div class="idx-interp" id="idx-mentzer-interp">—</div>
+          </div>
+          <div class="index-item">
+            <div class="idx-name">England-Fraser<div class="idx-formula">MCV²×MCH/(HGB×100)</div></div>
+            <div class="idx-val" id="idx-ef">—</div>
+            <div class="idx-interp" id="idx-ef-interp">—</div>
+          </div>
+          <div class="index-item">
+            <div class="idx-name">RDWI<div class="idx-formula">RDW×MCV÷RBC</div></div>
+            <div class="idx-val" id="idx-rdwi">—</div>
+            <div class="idx-interp">Green-King Index</div>
+          </div>
+          <div class="index-item">
+            <div class="idx-name">Shine-Lal<div class="idx-formula">MCV²×MCH÷100</div></div>
+            <div class="idx-val" id="idx-shine">—</div>
+            <div class="idx-interp" id="idx-shine-interp">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual differential bar chart -->
+    <div class="wf-card">
+      <div class="wf-card-header"><div class="wf-card-title">🔬 WBC Differential</div></div>
+      <div class="wf-card-body">
+        <canvas id="diff-chart" height="180"></canvas>
+        <div id="diff-legend" class="diff-chart-legend"></div>
+      </div>
+    </div>
+
+    <!-- AI Interpretation -->
+    <div class="wf-card" id="ai-interp-card">
+      <div class="wf-card-header">
+        <div class="wf-card-title">🤖 AI Clinical Interpretation</div>
+        <span id="ai-layer-badge" style="font-family:monospace;font-size:.65rem;color:#0891b2"></span>
+      </div>
+      <div class="wf-card-body" id="ai-interp-body">
+        <div style="color:#94a3b8;font-size:.82rem;text-align:center;padding:.5rem">
+          Enter CBC parameters to generate interpretation
+        </div>
+      </div>
+    </div>
+
+    <!-- Anaemia morphology summary -->
+    <div class="wf-card" id="anaemia-summary-card" style="display:none">
+      <div class="wf-card-header"><div class="wf-card-title">🩸 Anaemia Classification</div></div>
+      <div class="wf-card-body" id="anaemia-summary-body"></div>
+    </div>
+
+  </div><!-- /cbc-interp-col -->
+
+</div><!-- /cbc-entry-shell -->
+</div><!-- /tab-cbc-entry -->
+
+<!-- ══ ANAEMIA ANALYSIS ════════════════════════════════════════ -->
+<div class="hem-pane" id="tab-anaemia">
+  <div class="anaemia-shell">
+
+    <div class="wf-card">
+      <div class="wf-card-header"><div class="wf-card-title">🩸 Comprehensive Anaemia Classification Engine</div></div>
+      <div class="wf-card-body">
+
+        <!-- Classification algorithm diagram -->
+        <div class="anaemia-algorithm">
+          <div class="alg-node alg-start">Patient with Low Hb</div>
+          <div class="alg-arrow">↓ MCV</div>
+          <div class="alg-branches">
+            <div class="alg-branch microcytic">
+              <div class="alg-branch-header" style="background:#fef3c7;border-color:#d97706">MCV &lt; 80 fL<br><small>Microcytic</small></div>
+              <div class="alg-dx-list">
+                <div class="alg-dx" onclick="showMicrocyticDetail('IDA')">
+                  <div class="alg-dx-dot" style="background:#ef4444"></div>
+                  <div><strong>Iron Deficiency Anaemia</strong><br><small>↑RDW, ↓Ferritin, ↑TIBC, Mentzer &gt;13</small></div>
+                </div>
+                <div class="alg-dx" onclick="showMicrocyticDetail('THAL')">
+                  <div class="alg-dx-dot" style="background:#f97316"></div>
+                  <div><strong>β-Thalassaemia Trait</strong><br><small>Normal RDW, ↑RBC, Mentzer &lt;13, ↑HbA2 on HPLC</small></div>
+                </div>
+                <div class="alg-dx" onclick="showMicrocyticDetail('ALPHA_THAL')">
+                  <div class="alg-dx-dot" style="background:#f59e0b"></div>
+                  <div><strong>α-Thalassaemia Trait</strong><br><small>Normal HPLC, DNA analysis required</small></div>
+                </div>
+                <div class="alg-dx" onclick="showMicrocyticDetail('SIDERO')">
+                  <div class="alg-dx-dot" style="background:#6366f1"></div>
+                  <div><strong>Sideroblastic Anaemia</strong><br><small>↑Iron, ring sideroblasts (BM), Pappenheimer bodies</small></div>
+                </div>
+                <div class="alg-dx" onclick="showMicrocyticDetail('ACD_MICRO')">
+                  <div class="alg-dx-dot" style="background:#8b5cf6"></div>
+                  <div><strong>Anaemia of Chronic Disease</strong><br><small>(Microcytic variant) — ↑Ferritin, ↓TIBC</small></div>
+                </div>
+              </div>
+            </div>
+            <div class="alg-branch normocytic">
+              <div class="alg-branch-header" style="background:#ecfeff;border-color:#06b6d4">MCV 80–100 fL<br><small>Normocytic</small></div>
+              <div class="alg-dx-list">
+                <div class="alg-dx"><div class="alg-dx-dot" style="background:#06b6d4"></div><div><strong>Acute blood loss</strong><br><small>↑Reticulocytes (3-5d later)</small></div></div>
+                <div class="alg-dx"><div class="alg-dx-dot" style="background:#0891b2"></div><div><strong>Haemolytic Anaemia</strong><br><small>↑LDH, ↑bilirubin, ↑Retic, ↓Haptoglobin, DAT</small></div></div>
+                <div class="alg-dx"><div class="alg-dx-dot" style="background:#64748b"></div><div><strong>Anaemia of Chronic Disease</strong><br><small>↑Ferritin, ↓sTfR, ↑CRP</small></div></div>
+                <div class="alg-dx"><div class="alg-dx-dot" style="background:#0ea5e9"></div><div><strong>Aplastic / BM failure</strong><br><small>Pancytopenia, Reticulocytopenia</small></div></div>
+              </div>
+            </div>
+            <div class="alg-branch macrocytic">
+              <div class="alg-branch-header" style="background:#f0fdf4;border-color:#16a34a">MCV &gt; 100 fL<br><small>Macrocytic</small></div>
+              <div class="alg-dx-list">
+                <div class="alg-dx"><div class="alg-dx-dot" style="background:#16a34a"></div><div><strong>Vitamin B12 Deficiency</strong><br><small>Neurological sx, ↑MMA, ↑Homocysteine</small></div></div>
+                <div class="alg-dx"><div class="alg-dx-dot" style="background:#22c55e"></div><div><strong>Folate Deficiency</strong><br><small>No neuro sx, ↑Homocysteine, normal MMA</small></div></div>
+                <div class="alg-dx"><div class="alg-dx-dot" style="background:#84cc16"></div><div><strong>Liver Disease / Alcohol</strong><br><small>↑LFTs, history</small></div></div>
+                <div class="alg-dx"><div class="alg-dx-dot" style="background:#4ade80"></div><div><strong>Hypothyroidism</strong><br><small>↑TSH</small></div></div>
+                <div class="alg-dx"><div class="alg-dx-dot" style="background:#a3e635"></div><div><strong>Reticulocytosis (haemolysis/haem)</strong><br><small>↑Retic count → MCV falsely elevated</small></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- IDA vs Thalassaemia comparison table -->
+        <div class="wf-section-head" style="margin-top:1.25rem"><div class="wf-section-title">⚡ IDA vs Thalassaemia Trait — Key Differentiators</div><div class="wf-section-line"></div></div>
+        <div class="diff-compare-table-wrap">
+          <table class="wf-table diff-compare-table">
+            <thead><tr>
+              <th>Parameter</th>
+              <th style="background:#dc2626">Iron Deficiency Anaemia</th>
+              <th style="background:#f97316">β-Thalassaemia Trait</th>
+              <th style="background:#f59e0b">α-Thalassaemia Trait</th>
+            </tr></thead>
+            <tbody>
+              <tr><td>MCV</td><td>↓↓ Low</td><td>↓↓ Low</td><td>↓ Low</td></tr>
+              <tr><td>MCH</td><td>↓↓ Low</td><td>↓↓ Low</td><td>↓ Low</td></tr>
+              <tr><td>MCHC</td><td>↓ Low</td><td>Normal/Low</td><td>Normal/Low</td></tr>
+              <tr><td>RBC Count</td><td>↓ Low</td><td>↑ HIGH (paradox)</td><td>Normal/↑</td></tr>
+              <tr><td>RDW</td><td>↑↑ ELEVATED</td><td>Normal / mildly ↑</td><td>Normal</td></tr>
+              <tr><td>Serum Ferritin</td><td>↓↓ LOW (diagnostic)</td><td>Normal</td><td>Normal</td></tr>
+              <tr><td>Serum Iron</td><td>↓ Low</td><td>Normal</td><td>Normal</td></tr>
+              <tr><td>TIBC</td><td>↑ HIGH</td><td>Normal</td><td>Normal</td></tr>
+              <tr><td>Mentzer Index (MCV/RBC)</td><td class="diff-likely">&gt;13 (IDA favoured)</td><td class="diff-likely">&lt;13 (Thal favoured)</td><td>&lt;13</td></tr>
+              <tr><td>HbA2 (HPLC)</td><td>Normal (3.5%)</td><td class="diff-likely">↑↑ &gt;3.5% (diagnostic)</td><td>Normal</td></tr>
+              <tr><td>HbF</td><td>Normal</td><td>May be ↑ (1–5%)</td><td>Normal</td></tr>
+              <tr><td>Blood film</td><td>Pencil cells, anisocytosis, hypochromic</td><td>Target cells, basophilic stippling</td><td>Mild hypochromia, target cells</td></tr>
+              <tr><td>Diagnosis</td><td>Ferritin (&lt;12 µg/L)</td><td>HPLC (HbA2 &gt;3.5%)</td><td>DNA analysis (α-globin gene)</td></tr>
+              <tr><td>Treatment</td><td class="diff-likely">Iron replacement</td><td class="diff-possible">Genetic counselling ONLY — no iron!</td><td class="diff-possible">Genetic counselling</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="anaemia-warning-box">
+          ⚠️ <strong>CRITICAL:</strong> Iron Deficiency and Thalassaemia CAN coexist. Always check ferritin before starting iron treatment. Giving iron to a thalassaemia patient with normal iron stores is HARMFUL (iron overload). HPLC should be done after correcting iron deficiency first, as iron deficiency can mask elevated HbA2 in β-thalassaemia.
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MALARIA TAB ════════════════════════════════════════════= -->
+<div class="hem-pane" id="tab-malaria">
+  <div class="wf-toolbar">
+    <div class="wf-toolbar-left">
+      <select class="wf-select" id="mal-result-f" onchange="loadMalaria()"><option value="">All Results</option><option value="POS">Positive</option><option value="NEG">Negative</option></select>
+      <input type="date" id="mal-date" class="wf-date" onchange="loadMalaria()">
+    </div>
+    <div class="wf-toolbar-right">
+      <button class="wf-btn" onclick="NexusPrint?.printAll('mal-table')">🖨️ Print All</button>
+      <button class="wf-btn" onclick="NexusPrint?.printLast('mal-table')">⏬ Last</button>
+      <button class="wf-btn primary" onclick="openMalariaModal()">➕ New Malaria Test</button>
+    </div>
+  </div>
+  <div class="wf-table-wrap">
+    <table class="wf-table" id="mal-table">
+      <thead><tr>
+        <th style="width:36px"><input type="checkbox"></th>
+        <th>Lab ID</th><th>Patient</th><th>PID</th>
+        <th>RDT Result</th><th>Smear Result</th><th>Species</th>
+        <th>Parasitaemia %</th><th>Stage</th><th>Staining</th>
+        <th>Validated</th><th>Timestamp</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="mal-tbody"><tr><td colspan="13" style="text-align:center;padding:2rem;color:#94a3b8">Loading malaria results…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ PERIPHERAL SMEAR TAB ══════════════════════════════════= -->
+<div class="hem-pane" id="tab-smear">
+  <div class="wf-toolbar">
+    <div class="wf-toolbar-left">
+      <select class="wf-select" id="smear-filter" onchange="loadSmears()"><option value="">All Smears</option><option value="abnormal">Abnormal</option><option value="blast">Blasts Present</option></select>
+      <input type="date" id="smear-date" class="wf-date" onchange="loadSmears()">
+    </div>
+    <div class="wf-toolbar-right">
+      <button class="wf-btn" onclick="NexusPrint?.printAll('smear-table')">🖨️ Print All</button>
+      <button class="wf-btn primary" onclick="openSmearModal()">➕ New Smear</button>
+    </div>
+  </div>
+  <div class="wf-table-wrap">
+    <table class="wf-table" id="smear-table">
+      <thead><tr>
+        <th>Smear ID</th><th>Patient</th><th>RBC Morphology</th><th>WBC Morphology</th>
+        <th>Plt Morphology</th><th>Blasts %</th><th>Parasites</th>
+        <th>Sickle Cells</th><th>Stain</th><th>Microscopist</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="smear-tbody"><tr><td colspan="12" style="text-align:center;padding:2rem;color:#94a3b8">Loading smear results…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ IQC TAB ════════════════════════════════════════════════ -->
+<div class="hem-pane" id="tab-iqc">
+  <div class="wf-toolbar">
+    <div class="wf-toolbar-left">
+      <select class="wf-select" id="iqc-analyte" onchange="loadIQC()">
+        <option value="HGB">Haemoglobin</option><option value="WBC">WBC</option>
+        <option value="PLT">Platelets</option><option value="MCV">MCV</option>
+      </select>
+      <select class="wf-select" id="iqc-level" onchange="loadIQC()">
+        <option value="L1">Level 1</option><option value="L2">Level 2</option>
+      </select>
+    </div>
+    <button class="wf-btn primary" onclick="openIQCModal()">➕ Record IQC</button>
+  </div>
+  <div class="iqc-chart-wrap"><canvas id="hem-lj-chart" height="220"></canvas></div>
+  <div class="wf-table-wrap" style="margin-top:.75rem">
+    <table class="wf-table" id="hem-iqc-table">
+      <thead><tr><th>Date/Time</th><th>Analyte</th><th>Level</th><th>Lot</th><th>Target</th><th>SD</th><th>Result</th><th>Z-Score</th><th>Westgard</th><th>Status</th><th>Operator</th></tr></thead>
+      <tbody id="hem-iqc-tbody"><tr><td colspan="11" style="text-align:center;padding:1.5rem;color:#94a3b8">Loading IQC records…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ CRITICAL BOOK ══════════════════════════════════════════ -->
+<div class="hem-pane" id="tab-book">
+  <div class="wf-toolbar">
+    <div class="wf-toolbar-left">
+      <select class="wf-select" id="book-reason" onchange="loadCriticalBook()">
+        <option value="">All Critical Reasons</option>
+        <option value="CRITICAL_ANAEMIA">Critical Anaemia (Hb&lt;7)</option>
+        <option value="BLAST_CELLS">Blast Cells Detected</option>
+        <option value="CRITICAL_WBC">Critical Leukocytosis/penia</option>
+        <option value="CRITICAL_PLT">Critical Thrombocytopenia</option>
+      </select>
+    </div>
+    <span style="font-family:monospace;font-size:.72rem;color:#15803d;background:#f0fdf4;border:1px solid #86efac;padding:.25rem .65rem;border-radius:15px">🔐 PQC-Signed Immutable Archive</span>
+  </div>
+  <div class="wf-table-wrap">
+    <table class="wf-table" id="hem-book-table">
+      <thead><tr><th>Entry #</th><th>Patient</th><th>Critical Finding</th><th>Value</th><th>Clinician Notified</th><th>Read-back</th><th>Archived</th><th>PQC Hash</th></tr></thead>
+      <tbody id="hem-book-tbody"><tr><td colspan="8" style="text-align:center;padding:2rem;color:#94a3b8">Loading critical book…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- /.hem-shell -->
+
 <script src="{% static 'modules/hematology/js/hematology.js' %}" defer></script>
 {% endblock %}

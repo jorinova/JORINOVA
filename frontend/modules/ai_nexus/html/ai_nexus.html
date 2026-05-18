@@ -39,8 +39,9 @@
     <div class="ai-kpi"><span class="ai-kpi-emoji">⚡</span><div class="ai-kpi-val">124ms</div><div class="ai-kpi-lbl">Avg Response</div></div>
     <div class="ai-kpi"><span class="ai-kpi-emoji">🎯</span><div class="ai-kpi-val" style="color:#00FF41">94.8%</div><div class="ai-kpi-lbl">Accuracy</div></div>
     <div class="ai-kpi"><span class="ai-kpi-emoji">🎙️</span><div class="ai-kpi-val" id="ai-voice-sessions">0</div><div class="ai-kpi-lbl">Voice Sessions</div></div>
-    <div class="ai-kpi"><span class="ai-kpi-emoji">🚨</span><div class="ai-kpi-val" style="color:#00E676">12</div><div class="ai-kpi-lbl">Critical Flags</div></div>
+    <div class="ai-kpi"><span class="ai-kpi-emoji">🚨</span><div class="ai-kpi-val" id="ai-crit-flags">12</div><div class="ai-kpi-lbl">Critical Flags</div></div>
   </div>
+
 
   <!-- Tabs -->
   <div class="tab-nav ai-tabs" style="background:rgba(3,8,5,0.95);border-bottom:1px solid rgba(0,255,65,0.1);padding:0 var(--space-xl)">
@@ -114,7 +115,7 @@
           </div>
         </div>
 
-        <!-- Sidebar: Quick queries -->
+        <!-- Sidebar: Quick queries + Flag/Interpret (rules + AI) -->
         <div class="ai-quick-panel glass-panel">
           <div class="ai-quick-title">⚡ Quick Queries</div>
           <div class="ai-quick-list">
@@ -127,6 +128,52 @@
             <button class="ai-quick-btn" onclick="document.getElementById('ai-chat-input').value=this.textContent.slice(2)">🧬 BRCA1 variant interpretation</button>
             <button class="ai-quick-btn" onclick="document.getElementById('ai-chat-input').value=this.textContent.slice(2)">⏱️ TAT optimization strategies</button>
           </div>
+
+          <div class="ai-quick-title" style="margin-top:var(--space-md)">🚨 Flag Check & Interpret</div>
+          <div class="ai-flag-panel" id="ai-flag-panel">
+            <div class="ai-form-row">
+              <label>Test code</label>
+              <input type="text" class="ai-input" id="ai-test-code" placeholder="e.g., HGB" />
+            </div>
+            <div class="ai-form-row">
+              <label>Test value</label>
+              <input type="number" class="ai-input" id="ai-test-value" placeholder="e.g., 4.2" step="any" />
+            </div>
+            <div class="ai-form-row">
+              <label>Unit</label>
+              <input type="text" class="ai-input" id="ai-test-unit" placeholder="e.g., g/dL" />
+            </div>
+            <div class="ai-form-grid">
+              <div class="ai-form-row">
+                <label>Sex</label>
+                <select class="ai-input" id="ai-test-sex">
+                  <option value="">—</option>
+                  <option value="M">M</option>
+                  <option value="F">F</option>
+                </select>
+              </div>
+              <div class="ai-form-row">
+                <label>Age</label>
+                <input type="number" class="ai-input" id="ai-test-age" placeholder="e.g., 32" min="0" />
+              </div>
+            </div>
+
+            <div class="ai-form-row">
+              <label>Reference range (optional)</label>
+              <input type="text" class="ai-input" id="ai-test-ref" placeholder="e.g., 13.5-17.5" />
+            </div>
+
+            <div class="ai-flag-actions">
+              <button class="btn ai-flag-btn" id="ai-btn-flag-check">✅ Flag Check</button>
+              <button class="btn btn-primary ai-flag-btn" id="ai-btn-interpret">🧠 Full Interpret</button>
+            </div>
+
+            <div class="ai-flag-result" id="ai-flag-result" style="display:none">
+              <div class="ai-flag-result-title">Result</div>
+              <pre class="ai-flag-result-pre" id="ai-flag-result-pre"></pre>
+            </div>
+          </div>
+
           <div class="ai-quick-title" style="margin-top:var(--space-md)">📚 Knowledge Base</div>
           <div style="display:flex;flex-direction:column;gap:4px">
             <div class="ai-kb-item"><span>🔬</span> WHO Lab Manuals (2024)</div>
@@ -136,6 +183,7 @@
             <div class="ai-kb-item"><span>💊</span> Rwanda Essential Medicines</div>
           </div>
         </div>
+
       </div>
     </div><!-- /ai-assistant -->
 

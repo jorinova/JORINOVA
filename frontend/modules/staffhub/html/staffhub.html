@@ -5,677 +5,425 @@
 {% block module_id %}staffhub{% endblock %}
 {% block nav_active_staffhub %}active{% endblock %}
 
-{% block module_css %}
+{% block head_extra %}
 <link rel="stylesheet" href="{% static 'modules/staffhub/css/staffhub.css' %}">
-{% endblock %}
-
-{% block extra_head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+<style>
+#app-main{background:#fff!important;}
+.shift-bar{background:#fff!important;border-bottom:1px solid #e4e8f0!important;}
+.shift-bar *{color:#0891b2!important;}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="sh-main" id="sh-main">
+<div class="sfh-shell">
 
-  <!-- ══ PAGE HEADER ══ -->
-  <header class="page-header">
-    <div class="page-header-left">
-      <div class="page-icon-wrap" style="background:rgba(0,170,255,0.08);border-color:rgba(0,170,255,0.22);color:#00AAFF">
-        <span style="font-size:20px">👥</span>
+<!-- ══ HEADER 2.5cm ════════════════════════════════════════════ -->
+<header class="wf-page-header sfh-header" style="border-bottom-color:#7c3aed">
+  <img src="{% static 'shared/assets/logos/jorinova-logo.jpeg' %}" alt="" class="wf-header-logo">
+  <div>
+    <div class="wf-header-title" style="color:#6d28d9">👥 StaffHub</div>
+    <div class="wf-header-sub">Staff Directory · Timetable · Leave · Performance Marks · ISO 15189</div>
+  </div>
+  <span class="sfh-dept-badge">HR &amp; OPERATIONS</span>
+  <div style="display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:#64748b;background:#f5f3ff;border:1px solid #ede9fe;border-radius:20px;padding:.18rem .65rem">
+    <span id="sfh-shift-icon">☀️</span><span id="sfh-shift-name">Morning</span>·<time id="sfh-clock">--:--:--</time>
+  </div>
+  <div class="wf-header-right">
+    <button class="wf-btn primary" style="background:#7c3aed" onclick="openAddStaff()">➕ Add Staff</button>
+  </div>
+</header>
+
+<!-- ══ KPI STRIP ═══════════════════════════════════════════════ -->
+<div class="kpi-strip">
+  <div class="kpi-chip kpi-violet"><span class="kpi-chip-icon">👥</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-total-staff">—</span><span class="kpi-chip-lbl">Total Staff</span></div></div>
+  <div class="kpi-chip kpi-emerald"><span class="kpi-chip-icon">✅</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-on-shift">—</span><span class="kpi-chip-lbl">On Shift</span></div></div>
+  <div class="kpi-chip kpi-amber"><span class="kpi-chip-icon">🏖️</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-on-leave">—</span><span class="kpi-chip-lbl">On Leave</span></div></div>
+  <div class="kpi-chip kpi-red"><span class="kpi-chip-icon">⏳</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-leave-pending">—</span><span class="kpi-chip-lbl">Leave Pending</span></div></div>
+  <div class="kpi-divider"></div>
+  <div class="kpi-chip kpi-indigo"><span class="kpi-chip-icon">🤖</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-auto-marks">—</span><span class="kpi-chip-lbl">AI Marks Today</span></div></div>
+  <div class="kpi-chip kpi-cyan"><span class="kpi-chip-icon">✍️</span><div class="kpi-chip-data"><span class="kpi-chip-val" id="kpi-manual-marks">—</span><span class="kpi-chip-lbl">Manual Marks</span></div></div>
+</div>
+
+<!-- ══ TABS ════════════════════════════════════════════════════ -->
+<nav class="sfh-tabs">
+  <button class="sfh-tab active" data-tab="directory">👥 Staff Directory</button>
+  <button class="sfh-tab" data-tab="timetable">📅 Weekly Timetable</button>
+  <button class="sfh-tab" data-tab="attendance">🕐 Attendance</button>
+  <button class="sfh-tab" data-tab="leave">🏖️ Leave Management</button>
+  <button class="sfh-tab" data-tab="marks">⭐ Performance Marks</button>
+  <button class="sfh-tab" data-tab="analytics">📊 Analytics</button>
+</nav>
+
+<!-- ══ STAFF DIRECTORY ════════════════════════════════════════ -->
+<div class="sfh-pane active" id="tab-directory">
+  <div class="wf-toolbar">
+    <div class="wf-toolbar-left">
+      <div class="wf-search"><i class="fas fa-magnifying-glass"></i>
+        <input type="text" id="staff-search" placeholder="Search name, ID, department…" oninput="filterStaff(this.value)">
       </div>
+      <select class="wf-select" id="staff-dept-f" onchange="loadStaff()">
+        <option value="">All Departments</option>
+        <option value="HEM">Hematology</option>
+        <option value="BIOCHEM">Biochemistry</option>
+        <option value="MICRO">Microbiology</option>
+        <option value="BLOOD_BANK">Blood Bank</option>
+        <option value="COAG">Coagulation</option>
+        <option value="SERO">Serology</option>
+        <option value="MOL">Molecular</option>
+        <option value="ANAPATH">Anatomical Pathology</option>
+        <option value="ADMIN">Administration</option>
+      </select>
+      <select class="wf-select" id="staff-role-f" onchange="loadStaff()">
+        <option value="">All Roles</option>
+        <option value="lab_manager">Lab Manager</option>
+        <option value="pathologist">Pathologist</option>
+        <option value="lab_technician">Lab Technician</option>
+        <option value="receptionist">Receptionist</option>
+        <option value="phlebotomist">Phlebotomist</option>
+        <option value="doctor">Doctor</option>
+        <option value="nurse">Nurse</option>
+      </select>
+    </div>
+    <div class="wf-toolbar-right">
+      <button class="wf-btn" onclick="NexusPrint?.printAll('staff-table')">🖨️ Print</button>
+      <button class="wf-btn" onclick="exportStaffCSV()">📥 Export</button>
+    </div>
+  </div>
+  <!-- Staff cards grid -->
+  <div class="sfh-staff-grid" id="staff-grid">
+    <div style="text-align:center;padding:2rem;color:#94a3b8"><i class="fas fa-spinner fa-spin"></i> Loading staff…</div>
+  </div>
+</div>
+
+<!-- ══ WEEKLY TIMETABLE ════════════════════════════════════════ -->
+<div class="sfh-pane" id="tab-timetable">
+  <div class="wf-toolbar">
+    <div class="wf-toolbar-left">
+      <button class="wf-btn" onclick="prevWeek()">‹ Prev Week</button>
+      <span id="timetable-week-label" style="font-size:.85rem;font-weight:700;color:#4f46e5;padding:.3rem .65rem;background:#eef2ff;border-radius:8px;min-width:180px;text-align:center">Loading…</span>
+      <button class="wf-btn" onclick="nextWeek()">Next Week ›</button>
+      <select class="wf-select" id="tt-dept-f" onchange="loadTimetable()">
+        <option value="">All Departments</option>
+        <option value="HEM">Hematology</option>
+        <option value="BIOCHEM">Biochemistry</option>
+        <option value="MICRO">Microbiology</option>
+      </select>
+    </div>
+    <div class="wf-toolbar-right">
+      <button class="wf-btn" onclick="NexusPrint?.printAll('timetable-wrap')">🖨️ Print</button>
+      <button class="wf-btn primary" style="background:#7c3aed" onclick="openAssignShift()">➕ Assign Shift</button>
+    </div>
+  </div>
+
+  <!-- Timetable grid -->
+  <div class="sfh-timetable-wrap" id="timetable-wrap">
+    <table class="sfh-timetable" id="timetable-table">
+      <thead>
+        <tr>
+          <th class="tt-staff-col">Staff Member</th>
+          <th id="th-mon">Mon</th><th id="th-tue">Tue</th><th id="th-wed">Wed</th>
+          <th id="th-thu">Thu</th><th id="th-fri">Fri</th><th id="th-sat">Sat</th><th id="th-sun">Sun</th>
+        </tr>
+      </thead>
+      <tbody id="timetable-tbody">
+        <tr><td colspan="8" style="text-align:center;padding:2rem;color:#94a3b8">Loading timetable…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Shift legend -->
+  <div class="sfh-shift-legend">
+    <div class="sfh-sl-item sfh-morning"><div class="sfh-sl-dot"></div>☀️ Morning (06:00–14:00)</div>
+    <div class="sfh-sl-item sfh-afternoon"><div class="sfh-sl-dot"></div>🌤️ Afternoon (14:00–22:00)</div>
+    <div class="sfh-sl-item sfh-night"><div class="sfh-sl-dot"></div>🌙 Night (22:00–06:00)</div>
+    <div class="sfh-sl-item sfh-off"><div class="sfh-sl-dot"></div>⬜ Day Off</div>
+    <div class="sfh-sl-item sfh-leave"><div class="sfh-sl-dot"></div>🏖️ On Leave</div>
+  </div>
+</div>
+
+<!-- ══ ATTENDANCE ══════════════════════════════════════════════ -->
+<div class="sfh-pane" id="tab-attendance">
+  <div class="wf-toolbar">
+    <div class="wf-toolbar-left">
+      <input type="date" class="wf-date" id="att-date" onchange="loadAttendance()">
+      <select class="wf-select" id="att-dept-f" onchange="loadAttendance()">
+        <option value="">All Departments</option>
+        <option value="HEM">Hematology</option>
+        <option value="BIOCHEM">Biochemistry</option>
+      </select>
+      <select class="wf-select" id="att-status-f" onchange="loadAttendance()">
+        <option value="">All Status</option>
+        <option value="PRESENT">Present</option>
+        <option value="ABSENT">Absent</option>
+        <option value="LATE">Late</option>
+        <option value="ON_LEAVE">On Leave</option>
+      </select>
+    </div>
+    <button class="wf-btn" onclick="NexusPrint?.printAll('att-table')">🖨️ Print</button>
+  </div>
+  <div class="wf-table-wrap">
+    <table class="wf-table" id="att-table">
+      <thead><tr>
+        <th>Staff Member</th><th>Department</th><th>Shift</th>
+        <th>Check-In</th><th>Check-Out</th><th>Status</th><th>Duration</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="att-tbody"><tr><td colspan="8" style="text-align:center;padding:1.5rem;color:#94a3b8">Loading attendance…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ LEAVE MANAGEMENT ════════════════════════════════════════ -->
+<div class="sfh-pane" id="tab-leave">
+  <div class="wf-toolbar">
+    <div class="wf-toolbar-left">
+      <select class="wf-select" id="leave-status-f" onchange="loadLeave()">
+        <option value="">All Status</option>
+        <option value="PENDING">⏳ Pending Approval</option>
+        <option value="APPROVED">✅ Approved</option>
+        <option value="REJECTED">❌ Rejected</option>
+      </select>
+      <select class="wf-select" id="leave-type-f" onchange="loadLeave()">
+        <option value="">All Types</option>
+        <option value="ANNUAL">Annual Leave</option>
+        <option value="SICK">Sick Leave</option>
+        <option value="MATERNITY">Maternity/Paternity</option>
+        <option value="STUDY">Study Leave</option>
+        <option value="EMERGENCY">Emergency Leave</option>
+      </select>
+    </div>
+    <div class="wf-toolbar-right">
+      <button class="wf-btn" onclick="NexusPrint?.printAll('leave-table')">🖨️ Print</button>
+      <button class="wf-btn primary" style="background:#7c3aed" onclick="openLeaveModal()">➕ Request Leave</button>
+    </div>
+  </div>
+  <div class="wf-table-wrap">
+    <table class="wf-table" id="leave-table">
+      <thead><tr>
+        <th>Staff Member</th><th>Department</th><th>Leave Type</th>
+        <th>From</th><th>To</th><th>Days</th><th>Reason</th>
+        <th>Status</th><th>Reviewed By</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="leave-tbody"><tr><td colspan="10" style="text-align:center;padding:1.5rem;color:#94a3b8">Loading leave records…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ PERFORMANCE MARKS ══════════════════════════════════════ -->
+<div class="sfh-pane" id="tab-marks">
+
+  <!-- Marks explanation -->
+  <div class="sfh-marks-info">
+    <div class="sfh-marks-info-box ai-box">
+      <div class="sfh-marks-info-icon">🤖</div>
       <div>
-        <h1 class="page-title">StaffHub</h1>
-        <div class="page-subtitle">{{ today|date:"l, d F Y" }} · HR &amp; Workforce Management</div>
+        <div class="sfh-marks-info-title">AI Auto-Marks (System Generated)</div>
+        <div class="sfh-marks-info-desc">Automatically calculated by ALIS-X AI based on performance metrics:</div>
+        <ul class="sfh-marks-list">
+          <li><span class="mark-neg">−1 pt</span> TAT breach (result delayed beyond threshold)</li>
+          <li><span class="mark-neg">−3 pts</span> QC failure (IQC result rejected — Westgard violation)</li>
+          <li><span class="mark-neg">−2 pts</span> Sample rejection attributed to technician error</li>
+          <li><span class="mark-pos">+2 pts</span> Exceptional performance flag by system</li>
+          <li><span class="mark-pos">+3 pts</span> Zero rejections for the full week</li>
+        </ul>
       </div>
     </div>
-    <div class="page-header-right">
-      <button class="btn btn-secondary btn-sm" id="sh-export-btn"><span>📤</span> Export</button>
-      <button class="btn btn-primary btn-sm" id="sh-add-staff-btn"><span>➕</span> Add Staff</button>
-    </div>
-  </header>
-
-  <!-- ══ KPI STRIP ══ -->
-  <div class="sh-kpi-strip">
-    <div class="sh-kpi-card sh-kpi-blue">
-      <div class="sh-kpi-icon">👥</div>
-      <div class="sh-kpi-body">
-        <div class="sh-kpi-val" id="kpi-total">—</div>
-        <div class="sh-kpi-lbl">Total Staff</div>
-      </div>
-    </div>
-    <div class="sh-kpi-card sh-kpi-green">
-      <div class="sh-kpi-icon">✅</div>
-      <div class="sh-kpi-body">
-        <div class="sh-kpi-val" id="kpi-onduty">—</div>
-        <div class="sh-kpi-lbl">On Duty</div>
-      </div>
-    </div>
-    <div class="sh-kpi-card sh-kpi-yellow">
-      <div class="sh-kpi-icon">🌴</div>
-      <div class="sh-kpi-body">
-        <div class="sh-kpi-val" id="kpi-onleave">—</div>
-        <div class="sh-kpi-lbl">On Leave</div>
-      </div>
-    </div>
-    <div class="sh-kpi-card sh-kpi-orange">
-      <div class="sh-kpi-icon">⏳</div>
-      <div class="sh-kpi-body">
-        <div class="sh-kpi-val" id="kpi-pending">—</div>
-        <div class="sh-kpi-lbl">Pending Requests</div>
-      </div>
-    </div>
-    <div class="sh-kpi-card sh-kpi-purple">
-      <div class="sh-kpi-icon">🌙</div>
-      <div class="sh-kpi-body">
-        <div class="sh-kpi-val" id="kpi-night">—</div>
-        <div class="sh-kpi-lbl">Night Shift</div>
-      </div>
-    </div>
-    <div class="sh-kpi-card sh-kpi-cyan">
-      <div class="sh-kpi-icon">📊</div>
-      <div class="sh-kpi-body">
-        <div class="sh-kpi-val" id="kpi-avgperf">—</div>
-        <div class="sh-kpi-lbl">Avg Performance</div>
+    <div class="sfh-marks-info-box manual-box">
+      <div class="sfh-marks-info-icon">✍️</div>
+      <div>
+        <div class="sfh-marks-info-title">Manual Marks (Lab Manager / Pathologist)</div>
+        <div class="sfh-marks-info-desc">Issued by authorised supervisor with documented reason:</div>
+        <ul class="sfh-marks-list">
+          <li><span class="mark-neg">−2 pts</span> Minor fault (documentation error, communication issue)</li>
+          <li><span class="mark-neg">−5 pts</span> Major fault (SOP violation, patient safety event)</li>
+          <li><span class="mark-neg">−15 pts</span> Critical fault (serious patient safety incident)</li>
+          <li><span class="mark-pos">+2 pts</span> Exceptional contribution recognised</li>
+          <li><span class="mark-pos">+5 pts</span> Innovation / process improvement implemented</li>
+        </ul>
       </div>
     </div>
   </div>
 
-  <!-- ══ TAB NAV ══ -->
-  <div class="tab-nav sh-tab-nav" role="tablist" id="sh-tabs">
-    <button class="tab-btn active" data-pane="sh-pane-directory" role="tab">👥 Staff Directory</button>
-    <button class="tab-btn" data-pane="sh-pane-timetable" role="tab">📅 Timetable</button>
-    <button class="tab-btn" data-pane="sh-pane-leave" role="tab">🌴 Leave Management</button>
-    <button class="tab-btn" data-pane="sh-pane-performance" role="tab">⭐ Performance &amp; Marks</button>
-    <button class="tab-btn" data-pane="sh-pane-attendance" role="tab">⏰ Attendance &amp; Time</button>
-    <button class="tab-btn" data-pane="sh-pane-recognition" role="tab">🏆 Recognition &amp; Dev</button>
+  <div class="wf-toolbar">
+    <div class="wf-toolbar-left">
+      <select class="wf-select" id="marks-staff-f">
+        <option value="">All Staff</option>
+      </select>
+      <select class="wf-select" id="marks-type-f" onchange="loadMarks()">
+        <option value="">All Types</option>
+        <option value="AUTO">🤖 AI Auto-Generated</option>
+        <option value="MANUAL">✍️ Manual</option>
+      </select>
+      <select class="wf-select" id="marks-cat-f" onchange="loadMarks()">
+        <option value="">All Categories</option>
+        <option value="TAT_BREACH">TAT Breach</option>
+        <option value="QC_FAILURE">QC Failure</option>
+        <option value="MINOR_FAULT">Minor Fault</option>
+        <option value="MAJOR_FAULT">Major Fault</option>
+        <option value="CRITICAL_FAULT">Critical Fault</option>
+        <option value="EXCEPTIONAL">Exceptional Performance</option>
+        <option value="INNOVATION">Innovation</option>
+      </select>
+      <input type="date" class="wf-date" id="marks-date-f" onchange="loadMarks()">
+    </div>
+    <div class="wf-toolbar-right">
+      <button class="wf-btn" onclick="NexusPrint?.printAll('marks-table')">🖨️ Print</button>
+      <button class="wf-btn primary" style="background:#7c3aed" onclick="openAddMarkModal()">✍️ Add Mark</button>
+    </div>
   </div>
 
-  <div class="sh-body">
-
-    <!-- ══════════════════════════════════════════
-         TAB 1: 👥 STAFF DIRECTORY
-    ══════════════════════════════════════════ -->
-    <div class="tab-pane active" id="sh-pane-directory" role="tabpanel">
-      <div class="sh-filter-bar">
-        <div class="search-wrap sh-search-wrap">
-          <i class="fas fa-magnifying-glass search-icon"></i>
-          <input type="text" class="form-input sh-search-input" id="dir-search" placeholder="🔍 Search name, ID, department…">
-        </div>
-        <select class="form-input sh-filter-select" id="dir-dept-filter">
-          <option value="">🧩 All Departments</option>
-          <option value="Hematology">🔴 Hematology</option>
-          <option value="Chemistry">🧫 Chemistry</option>
-          <option value="Microbiology">🦠 Microbiology</option>
-          <option value="Blood Bank">🩸 Blood Bank</option>
-          <option value="Reception">📡 Reception</option>
-          <option value="Phlebotomy">💉 Phlebotomy</option>
-        </select>
-        <select class="form-input sh-filter-select" id="dir-role-filter">
-          <option value="">🏷️ All Roles</option>
-          <option value="Lab Technician">🔬 Lab Technician</option>
-          <option value="Lab Manager">🗂️ Lab Manager</option>
-          <option value="Pathologist">🥼 Pathologist</option>
-          <option value="Nurse">👩‍⚕️ Nurse</option>
-          <option value="Receptionist">📡 Receptionist</option>
-          <option value="Phlebotomist">💉 Phlebotomist</option>
-        </select>
-        <select class="form-input sh-filter-select" id="dir-shift-filter">
-          <option value="">⏱️ All Shifts</option>
-          <option value="Morning">☀️ Morning</option>
-          <option value="Afternoon">🌤️ Afternoon</option>
-          <option value="Night">🌙 Night</option>
-          <option value="Off">🔴 Day Off</option>
-          <option value="Leave">🟡 On Leave</option>
-        </select>
-        <span class="sh-dir-count" id="dir-count">10 staff</span>
-      </div>
-
-      <div class="staff-grid" id="staff-grid">
-        <!-- Populated by JS -->
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════
-         TAB 2: 📅 TIMETABLE / SCHEDULE
-    ══════════════════════════════════════════ -->
-    <div class="tab-pane" id="sh-pane-timetable" role="tabpanel">
-      <div class="timetable-container">
-
-        <!-- Controls bar -->
-        <div class="tt-controls">
-          <div class="tt-nav">
-            <button class="btn btn-ghost btn-sm" id="tt-prev-week">
-              <i class="fas fa-chevron-left"></i> Previous Week
-            </button>
-            <div class="tt-week-label" id="tt-week-label">Week of — — ——</div>
-            <button class="btn btn-ghost btn-sm" id="tt-next-week">
-              Next Week <i class="fas fa-chevron-right"></i>
-            </button>
-          </div>
-          <div class="tt-actions">
-            <select class="form-input sh-filter-select" id="tt-dept-filter">
-              <option value="">🧩 All Departments</option>
-              <option value="Hematology">🔴 Hematology</option>
-              <option value="Chemistry">🧫 Chemistry</option>
-              <option value="Microbiology">🦠 Microbiology</option>
-              <option value="Blood Bank">🩸 Blood Bank</option>
-            </select>
-            <button class="btn btn-secondary btn-sm" id="tt-copy-prev"><span>📋</span> Copy Previous Week</button>
-            <button class="btn btn-warning btn-sm" id="tt-publish"><span>📤</span> Publish Schedule</button>
-            <button class="btn btn-ghost btn-sm" id="tt-print"><span>🖨️</span> Print</button>
-          </div>
-        </div>
-
-        <!-- Stats bar -->
-        <div class="tt-stats-bar">
-          <div class="tt-stat">
-            <span class="tt-stat-val" id="tt-shifts-covered">—</span>
-            <span class="tt-stat-lbl">Shifts Covered</span>
-          </div>
-          <div class="tt-stat tt-stat-warn" id="tt-understaffed-wrap">
-            <span class="tt-stat-val" id="tt-understaffed">—</span>
-            <span class="tt-stat-lbl">Understaffed Days</span>
-          </div>
-          <div class="tt-stat">
-            <span class="tt-stat-val" id="tt-leave-count">—</span>
-            <span class="tt-stat-lbl">On Leave This Week</span>
-          </div>
-          <div class="sh-published-badge" id="tt-published-badge" style="display:none">
-            🔒 Published
-          </div>
-        </div>
-
-        <!-- Timetable grid -->
-        <div class="timetable-scroll">
-          <table class="timetable-table" id="timetable-table">
-            <thead id="tt-thead">
-              <!-- Rendered by JS -->
-            </thead>
-            <tbody id="tt-tbody">
-              <!-- Rendered by JS -->
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Legend -->
-        <div class="tt-legend">
-          <div class="tt-legend-item">
-            <span class="shift-badge shift-morning">☀️ Morning</span>
-            <span class="tt-legend-time">06:00–14:00</span>
-          </div>
-          <div class="tt-legend-item">
-            <span class="shift-badge shift-afternoon">🌤️ Afternoon</span>
-            <span class="tt-legend-time">14:00–22:00</span>
-          </div>
-          <div class="tt-legend-item">
-            <span class="shift-badge shift-night">🌙 Night</span>
-            <span class="tt-legend-time">22:00–06:00</span>
-          </div>
-          <div class="tt-legend-item">
-            <span class="shift-badge shift-off">🔴 Day Off</span>
-          </div>
-          <div class="tt-legend-item">
-            <span class="shift-badge shift-leave">🟡 Leave</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Shift Picker Dropdown (floating) -->
-      <div class="shift-picker" id="shift-picker" style="display:none">
-        <div class="shift-picker-title">Assign Shift</div>
-        <button class="shift-picker-opt" data-shift="Morning">☀️ Morning</button>
-        <button class="shift-picker-opt" data-shift="Afternoon">🌤️ Afternoon</button>
-        <button class="shift-picker-opt" data-shift="Night">🌙 Night</button>
-        <button class="shift-picker-opt" data-shift="Off">🔴 Day Off</button>
-        <button class="shift-picker-opt" data-shift="Leave">🟡 Leave</button>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════
-         TAB 3: 🌴 LEAVE MANAGEMENT
-    ══════════════════════════════════════════ -->
-    <div class="tab-pane" id="sh-pane-leave" role="tabpanel">
-      <div class="sh-leave-layout">
-        <!-- Pending requests -->
-        <div class="glass-panel sh-leave-panel">
-          <div class="sh-panel-header">
-            <span class="sh-panel-title">🌴 Leave Requests</span>
-            <div style="display:flex;gap:var(--space-sm);align-items:center">
-              <select class="form-input sh-filter-select" id="leave-status-filter">
-                <option value="pending">⏳ Pending</option>
-                <option value="approved">✅ Approved</option>
-                <option value="rejected">❌ Rejected</option>
-                <option value="">📋 All</option>
-              </select>
-              <button class="btn btn-primary btn-sm" id="sh-new-leave-btn"><span>➕</span> New Request</button>
-            </div>
-          </div>
-          <div style="overflow-x:auto">
-            <table class="nx-table" id="leave-table">
-              <thead>
-                <tr>
-                  <th>👤 Staff</th>
-                  <th>🏷️ Role</th>
-                  <th>📋 Leave Type</th>
-                  <th>📅 From</th>
-                  <th>📅 To</th>
-                  <th>⏱️ Days</th>
-                  <th>📝 Reason</th>
-                  <th>📊 Status</th>
-                  <th>⚙️ Action</th>
-                </tr>
-              </thead>
-              <tbody id="leave-tbody">
-                <!-- Populated by JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Leave balance + mini calendar -->
-        <div class="sh-leave-sidebar">
-          <div class="glass-panel sh-leave-balance">
-            <div class="sh-panel-header">
-              <span class="sh-panel-title">💼 Leave Balances</span>
-              <select class="form-input sh-filter-select" id="leave-balance-staff" style="max-width:160px">
-                <!-- Populated by JS -->
-              </select>
-            </div>
-            <div class="sh-balance-grid" id="leave-balance-grid">
-              <!-- Populated by JS -->
-            </div>
-          </div>
-
-          <div class="glass-panel sh-leave-calendar">
-            <div class="sh-panel-header">
-              <span class="sh-panel-title">📅 Approved Leaves — <span id="leave-cal-month">—</span></span>
-            </div>
-            <div class="sh-mini-calendar" id="leave-mini-calendar">
-              <!-- Populated by JS -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════
-         TAB 4: ⭐ PERFORMANCE & MARKS
-    ══════════════════════════════════════════ -->
-    <div class="tab-pane" id="sh-pane-performance" role="tabpanel">
-      <div class="sh-perf-layout">
-
-        <!-- Left: Staff selector + scorecard -->
-        <div class="sh-perf-main">
-          <div class="glass-panel sh-perf-selector-card">
-            <div class="sh-panel-header">
-              <span class="sh-panel-title">⭐ Performance Scorecard</span>
-              <div style="display:flex;gap:var(--space-sm);align-items:center">
-                <select class="form-input sh-filter-select" id="perf-staff-select" style="min-width:200px">
-                  <!-- Populated by JS -->
-                </select>
-                <select class="form-input sh-filter-select" id="perf-month-select">
-                  <option value="0">January</option>
-                  <option value="1">February</option>
-                  <option value="2">March</option>
-                  <option value="3">April</option>
-                  <option value="4" selected>May</option>
-                  <option value="5">June</option>
-                  <option value="6">July</option>
-                  <option value="7">August</option>
-                  <option value="8">September</option>
-                  <option value="9">October</option>
-                  <option value="10">November</option>
-                  <option value="11">December</option>
-                </select>
-                <button class="btn btn-primary btn-sm" id="perf-gen-report"><span>📤</span> Generate Report</button>
-              </div>
-            </div>
-            <div class="sh-perf-scorecard" id="perf-scorecard">
-              <!-- Populated by JS -->
-            </div>
-          </div>
-
-          <!-- Trend chart -->
-          <div class="glass-panel sh-perf-chart-card">
-            <div class="sh-panel-header">
-              <span class="sh-panel-title">📈 Monthly Performance Trend</span>
-            </div>
-            <div class="sh-chart-wrap">
-              <canvas id="perf-trend-chart" height="180"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: Fault log panel -->
-        <div class="sh-perf-sidebar">
-          <div class="glass-panel sh-fault-panel">
-            <div class="sh-panel-header">
-              <span class="sh-panel-title">⚠️ Error &amp; Fault Log</span>
-              <div class="sh-fault-mode-toggle">
-                <button class="sh-fault-mode-btn active" id="fault-mode-auto" data-mode="auto">🤖 Auto</button>
-                <button class="sh-fault-mode-btn" id="fault-mode-manual" data-mode="manual">✍️ Manual</button>
-              </div>
-            </div>
-
-            <!-- Manual input form -->
-            <div class="sh-fault-form" id="sh-fault-form" style="display:none">
-              <div class="form-group">
-                <label class="form-label">👤 Staff Member</label>
-                <select class="form-input" id="fault-staff-sel"><!-- JS --></select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">📋 Fault Type</label>
-                <select class="form-input" id="fault-type-sel">
-                  <option value="">Select type…</option>
-                  <optgroup label="🔬 Analytical">
-                    <option value="incorrect_result">Incorrect Result</option>
-                    <option value="qc_failure">QC Failure</option>
-                    <option value="calibration_error">Calibration Error</option>
-                  </optgroup>
-                  <optgroup label="📋 Pre-analytical">
-                    <option value="wrong_tube">Wrong Tube</option>
-                    <option value="insufficient_volume">Insufficient Volume</option>
-                    <option value="sample_rejection">Sample Rejection</option>
-                  </optgroup>
-                  <optgroup label="📝 Documentation">
-                    <option value="missing_entry">Missing Entry</option>
-                    <option value="wrong_patient">Wrong Patient</option>
-                    <option value="incomplete_data">Incomplete Data</option>
-                  </optgroup>
-                  <optgroup label="⏱️ TAT">
-                    <option value="tat_missed">TAT Deadline Missed</option>
-                    <option value="delay_reporting">Delay in Reporting</option>
-                  </optgroup>
-                  <optgroup label="🛡️ Safety">
-                    <option value="biosafety_breach">Biosafety Breach</option>
-                    <option value="ppe_violation">PPE Violation</option>
-                    <option value="spill_unreported">Spill Not Reported</option>
-                  </optgroup>
-                  <optgroup label="🤝 Conduct">
-                    <option value="absence">Unauthorised Absence</option>
-                    <option value="insubordination">Insubordination</option>
-                    <option value="patient_complaint">Patient Complaint</option>
-                  </optgroup>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">🎯 Severity</label>
-                <div class="sh-severity-btns" id="fault-severity-btns">
-                  <button class="sh-sev-btn" data-sev="Minor">Minor <span>−2pts</span></button>
-                  <button class="sh-sev-btn active" data-sev="Major">Major <span>−5pts</span></button>
-                  <button class="sh-sev-btn sh-sev-critical" data-sev="Critical">Critical <span>−15pts</span></button>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">📝 Description</label>
-                <textarea class="form-input" id="fault-desc" rows="2" placeholder="Describe the incident…"></textarea>
-              </div>
-              <div class="form-group">
-                <label class="form-label">🏥 Impact on Patient/Lab</label>
-                <input type="text" class="form-input" id="fault-impact" placeholder="Describe impact…">
-              </div>
-              <div class="form-group">
-                <label class="form-label">✅ Action Taken</label>
-                <input type="text" class="form-input" id="fault-action" placeholder="Corrective action taken…">
-              </div>
-              <div style="display:flex;gap:var(--space-sm);justify-content:flex-end;margin-top:var(--space-sm)">
-                <button class="btn btn-ghost btn-sm" id="fault-form-cancel">Cancel</button>
-                <button class="btn btn-danger btn-sm" id="fault-submit-btn"><span>⚠️</span> Log Fault</button>
-              </div>
-            </div>
-
-            <!-- Add positive mark form -->
-            <div class="sh-positive-form" id="sh-positive-form" style="display:none">
-              <div class="form-group">
-                <label class="form-label">👤 Staff Member</label>
-                <select class="form-input" id="pos-staff-sel"><!-- JS --></select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">🌟 Achievement Type</label>
-                <select class="form-input" id="pos-type-sel">
-                  <option value="exceptional_care">Exceptional Patient Care (+2pts)</option>
-                  <option value="innovation">Innovation / Suggestion Adopted (+5pts)</option>
-                  <option value="training">Training Completion (+1pt)</option>
-                  <option value="commendation">Peer Commendation (+1pt)</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">📝 Notes</label>
-                <textarea class="form-input" id="pos-notes" rows="2" placeholder="Describe the achievement…"></textarea>
-              </div>
-              <div style="display:flex;gap:var(--space-sm);justify-content:flex-end;margin-top:var(--space-sm)">
-                <button class="btn btn-ghost btn-sm" id="pos-form-cancel">Cancel</button>
-                <button class="btn btn-success btn-sm" id="pos-submit-btn"><span>🌟</span> Add Mark</button>
-              </div>
-            </div>
-
-            <!-- Fault log list -->
-            <div class="sh-fault-actions" id="sh-fault-actions">
-              <button class="btn btn-danger btn-sm" id="log-fault-btn"><span>⚠️</span> Log Fault</button>
-              <button class="btn btn-success btn-sm" id="add-positive-btn"><span>🌟</span> Add Positive Mark</button>
-            </div>
-            <div class="sh-fault-list" id="sh-fault-list">
-              <!-- Populated by JS -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════
-         TAB 5: ⏰ ATTENDANCE & TIME
-    ══════════════════════════════════════════ -->
-    <div class="tab-pane" id="sh-pane-attendance" role="tabpanel">
-
-      <!-- Daily board -->
-      <div class="sh-att-layout">
-        <div class="glass-panel sh-att-board">
-          <div class="sh-panel-header">
-            <span class="sh-panel-title">⏰ Daily Attendance Board</span>
-            <div style="display:flex;gap:var(--space-sm);align-items:center">
-              <input type="date" class="form-input sh-filter-select" id="att-date" value="{{ today|date:'Y-m-d' }}">
-              <button class="btn btn-primary btn-sm" id="att-export"><span>📤</span> Export</button>
-            </div>
-          </div>
-          <div class="sh-att-status-row" id="att-status-row">
-            <!-- Populated by JS -->
-          </div>
-          <div style="overflow-x:auto">
-            <table class="nx-table" id="att-log-table">
-              <thead>
-                <tr>
-                  <th>👤 Staff</th>
-                  <th>🏷️ Role</th>
-                  <th>🕐 Check In</th>
-                  <th>🕐 Check Out</th>
-                  <th>⏱️ Hours</th>
-                  <th>📊 Status</th>
-                  <th>📝 Note</th>
-                </tr>
-              </thead>
-              <tbody id="att-log-tbody">
-                <!-- Populated by JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Monthly summary -->
-        <div class="sh-att-summary">
-          <div class="glass-panel">
-            <div class="sh-panel-header">
-              <span class="sh-panel-title">📊 Monthly Summary</span>
-              <select class="form-input sh-filter-select" id="att-summary-staff" style="max-width:160px">
-                <!-- JS -->
-              </select>
-            </div>
-            <div class="sh-att-month-stats" id="att-month-stats">
-              <!-- Populated by JS -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════
-         TAB 6: 🏆 RECOGNITION & DEVELOPMENT
-    ══════════════════════════════════════════ -->
-    <div class="tab-pane" id="sh-pane-recognition" role="tabpanel">
-      <div class="sh-recog-layout">
-
-        <!-- Leaderboard -->
-        <div class="glass-panel sh-leaderboard">
-          <div class="sh-panel-header">
-            <span class="sh-panel-title">🏆 Top Performers — <span id="recog-month-label">May 2026</span></span>
-          </div>
-          <div class="sh-leaderboard-list" id="leaderboard-list">
-            <!-- Populated by JS -->
-          </div>
-        </div>
-
-        <!-- CPD Tracker -->
-        <div class="glass-panel sh-cpd-panel">
-          <div class="sh-panel-header">
-            <span class="sh-panel-title">📚 CPD Points Tracker</span>
-            <button class="btn btn-primary btn-sm" id="cpd-add-btn"><span>➕</span> Log CPD</button>
-          </div>
-          <div class="sh-cpd-list" id="cpd-list">
-            <!-- Populated by JS -->
-          </div>
-        </div>
-
-        <!-- Training schedule -->
-        <div class="glass-panel sh-training-panel">
-          <div class="sh-panel-header">
-            <span class="sh-panel-title">🎓 Training Schedule</span>
-            <button class="btn btn-primary btn-sm" id="training-add-btn"><span>➕</span> Add Training</button>
-          </div>
-          <div style="overflow-x:auto">
-            <table class="nx-table" id="training-table">
-              <thead>
-                <tr>
-                  <th>📋 Programme</th>
-                  <th>👤 Staff</th>
-                  <th>📅 Date</th>
-                  <th>⏱️ Duration</th>
-                  <th>📊 Status</th>
-                </tr>
-              </thead>
-              <tbody id="training-tbody">
-                <!-- Populated by JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Certificates -->
-        <div class="glass-panel sh-certs-panel">
-          <div class="sh-panel-header">
-            <span class="sh-panel-title">🎖️ Achievements &amp; Certificates</span>
-          </div>
-          <div class="sh-cert-grid" id="cert-grid">
-            <!-- Populated by JS -->
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /sh-body -->
-
-</div><!-- /sh-main -->
-
-<!-- ══════════════════════════════════════════
-     STAFF DETAIL FLYOUT
-══════════════════════════════════════════ -->
-<div class="sh-flyout-overlay" id="sh-flyout-overlay"></div>
-<div class="sh-flyout" id="sh-flyout" role="dialog" aria-modal="true">
-  <div class="sh-flyout-header">
-    <div class="sh-flyout-title" id="flyout-title">Staff Profile</div>
-    <button class="btn-icon btn-icon-sm" id="sh-flyout-close"><i class="fas fa-xmark"></i></button>
+  <!-- Staff total marks leaderboard -->
+  <div class="sfh-leaderboard" id="sfh-leaderboard">
+    <div style="text-align:center;padding:1rem;color:#94a3b8">Loading leaderboard…</div>
   </div>
-  <div class="sh-flyout-body" id="sh-flyout-body">
-    <!-- Populated by JS -->
+
+  <!-- Detailed marks table -->
+  <div class="wf-table-wrap" style="margin-top:.75rem">
+    <table class="wf-table" id="marks-table">
+      <thead><tr>
+        <th>Date/Time</th><th>Staff Member</th><th>Department</th>
+        <th>Type</th><th>Category</th><th>Points</th>
+        <th>Description</th><th>Issued By</th>
+        <th>PQC Signed</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="marks-tbody"><tr><td colspan="10" style="text-align:center;padding:1.5rem;color:#94a3b8">Loading performance marks…</td></tr></tbody>
+    </table>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     ADD STAFF MODAL
-══════════════════════════════════════════ -->
-<div class="modal-overlay" id="add-staff-modal">
-  <div class="modal glass-card" style="max-width:560px;width:95%">
-    <div class="modal-header">
-      <h3 class="modal-title">➕ Add New Staff Member</h3>
-      <button class="btn-icon btn-icon-sm modal-close-btn" data-modal="add-staff-modal"><i class="fas fa-xmark"></i></button>
+<!-- ══ ANALYTICS ══════════════════════════════════════════════ -->
+<div class="sfh-pane" id="tab-analytics">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.85rem">
+    <div class="wf-card">
+      <div class="wf-card-header"><div class="wf-card-title">📊 Shift Distribution</div></div>
+      <div class="wf-card-body"><canvas id="shift-chart" height="200"></canvas></div>
     </div>
-    <div class="modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md)">
-        <div class="form-group"><label class="form-label">First Name</label><input type="text" class="form-input" id="add-fname" placeholder="First name"></div>
-        <div class="form-group"><label class="form-label">Last Name</label><input type="text" class="form-input" id="add-lname" placeholder="Last name"></div>
-        <div class="form-group"><label class="form-label">Role</label>
-          <select class="form-input" id="add-role">
-            <option>Lab Technician</option><option>Lab Manager</option><option>Pathologist</option>
-            <option>Nurse</option><option>Receptionist</option><option>Phlebotomist</option>
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Department</label>
-          <select class="form-input" id="add-dept">
-            <option>Hematology</option><option>Chemistry</option><option>Microbiology</option>
-            <option>Blood Bank</option><option>Reception</option><option>Phlebotomy</option>
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="add-email" placeholder="staff@hospital.com"></div>
-        <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" id="add-phone" placeholder="+250 xxx xxx xxx"></div>
-        <div class="form-group"><label class="form-label">Default Shift</label>
-          <select class="form-input" id="add-shift">
-            <option value="Morning">☀️ Morning</option>
-            <option value="Afternoon">🌤️ Afternoon</option>
-            <option value="Night">🌙 Night</option>
-          </select>
-        </div>
-        <div class="form-group"><label class="form-label">Start Date</label><input type="date" class="form-input" id="add-start"></div>
-      </div>
+    <div class="wf-card">
+      <div class="wf-card-header"><div class="wf-card-title">⭐ Top Performers (Total Marks)</div></div>
+      <div class="wf-card-body" id="top-performers-list">Loading…</div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" data-modal="add-staff-modal">Cancel</button>
-      <button class="btn btn-primary" id="add-staff-confirm"><span>✅</span> Save Staff Member</button>
+    <div class="wf-card">
+      <div class="wf-card-header"><div class="wf-card-title">🏖️ Leave by Type</div></div>
+      <div class="wf-card-body"><canvas id="leave-chart" height="200"></canvas></div>
+    </div>
+    <div class="wf-card">
+      <div class="wf-card-header"><div class="wf-card-title">📅 Attendance Rate — Last 30 Days</div></div>
+      <div class="wf-card-body"><canvas id="att-chart" height="200"></canvas></div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════
-     NEW LEAVE REQUEST MODAL
-══════════════════════════════════════════ -->
-<div class="modal-overlay" id="new-leave-modal">
-  <div class="modal glass-card" style="max-width:500px;width:95%">
-    <div class="modal-header">
-      <h3 class="modal-title">🌴 New Leave Request</h3>
-      <button class="btn-icon btn-icon-sm modal-close-btn" data-modal="new-leave-modal"><i class="fas fa-xmark"></i></button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group"><label class="form-label">👤 Staff Member</label><select class="form-input" id="leave-staff-sel"><!-- JS --></select></div>
-      <div class="form-group"><label class="form-label">📋 Leave Type</label>
-        <select class="form-input" id="leave-type-sel">
-          <option value="Annual Leave">🌴 Annual Leave</option>
-          <option value="Sick Leave">🏥 Sick Leave</option>
-          <option value="Maternity">🤱 Maternity</option>
-          <option value="Emergency">🚨 Emergency</option>
-          <option value="Study">📚 Study Leave</option>
-        </select>
+</div><!-- /.sfh-shell -->
+
+<!-- ═══ MODALS ════════════════════════════════════════════════ -->
+
+<!-- Assign Shift Modal -->
+<div class="sfh-modal-overlay" id="shift-modal" style="display:none">
+  <div class="sfh-modal">
+    <div class="sfh-modal-hdr"><h3>📅 Assign Shift</h3><button onclick="closeSFHModal('shift-modal')">✕</button></div>
+    <div class="sfh-modal-body">
+      <div class="sfh-form-grid">
+        <div class="sfh-form-row"><label>Staff Member</label>
+          <select id="sm-staff" class="sfh-input"><option value="">Select staff…</option></select></div>
+        <div class="sfh-form-row"><label>Date</label>
+          <input type="date" id="sm-date" class="sfh-input"></div>
+        <div class="sfh-form-row"><label>Shift Type</label>
+          <select id="sm-shift" class="sfh-input">
+            <option value="morning">☀️ Morning (06:00–14:00)</option>
+            <option value="afternoon">🌤️ Afternoon (14:00–22:00)</option>
+            <option value="night">🌙 Night (22:00–06:00)</option>
+            <option value="off">⬜ Day Off</option>
+          </select></div>
+        <div class="sfh-form-row"><label>Notes</label>
+          <input type="text" id="sm-notes" class="sfh-input" placeholder="Optional notes…"></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md)">
-        <div class="form-group"><label class="form-label">📅 From</label><input type="date" class="form-input" id="leave-from"></div>
-        <div class="form-group"><label class="form-label">📅 To</label><input type="date" class="form-input" id="leave-to"></div>
-      </div>
-      <div class="form-group"><label class="form-label">📝 Reason</label><textarea class="form-input" id="leave-reason" rows="3" placeholder="Reason for leave…"></textarea></div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" data-modal="new-leave-modal">Cancel</button>
-      <button class="btn btn-primary" id="submit-leave-btn"><span>📤</span> Submit Request</button>
+    <div class="sfh-modal-ftr">
+      <button class="wf-btn" onclick="closeSFHModal('shift-modal')">Cancel</button>
+      <button class="wf-btn primary" style="background:#7c3aed" onclick="submitShiftAssignment()">Assign Shift</button>
     </div>
   </div>
 </div>
 
-{% endblock %}
+<!-- Leave Request Modal -->
+<div class="sfh-modal-overlay" id="leave-modal" style="display:none">
+  <div class="sfh-modal">
+    <div class="sfh-modal-hdr"><h3>🏖️ Leave Request</h3><button onclick="closeSFHModal('leave-modal')">✕</button></div>
+    <div class="sfh-modal-body">
+      <div class="sfh-form-grid">
+        <div class="sfh-form-row"><label>Staff Member</label>
+          <select id="lm-staff" class="sfh-input"><option value="">Select staff…</option></select></div>
+        <div class="sfh-form-row"><label>Leave Type</label>
+          <select id="lm-type" class="sfh-input">
+            <option value="ANNUAL">Annual Leave</option>
+            <option value="SICK">Sick Leave</option>
+            <option value="MATERNITY">Maternity/Paternity</option>
+            <option value="STUDY">Study Leave</option>
+            <option value="EMERGENCY">Emergency Leave</option>
+          </select></div>
+        <div class="sfh-form-row"><label>Start Date</label>
+          <input type="date" id="lm-from" class="sfh-input" onchange="calcLeaveDays()"></div>
+        <div class="sfh-form-row"><label>End Date</label>
+          <input type="date" id="lm-to" class="sfh-input" onchange="calcLeaveDays()"></div>
+        <div class="sfh-form-row"><label>Duration</label>
+          <div id="lm-days" style="padding:.38rem .65rem;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-weight:700;color:#14532d">— days</div></div>
+        <div class="sfh-form-row" style="grid-column:span 2"><label>Reason</label>
+          <textarea id="lm-reason" class="sfh-input" rows="2" placeholder="Reason for leave request…"></textarea></div>
+      </div>
+    </div>
+    <div class="sfh-modal-ftr">
+      <button class="wf-btn" onclick="closeSFHModal('leave-modal')">Cancel</button>
+      <button class="wf-btn primary" style="background:#7c3aed" onclick="submitLeaveRequest()">Submit Request</button>
+    </div>
+  </div>
+</div>
 
-{% block module_scripts %}
+<!-- Add Performance Mark Modal -->
+<div class="sfh-modal-overlay" id="mark-modal" style="display:none">
+  <div class="sfh-modal">
+    <div class="sfh-modal-hdr"><h3>⭐ Add Performance Mark</h3><button onclick="closeSFHModal('mark-modal')">✕</button></div>
+    <div class="sfh-modal-body">
+      <div class="sfh-form-grid">
+        <div class="sfh-form-row"><label>Staff Member</label>
+          <select id="mm-staff" class="sfh-input"><option value="">Select staff…</option></select></div>
+        <div class="sfh-form-row"><label>Mark Type</label>
+          <select id="mm-type" class="sfh-input"><option value="MANUAL">✍️ Manual</option></select></div>
+        <div class="sfh-form-row"><label>Category</label>
+          <select id="mm-cat" class="sfh-input" onchange="autoFillPoints()">
+            <option value="MINOR_FAULT">Minor Fault</option>
+            <option value="MAJOR_FAULT">Major Fault</option>
+            <option value="CRITICAL_FAULT">Critical Fault</option>
+            <option value="EXCEPTIONAL">Exceptional Performance</option>
+            <option value="INNOVATION">Innovation / Improvement</option>
+          </select></div>
+        <div class="sfh-form-row"><label>Points</label>
+          <input type="number" id="mm-points" class="sfh-input" step="0.5" placeholder="e.g. -2, +5"></div>
+        <div class="sfh-form-row" style="grid-column:span 2"><label>Description / Reason</label>
+          <textarea id="mm-desc" class="sfh-input" rows="2" placeholder="Specific reason for this performance mark (required)…"></textarea></div>
+        <div class="sfh-form-row" style="grid-column:span 2">
+          <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:.5rem .75rem;font-size:.77rem;color:#713f12">
+            ⚠️ Performance marks are PQC-signed and permanently recorded. They affect total performance score which is used for annual appraisals and CPD tracking. Ensure the reason is accurate and documented.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sfh-modal-ftr">
+      <button class="wf-btn" onclick="closeSFHModal('mark-modal')">Cancel</button>
+      <button class="wf-btn primary" style="background:#7c3aed" onclick="submitMark()">🔐 Record Mark (PQC-Signed)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Staff Profile Modal -->
+<div class="sfh-modal-overlay" id="staff-profile-modal" style="display:none">
+  <div class="sfh-modal" style="max-width:600px">
+    <div class="sfh-modal-hdr"><h3 id="sp-title">👤 Staff Profile</h3><button onclick="closeSFHModal('staff-profile-modal')">✕</button></div>
+    <div class="sfh-modal-body" id="sp-body">Loading…</div>
+    <div class="sfh-modal-ftr">
+      <button class="wf-btn" onclick="closeSFHModal('staff-profile-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <script src="{% static 'modules/staffhub/js/staffhub.js' %}" defer></script>
 {% endblock %}

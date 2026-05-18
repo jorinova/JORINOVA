@@ -1,0 +1,101 @@
+{
+  "code": "en",
+  "name": "English",
+  "name_local": "English",
+  "flag": "🇬🇧",
+  "rtl": false,
+
+  "tts": {
+    "default_rate": 0.88,
+    "slow_rate": 0.62,
+    "accessibility_rate": 0.50,
+    "default_pitch": 1.0,
+    "slow_pitch": 0.95,
+    "default_volume": 0.95,
+    "pause_between_sentences_ms": 350,
+    "accessibility_pause_ms": 700,
+    "voice_preference": ["en-US", "en-GB", "en-AU", "en-NZ"],
+    "voice_name_hints": ["Google US English", "Microsoft Zira", "Samantha", "Daniel"]
+  },
+
+  "stt": {
+    "whisper_code": "en",
+    "browser_lang": "en-US",
+    "alt_langs": ["en-GB", "en-AU"],
+    "confidence_threshold": 0.65
+  },
+
+  "wake_phrases": [
+    "hello jorinova", "hey jorinova", "jorinova",
+    "hi jorinova", "nexus", "alis x", "alis-x"
+  ],
+
+  "voice_commands": {
+    "confirm":      ["yes", "confirm", "proceed", "ok", "affirmative", "do it", "go ahead", "sure"],
+    "cancel":       ["no", "cancel", "stop", "abort", "negative", "don't", "never mind"],
+    "repeat":       ["repeat", "say again", "what did you say", "pardon", "again", "replay"],
+    "slow_down":    ["slower", "slow down", "speak slowly", "too fast"],
+    "speed_up":     ["faster", "speed up", "normal speed"],
+    "help":         ["help", "what can you do", "commands", "help me"],
+    "goodbye":      ["goodbye", "bye", "deactivate", "stop listening", "exit voice"]
+  },
+
+  "ui": {
+    "welcome":           "Jorinova activated. How can I help you?",
+    "welcome_slow":      "Jorinova … is … activated. … How can I help you?",
+    "listening":         "I am listening.",
+    "processing":        "Processing your request. Please wait.",
+    "understood":        "Understood.",
+    "not_understood":    "I did not understand that. Could you please repeat?",
+    "confirm_action":    "Please confirm: ",
+    "confirm_critical":  "This is a critical medical action. Are you sure you want to proceed? Say yes to confirm or no to cancel.",
+    "confirm_dangerous": "Warning. This action could have serious consequences. Please think carefully before proceeding. Say yes to confirm.",
+    "escalating":        "I am escalating this request to the Head of Department for authorization. They will be notified now.",
+    "escalated":         "Request sent to Head of Department. Please wait for their decision before proceeding.",
+    "escalation_blocked":"This action has been blocked. The Head of Department has been notified.",
+    "danger_warning":    "I must warn you. ",
+    "persist_warning":   "You are insisting on this action. I must now inform your department head.",
+    "offline_mode":      "System is running in offline mode. Basic functions are available.",
+    "repeat_prompt":     "Would you like me to repeat that?",
+    "last_repeated":     "Repeating my last response.",
+    "error":             "An error occurred. Please try again or contact your supervisor.",
+    "goodbye":           "Jorinova deactivated. Have a good session.",
+    "unauthorized":      "You do not have permission to perform this action.",
+    "serial_prompt":     "Please state your Nexus serial code.",
+    "serial_verified":   "Identity verified. You may now speak your command.",
+    "serial_failed":     "Serial code not recognised. Access denied.",
+    "slow_mode_on":      "Slow speech mode is now active. I will speak more slowly.",
+    "slow_mode_off":     "Returning to normal speech speed.",
+    "accessibility_on":  "Accessibility mode is now active. I will speak very slowly with pauses.",
+    "volume_up":         "Volume increased.",
+    "volume_down":       "Volume decreased.",
+    "language_changed":  "Language changed to English."
+  },
+
+  "medical_terms": {
+    "critical":     "critical",
+    "urgent":       "urgent",
+    "routine":      "routine",
+    "stat":         "stat",
+    "validate":     "validate",
+    "release":      "release result",
+    "archive":      "archive to critical book",
+    "panel":        "panel",
+    "result":       "result",
+    "sample":       "sample",
+    "patient":      "patient",
+    "report":       "report",
+    "inventory":    "inventory",
+    "blood_bank":   "blood bank",
+    "transfusion":  "transfusion"
+  },
+
+  "danger_phrases": {
+    "delete_result":     "deleting a laboratory result",
+    "modify_validated":  "modifying a validated result",
+    "bypass_validation": "bypassing validation",
+    "release_without_validation": "releasing a result without validation",
+    "bulk_export":       "bulk exporting patient data",
+    "override_critical": "overriding a critical value flag"
+  }
+}

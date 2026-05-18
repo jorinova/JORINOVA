@@ -1,0 +1,9 @@
+# Production-only additions
+gunicorn>=21.0          # Production WSGI server (replaces bare uvicorn)
+slowapi>=0.1.9          # Rate limiting
+pyotp>=2.9              # Real TOTP 2FA (RFC 6238)
+qrcode[pil]>=7.4        # QR code generation for 2FA setup
+weasyprint>=60.0        # PDF report generation
+africastalking>=1.0     # SMS (Rwanda MTN/Airtel via Africa's Talking)
+sentry-sdk[fastapi]>=1.40  # Error monitoring (optional — leave blank SENTRY_DSN to disable)
+psutil>=5.9             # System health metrics for admin dashboard

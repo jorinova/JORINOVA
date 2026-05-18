@@ -1,0 +1,101 @@
+{
+  "code": "fr",
+  "name": "French",
+  "name_local": "Français",
+  "flag": "🇫🇷",
+  "rtl": false,
+
+  "tts": {
+    "default_rate": 0.85,
+    "slow_rate": 0.60,
+    "accessibility_rate": 0.48,
+    "default_pitch": 1.0,
+    "slow_pitch": 0.95,
+    "default_volume": 0.95,
+    "pause_between_sentences_ms": 380,
+    "accessibility_pause_ms": 750,
+    "voice_preference": ["fr-FR", "fr-BE", "fr-CA", "fr-CH"],
+    "voice_name_hints": ["Google français", "Microsoft Julie", "Thomas", "Amelie"]
+  },
+
+  "stt": {
+    "whisper_code": "fr",
+    "browser_lang": "fr-FR",
+    "alt_langs": ["fr-BE", "fr-CH", "fr-CA"],
+    "confidence_threshold": 0.60
+  },
+
+  "wake_phrases": [
+    "bonjour jorinova", "salut jorinova", "jorinova",
+    "hé jorinova", "nexus", "alis x"
+  ],
+
+  "voice_commands": {
+    "confirm":      ["oui", "confirmer", "continuer", "d'accord", "c'est correct", "allez-y"],
+    "cancel":       ["non", "annuler", "arrêter", "ne pas", "pas du tout"],
+    "repeat":       ["répéter", "répétez", "pardon", "encore", "qu'avez-vous dit"],
+    "slow_down":    ["plus lentement", "ralentir", "trop vite", "parlez lentement"],
+    "speed_up":     ["plus vite", "vitesse normale", "accélérer"],
+    "help":         ["aide", "aidez-moi", "que pouvez-vous faire", "commandes"],
+    "goodbye":      ["au revoir", "désactiver", "arrêter l'écoute", "quitter la voix"]
+  },
+
+  "ui": {
+    "welcome":           "Jorinova activé. Comment puis-je vous aider?",
+    "welcome_slow":      "Jorinova … est … activé. … Comment puis-je vous aider?",
+    "listening":         "Je vous écoute.",
+    "processing":        "Traitement de votre demande. Veuillez patienter.",
+    "understood":        "Compris.",
+    "not_understood":    "Je n'ai pas compris. Pouvez-vous répéter s'il vous plaît?",
+    "confirm_action":    "Veuillez confirmer: ",
+    "confirm_critical":  "Ceci est une action médicale critique. Êtes-vous sûr de vouloir continuer? Dites oui pour confirmer ou non pour annuler.",
+    "confirm_dangerous": "Attention. Cette action peut avoir de graves conséquences. Veuillez réfléchir attentivement avant de continuer. Dites oui pour confirmer.",
+    "escalating":        "J'escalade cette demande au chef de département pour autorisation. Il sera notifié maintenant.",
+    "escalated":         "Demande envoyée au chef de département. Attendez sa décision avant de procéder.",
+    "escalation_blocked":"Cette action a été bloquée. Le chef de département a été notifié.",
+    "danger_warning":    "Je dois vous avertir. ",
+    "persist_warning":   "Vous insistez sur cette action. Je dois maintenant informer votre chef de département.",
+    "offline_mode":      "Le système fonctionne en mode hors ligne. Les fonctions de base sont disponibles.",
+    "repeat_prompt":     "Voulez-vous que je répète?",
+    "last_repeated":     "Je répète ma dernière réponse.",
+    "error":             "Une erreur s'est produite. Veuillez réessayer ou contacter votre superviseur.",
+    "goodbye":           "Jorinova désactivé. Bonne session.",
+    "unauthorized":      "Vous n'avez pas la permission d'effectuer cette action.",
+    "serial_prompt":     "Veuillez indiquer votre code série Nexus.",
+    "serial_verified":   "Identité vérifiée. Vous pouvez maintenant parler votre commande.",
+    "serial_failed":     "Code série non reconnu. Accès refusé.",
+    "slow_mode_on":      "Le mode parole lente est maintenant actif. Je parlerai plus lentement.",
+    "slow_mode_off":     "Retour à la vitesse de parole normale.",
+    "accessibility_on":  "Le mode accessibilité est maintenant actif. Je parlerai très lentement avec des pauses.",
+    "volume_up":         "Volume augmenté.",
+    "volume_down":       "Volume diminué.",
+    "language_changed":  "Langue changée en français."
+  },
+
+  "medical_terms": {
+    "critical":     "critique",
+    "urgent":       "urgent",
+    "routine":      "routine",
+    "stat":         "stat",
+    "validate":     "valider",
+    "release":      "libérer le résultat",
+    "archive":      "archiver au livre critique",
+    "panel":        "bilan",
+    "result":       "résultat",
+    "sample":       "échantillon",
+    "patient":      "patient",
+    "report":       "rapport",
+    "inventory":    "inventaire",
+    "blood_bank":   "banque de sang",
+    "transfusion":  "transfusion"
+  },
+
+  "danger_phrases": {
+    "delete_result":     "supprimer un résultat de laboratoire",
+    "modify_validated":  "modifier un résultat validé",
+    "bypass_validation": "contourner la validation",
+    "release_without_validation": "libérer un résultat sans validation",
+    "bulk_export":       "exportation en masse des données patients",
+    "override_critical": "ignorer un indicateur de valeur critique"
+  }
+}

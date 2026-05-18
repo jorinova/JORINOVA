@@ -421,7 +421,11 @@
         <td>${emergencyBadge(req.emergency_level)}</td>
         <td>${statusBadge(req.status)}</td>
         <td><span class="text-xs text-secondary-c">${fmt.datetime(req.request_date)}</span></td>
-        <td style="text-align:right">
+        <td style="text-align:right;white-space:nowrap">
+          ${req.status === 'pending' || req.status === 'submitted'
+            ? `<a href="/reception/worklist-prep/${req.id}" class="btn btn-sm" style="background:linear-gradient(135deg,#06b6d4,#0284c7);color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin-right:4px" title="Prepare Worklist"><i class="fas fa-vials"></i> Prep</a>`
+            : ''
+          }
           <a href="/patients/hub/?patient=${req.patient_pid}" class="btn btn-ghost btn-xs" title="View patient">
             <i class="fas fa-user"></i>
           </a>

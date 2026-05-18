@@ -5,194 +5,357 @@
 {% block module_id %}specimen-tracking{% endblock %}
 {% block nav_active_reception %}active{% endblock %}
 
-{% block module_css %}
+{% block head_extra %}
 <link rel="stylesheet" href="{% static 'modules/specimen_tracking/css/specimen_tracking.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 {% endblock %}
 
 {% block content %}
-<div class="spec-track-main">
+<div id="spec-app">
 
-  <header class="page-header">
-    <div class="page-header-left">
-      <div class="page-icon-wrap" style="background:rgba(0,230,200,0.09);border-color:rgba(0,230,200,0.22);color:#00E6C8">
-        <span style="font-size:20px">🏷️</span>
-      </div>
-      <div>
-        <h1 class="page-title">🏷️ Specimen Tracking &amp; Labeling</h1>
-        <div class="page-subtitle">{{ today|date:"l, d F Y" }} · Barcode Labels · Chain of Custody · AI Verification · QR Tracking</div>
-      </div>
+  <div class="dept-header spec-hdr">
+    <div class="dh-left">
+      <div class="dh-icon">🏷️</div>
+      <div><h1 class="dh-title">Specimen Tracking &amp; Chain of Custody</h1>
+        <div class="dh-sub">Real-time tracking · Chain of custody · Temperature monitoring · Transport · Storage · FEFO</div></div>
     </div>
-    <div class="page-header-right">
-      <button class="btn btn-primary btn-sm" id="scan-barcode-btn">📷 Scan Barcode</button>
+    <div class="dh-right">
+      <div class="dh-chip">📍 <span id="stat-in-transit">—</span> In Transit</div>
+      <div class="dh-chip danger">⚠️ <span id="stat-overdue">—</span> Overdue</div>
+      <div class="dh-badge">🔒 ISO 15189 Chain of Custody</div>
     </div>
-  </header>
-
-  <div class="tab-nav spec-tab-nav" role="tablist">
-    <button class="tab-btn active" data-pane="spec-labels-pane">🏷️ Print Labels</button>
-    <button class="tab-btn" data-pane="spec-tracking-pane">🔍 Track Sample</button>
-    <button class="tab-btn" data-pane="spec-custody-pane">⛓️ Chain of Custody</button>
-    <button class="tab-btn" data-pane="spec-rejection-pane">❌ Rejection Workflow</button>
-    <button class="tab-btn" data-pane="spec-ai-pane">🤖 AI Verification</button>
   </div>
 
-  <div class="spec-body">
+  <div class="dept-kpis">
+    <div class="kpi kpi-received"><div class="kpi-val" id="kpi-received">—</div><div class="kpi-lbl">Received Today</div></div>
+    <div class="kpi kpi-in-lab"><div class="kpi-val" id="kpi-in-lab">—</div><div class="kpi-lbl">In Lab (processing)</div></div>
+    <div class="kpi kpi-transit"><div class="kpi-val" id="kpi-transit">—</div><div class="kpi-lbl">In Transit</div></div>
+    <div class="kpi kpi-storage"><div class="kpi-val" id="kpi-storage">—</div><div class="kpi-lbl">In Storage</div></div>
+    <div class="kpi kpi-disposed"><div class="kpi-val" id="kpi-disposed">—</div><div class="kpi-lbl">Disposed Today</div></div>
+  </div>
 
-    <!-- ══ PRINT LABELS ══ -->
-    <div class="tab-pane active" id="spec-labels-pane">
-      <div style="display:grid;grid-template-columns:350px 1fr;min-height:calc(100vh - 180px)">
-        <div style="border-right:1px solid var(--border-dim);padding:var(--space-xl);display:flex;flex-direction:column;gap:var(--space-md)">
-          <div style="font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;color:var(--text-primary)">🏷️ Label Generator</div>
-          <div class="form-group"><label class="form-label">🔖 Lab Request ID</label>
-            <input type="text" class="form-input" id="label-lab-id" placeholder="Scan or enter Lab ID…"></div>
-          <div class="form-group"><label class="form-label">📐 Label Size</label>
-            <select class="form-input" id="label-size">
-              <option value="standard">Standard 50×25mm (Tube)</option>
-              <option value="large">Large 75×35mm (Container)</option>
-              <option value="small">Small 35×15mm (Micro-tube)</option>
-            </select>
-          </div>
-          <div class="form-group"><label class="form-label">📱 Barcode Type</label>
-            <select class="form-input" id="label-barcode-type">
-              <option value="code128">Code 128 (Standard)</option>
-              <option value="qr">QR Code (Full data)</option>
-              <option value="datamatrix">DataMatrix (Compact)</option>
-            </select>
-          </div>
-          <div class="form-group"><label class="form-label">🖨️ Copies</label>
-            <input type="number" class="form-input" id="label-copies" value="1" min="1" max="10"></div>
-          <div style="background:var(--bg-glass);border:1px solid var(--border-dim);border-radius:var(--radius-md);padding:var(--space-md)">
-            <label style="display:flex;align-items:center;gap:var(--space-sm);cursor:pointer;font-size:var(--text-xs)">
-              <input type="checkbox" id="label-ai-verify" checked> 🤖 AI specimen verification before printing
-            </label>
-          </div>
-          <button class="btn btn-primary" id="generate-labels-btn">🏷️ Generate &amp; Print Labels</button>
-          <button class="btn btn-ghost btn-sm" id="demo-label-btn">👁️ Preview Demo Label</button>
-        </div>
+  <nav class="dept-tabs">
+    <button class="dt active" data-tab="dashboard">📊 Dashboard</button>
+    <button class="dt" data-tab="tracking">📍 Live Tracking</button>
+    <button class="dt" data-tab="transport">🚗 Transport &amp; Routing</button>
+    <button class="dt" data-tab="storage">🧊 Storage &amp; FEFO</button>
+    <button class="dt" data-tab="custody">🔗 Chain of Custody</button>
+    <button class="dt" data-tab="temperature">🌡️ Temperature Monitor</button>
+    <button class="dt" data-tab="disposal">♻️ Disposal Log</button>
+  </nav>
 
-        <!-- Label preview area -->
-        <div style="padding:var(--space-xl)">
-          <div style="font-family:var(--font-display);font-size:var(--text-sm);font-weight:700;color:var(--text-primary);margin-bottom:var(--space-lg)">Preview</div>
-          <div id="label-preview-area">
-            <div class="empty-state"><div style="font-size:40px">🏷️</div><p>Enter a Lab Request ID to generate specimen labels</p></div>
-          </div>
-        </div>
-      </div>
+  <!-- ══ DASHBOARD ════════════════════════════════════════════════ -->
+  <div class="dept-pane active" id="tab-dashboard">
+    <!-- Sample journey visualization -->
+    <div class="journey-strip">
+      <div class="j-step j-active"><div class="j-icon">🩸</div><div class="j-name">Collection</div><div class="j-cnt" id="j-collection">—</div></div>
+      <div class="j-arrow">→</div>
+      <div class="j-step"><div class="j-icon">🚗</div><div class="j-name">Transport</div><div class="j-cnt" id="j-transport">—</div></div>
+      <div class="j-arrow">→</div>
+      <div class="j-step"><div class="j-icon">📥</div><div class="j-name">Reception</div><div class="j-cnt" id="j-reception">—</div></div>
+      <div class="j-arrow">→</div>
+      <div class="j-step"><div class="j-icon">🔬</div><div class="j-name">Analysis</div><div class="j-cnt" id="j-analysis">—</div></div>
+      <div class="j-arrow">→</div>
+      <div class="j-step"><div class="j-icon">✅</div><div class="j-name">Validated</div><div class="j-cnt" id="j-validated">—</div></div>
+      <div class="j-arrow">→</div>
+      <div class="j-step"><div class="j-icon">🧊</div><div class="j-name">Stored</div><div class="j-cnt" id="j-stored">—</div></div>
+      <div class="j-arrow">→</div>
+      <div class="j-step"><div class="j-icon">♻️</div><div class="j-name">Disposed</div><div class="j-cnt" id="j-disposed">—</div></div>
     </div>
 
-    <!-- ══ TRACK SAMPLE ══ -->
-    <div class="tab-pane" id="spec-tracking-pane">
-      <div style="padding:var(--space-xl)">
-        <div style="max-width:500px;margin:0 auto 0 0">
-          <div style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary);margin-bottom:var(--space-md)">🔍 Sample Status Tracker</div>
-          <div style="display:flex;gap:var(--space-sm);margin-bottom:var(--space-xl)">
-            <input type="text" class="form-input" id="track-input" placeholder="Scan or enter Sample ID / Barcode / Lab ID…" style="flex:1">
-            <button class="btn btn-primary" id="track-btn">🔍 Track</button>
-          </div>
-        </div>
-        <div id="track-result"></div>
-
-        <!-- Current worklist samples -->
-        <div style="margin-top:var(--space-xl)">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:var(--space-md)">📋 Today's Active Samples</div>
-          <table class="nx-table">
-            <thead><tr><th>Sample ID</th><th>Patient</th><th>Department</th><th>Tube</th><th>Current Status</th><th>TAT</th><th>Location</th></tr></thead>
-            <tbody id="active-samples-tbody"></tbody>
-          </table>
-        </div>
+    <div class="spec-dash-row">
+      <div class="spec-chart-box"><div class="box-title">Sample Volume by Status — Today</div><canvas id="spec-chart" height="200"></canvas></div>
+      <div class="spec-overdue-box">
+        <div class="box-title">⚠️ Overdue / At-Risk Specimens</div>
+        <div id="spec-overdue-list"><div class="dept-empty">Loading…</div></div>
       </div>
     </div>
+  </div>
 
-    <!-- ══ CHAIN OF CUSTODY ══ -->
-    <div class="tab-pane" id="spec-custody-pane">
-      <div style="padding:var(--space-xl)">
-        <div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-lg)">
-          <input type="text" class="form-input" id="custody-sample-id" placeholder="Enter Sample ID to view custody chain…" style="max-width:320px">
-          <button class="btn btn-primary" id="custody-load-btn">⛓️ Load Chain</button>
-        </div>
-        <div id="custody-chain"></div>
-
-        <!-- Recent custody events -->
-        <div style="margin-top:var(--space-xl)">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:var(--space-md)">📋 Recent Custody Events</div>
-          <table class="nx-table">
-            <thead><tr><th>Sample ID</th><th>Event</th><th>Location</th><th>By</th><th>Shift</th><th>Device</th><th>Time</th></tr></thead>
-            <tbody id="custody-events-tbody"></tbody>
-          </table>
-        </div>
+  <!-- ══ LIVE TRACKING ════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-tracking">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <input type="text" class="dept-search" id="track-search" placeholder="SID, barcode, patient PID…" oninput="loadTracking()">
+        <select id="track-status-f" onchange="loadTracking()">
+          <option value="">All Status</option>
+          <option value="COLLECTED">Collected</option>
+          <option value="IN_TRANSIT">In Transit</option>
+          <option value="RECEIVED">Received at Lab</option>
+          <option value="PROCESSING">Processing / Analysis</option>
+          <option value="VALIDATED">Validated</option>
+          <option value="STORED">In Storage</option>
+          <option value="DISPOSED">Disposed</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+        <select id="track-dept-f" onchange="loadTracking()">
+          <option value="">All Departments</option>
+          <option value="HEM">Hematology</option>
+          <option value="BIOCHEM">Biochemistry</option>
+          <option value="MICRO">Microbiology</option>
+          <option value="COAG">Coagulation</option>
+          <option value="BLOOD_BANK">Blood Bank</option>
+        </select>
+        <input type="date" id="track-date-f" onchange="loadTracking()">
+      </div>
+      <div class="dept-toolbar-right">
+        <button class="dept-print-btn" onclick="NexusPrint?.printAll('track-table')">🖨️</button>
+        <button class="dept-filter-btn" onclick="NexusFilter?.open('track-table')">⚙️</button>
+        <button class="btn-primary" onclick="openModal('track-modal')">🔍 Locate Sample</button>
       </div>
     </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="track-table">
+        <thead><tr><th>SID / Barcode</th><th>Patient / PID</th><th>Tube Type</th>
+          <th>Department</th><th>Current Location</th><th>Status</th>
+          <th>Collected At</th><th>Received At</th><th>TAT Start</th>
+          <th>TAT Elapsed</th><th>Temperature</th><th>Handler</th><th>Actions</th></tr></thead>
+        <tbody id="track-tbody"><tr><td colspan="13" class="dept-empty">Loading specimen tracking…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
 
-    <!-- ══ REJECTION WORKFLOW ══ -->
-    <div class="tab-pane" id="spec-rejection-pane">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-xl);padding:var(--space-xl)">
-        <div>
-          <div style="font-family:var(--font-display);font-size:var(--text-lg);color:var(--text-primary);margin-bottom:var(--space-lg)">❌ Reject Sample</div>
-          <div style="display:flex;flex-direction:column;gap:var(--space-md)">
-            <div class="form-group"><label class="form-label">Sample ID / Barcode</label>
-              <input type="text" class="form-input" id="rej-sample-id" placeholder="Scan barcode…"></div>
-            <div class="form-group"><label class="form-label">Rejection Reason</label>
-              <select class="form-input" id="rej-reason">
-                <option value="">Select reason…</option>
-                <option value="haemolysed">🔴 Haemolysed</option>
-                <option value="clotted">🩸 Clotted</option>
-                <option value="insufficient">📉 Insufficient Volume</option>
-                <option value="wrong_tube">🧪 Wrong Tube Type</option>
-                <option value="unlabeled">🏷️ Unlabeled / Mislabeled</option>
-                <option value="contaminated">☣️ Contaminated</option>
-                <option value="expired">⏰ Expired / Delayed (&gt;24h)</option>
-                <option value="lipemic">🍥 Lipemic</option>
-                <option value="temp_deviation">🌡️ Temperature Deviation (Cold-chain breach)</option>
-                <option value="wrong_patient">⚠️ Patient ID Mismatch</option>
-                <option value="leaking">💧 Leaking Container</option>
-              </select>
-            </div>
-            <div class="form-group"><label class="form-label">Rejection Details</label>
-              <textarea class="form-input fi fi-ta" id="rej-details" rows="3" placeholder="Describe the issue in detail…"></textarea>
-            </div>
-            <label style="display:flex;align-items:center;gap:var(--space-sm);cursor:pointer;font-size:var(--text-xs);padding:var(--space-sm) var(--space-md);background:var(--bg-glass);border:1px solid var(--border-dim);border-radius:var(--radius-md)">
-              <input type="checkbox" id="rej-recollect" checked> ♻️ Notify requesting doctor for recollection
-            </label>
-            <button class="btn btn-danger" id="rej-submit-btn">❌ Reject Sample</button>
-          </div>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:var(--space-md)">📊 Rejections Today</div>
-          <table class="nx-table">
-            <thead><tr><th>Sample</th><th>Reason</th><th>AI Flag</th><th>Time</th><th>Notified</th></tr></thead>
-            <tbody id="rejections-tbody"></tbody>
-          </table>
-        </div>
+  <!-- ══ TRANSPORT ════════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-transport">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="transport-status-f" onchange="loadTransport()">
+          <option value="">All Transport Status</option>
+          <option value="SCHEDULED">Scheduled</option>
+          <option value="IN_TRANSIT">In Transit</option>
+          <option value="DELIVERED">Delivered</option>
+          <option value="DELAYED">Delayed ⚠️</option>
+          <option value="FAILED">Failed ❌</option>
+        </select>
+        <select id="transport-route-f" onchange="loadTransport()">
+          <option value="">All Routes</option>
+          <option value="INTERNAL">Internal (ward → lab)</option>
+          <option value="EXTERNAL">External (clinic → hospital)</option>
+          <option value="INTER_HOSPITAL">Inter-hospital</option>
+          <option value="DRONE">Drone/RBC delivery</option>
+        </select>
+        <input type="date" id="transport-date-f" onchange="loadTransport()">
+      </div>
+      <button class="btn-primary" onclick="openModal('transport-modal')">+ New Transport Request</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="transport-table">
+        <thead><tr><th>Transport ID</th><th>Specimens</th><th>Route</th>
+          <th>From</th><th>To</th><th>Courier</th>
+          <th>Departed</th><th>ETA</th><th>Arrived</th>
+          <th>Temperature Box</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="transport-tbody"><tr><td colspan="12" class="dept-empty">Loading transport records…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ STORAGE & FEFO ═══════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-storage">
+    <div class="fefo-info-bar">
+      ❄️ <strong>FEFO (First Expired, First Out):</strong> System automatically orders specimens for retrieval by expiry date.
+      Specimens approaching disposal date are flagged 48h before required disposal.
+    </div>
+    <div class="storage-location-grid">
+      <div class="storage-unit"><div class="su-name">🧊 Refrigerator 1 (4°C)</div><div class="su-capacity">Capacity: 72%</div><div class="su-count">48 specimens</div></div>
+      <div class="storage-unit"><div class="su-name">❄️ Freezer 1 (−20°C)</div><div class="su-capacity">Capacity: 45%</div><div class="su-count">32 specimens</div></div>
+      <div class="storage-unit"><div class="su-name">🥶 Deep Freeze (−80°C)</div><div class="su-capacity">Capacity: 28%</div><div class="su-count">14 specimens</div></div>
+      <div class="storage-unit"><div class="su-name">🌡️ Room Temp (18–25°C)</div><div class="su-capacity">Capacity: 60%</div><div class="su-count">22 specimens</div></div>
+    </div>
+    <div class="dept-toolbar" style="margin-top:.75rem">
+      <div class="dept-filters">
+        <select id="storage-unit-f" onchange="loadStorage()">
+          <option value="">All Storage Units</option>
+          <option value="FRIDGE_1">Refrigerator 1 (4°C)</option>
+          <option value="FREEZER_1">Freezer 1 (−20°C)</option>
+          <option value="DEEP_FREEZE">Deep Freeze (−80°C)</option>
+          <option value="ROOM_TEMP">Room Temperature</option>
+        </select>
+        <select id="storage-expiry-f" onchange="loadStorage()">
+          <option value="">All Specimens</option>
+          <option value="EXPIRING_TODAY">Expiring Today</option>
+          <option value="EXPIRING_48H">Expiring within 48 h</option>
+          <option value="EXPIRING_WEEK">Expiring this week</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openModal('storage-modal')">+ Record Storage</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="storage-table">
+        <thead><tr><th>SID</th><th>Patient</th><th>Specimen Type</th>
+          <th>Storage Unit</th><th>Position / Slot</th><th>Stored At</th>
+          <th>Retention Period</th><th>Disposal Due</th><th>FEFO Rank</th>
+          <th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="storage-tbody"><tr><td colspan="11" class="dept-empty">Loading storage records…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ CHAIN OF CUSTODY ══════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-custody">
+    <div class="custody-intro">
+      🔗 <strong>Chain of Custody:</strong> Every specimen handover is recorded.
+      This creates a legally defensible record of who handled each specimen, when, and where.
+      Required for medico-legal, forensic, and regulatory specimens.
+    </div>
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <input type="text" class="dept-search" id="coc-sid" placeholder="SID or barcode…" oninput="loadCOC()">
+        <select id="coc-type-f" onchange="loadCOC()">
+          <option value="">All Events</option>
+          <option value="COLLECTED">Collected</option>
+          <option value="HANDED_OVER">Handed Over</option>
+          <option value="RECEIVED">Received</option>
+          <option value="STORED">Stored</option>
+          <option value="RETRIEVED">Retrieved from Storage</option>
+          <option value="DISPOSED">Disposed</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openModal('coc-modal')">+ Record Handover</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="coc-table">
+        <thead><tr><th>Timestamp</th><th>SID</th><th>Event</th>
+          <th>Location (From → To)</th><th>Handed By</th><th>Received By</th>
+          <th>Signature</th><th>Witness</th><th>Notes</th></tr></thead>
+        <tbody id="coc-tbody"><tr><td colspan="9" class="dept-empty">Enter a SID to view chain of custody history.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ TEMPERATURE MONITOR ══════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-temperature">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="temp-unit-f" onchange="loadTemp()">
+          <option value="">All Units</option>
+          <option value="FRIDGE_1">Refrigerator 1</option>
+          <option value="FREEZER_1">Freezer 1</option>
+          <option value="DEEP_FREEZE">Deep Freeze</option>
+        </select>
+        <select id="temp-period-f" onchange="loadTemp()">
+          <option value="24H">Last 24 hours</option>
+          <option value="7D">Last 7 days</option>
+          <option value="30D">Last 30 days</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openModal('temp-modal')">+ Record Reading</button>
+    </div>
+    <div class="temp-chart-area">
+      <canvas id="temp-chart" height="220"></canvas>
+    </div>
+    <div class="tox-table-wrap" style="margin-top:1rem">
+      <table class="dept-table" id="temp-table">
+        <thead><tr><th>Timestamp</th><th>Storage Unit</th><th>Temperature (°C)</th>
+          <th>Target Range</th><th>Status</th><th>Recorded By</th><th>Alert Sent</th></tr></thead>
+        <tbody id="temp-tbody"><tr><td colspan="7" class="dept-empty">Loading temperature log…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ DISPOSAL LOG ══════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-disposal">
+    <div class="disposal-info-bar">
+      ♻️ <strong>Specimen Disposal:</strong> Biological specimens must be disposed of as clinical waste (Category B).
+      All disposals are permanently recorded and cannot be deleted. Retention periods are defined by policy.
+    </div>
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="disp-method-f" onchange="loadDisposal()">
+          <option value="">All Methods</option>
+          <option value="AUTOCLAVE">Autoclave (steam sterilisation)</option>
+          <option value="INCINERATION">Incineration</option>
+          <option value="CHEMICAL">Chemical disinfection</option>
+        </select>
+        <input type="date" id="disp-date-f" onchange="loadDisposal()">
+      </div>
+      <div class="dept-toolbar-right">
+        <button class="dept-print-btn" onclick="NexusPrint?.printAll('disp-table')">🖨️</button>
+        <button class="btn-primary" onclick="openModal('disp-modal')">+ Record Disposal</button>
       </div>
     </div>
-
-    <!-- ══ AI VERIFICATION ══ -->
-    <div class="tab-pane" id="spec-ai-pane">
-      <div style="max-width:900px;margin:0 auto;padding:var(--space-xl)">
-        <div style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary);margin-bottom:var(--space-sm)">🤖 AI Specimen Verification</div>
-        <div style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-xl)">AI analyses specimen photos to detect haemolysis, lipemia, clotting, insufficient volume, and tube mismatch before processing.</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-xl)">
-          <div>
-            <div class="smear-upload-zone" id="spec-ai-upload" style="border:2px dashed var(--border-mid);border-radius:var(--radius-lg);padding:var(--space-xl);text-align:center;cursor:pointer">
-              <div style="font-size:40px">📷</div>
-              <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-top:var(--space-sm)">Drop specimen photo here</div>
-              <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:4px">JPEG · PNG · Camera capture</div>
-              <button class="btn btn-ghost btn-sm" style="margin-top:var(--space-sm)">📁 Browse or Capture</button>
-            </div>
-            <div class="form-group" style="margin-top:var(--space-md)"><label class="form-label">Sample ID (optional)</label>
-              <input type="text" class="form-input" id="ai-verify-sample" placeholder="Link to sample ID…"></div>
-            <button class="btn btn-primary" id="ai-verify-btn" style="width:100%;margin-top:var(--space-sm)">🤖 Run AI Verification</button>
-          </div>
-          <div id="ai-verify-result">
-            <div class="empty-state"><div style="font-size:40px">🤖</div><p>Upload a specimen photo to run AI quality assessment</p></div>
-          </div>
-        </div>
-      </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="disp-table">
+        <thead><tr><th>Disposal ID</th><th>Date / Time</th><th>Specimens (count)</th>
+          <th>Method</th><th>Batch / Bag #</th><th>Disposal Officer</th>
+          <th>Witness</th><th>Temperature Achieved (°C)</th><th>Certificate #</th></tr></thead>
+        <tbody id="disp-tbody"><tr><td colspan="9" class="dept-empty">Loading disposal log…</td></tr></tbody>
+      </table>
     </div>
+  </div>
 
-  </div><!-- /spec-body -->
+</div><!-- /#spec-app -->
+
+<!-- ═══ MODALS ════════════════════════════════════════════════ -->
+<div class="dept-modal-overlay" id="track-modal" style="display:none">
+  <div class="dept-modal">
+    <div class="dept-modal-hdr"><h3>🔍 Locate Sample</h3><button onclick="closeModal('track-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-row"><label>SID / Barcode</label><input type="text" id="locate-sid" placeholder="Scan or type SID…" autofocus></div>
+      <div id="locate-result" style="margin-top:.75rem;min-height:80px;border:1px solid #e9ecef;border-radius:8px;padding:.75rem;display:flex;align-items:center;justify-content:center;color:#6c757d">Result will appear here…</div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('track-modal')">Close</button><button class="btn-primary" onclick="locateSample()">🔍 Find Sample</button></div>
+  </div>
 </div>
-{% endblock %}
 
-{% block module_scripts %}
+<div class="dept-modal-overlay" id="transport-modal" style="display:none">
+  <div class="dept-modal dept-modal-wide">
+    <div class="dept-modal-hdr"><h3>🚗 New Transport Request</h3><button onclick="closeModal('transport-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Specimen SIDs (comma-separated)</label><input type="text" id="tmod-sids" placeholder="SID-001, SID-002…"></div>
+        <div class="dept-form-row"><label>Route Type</label>
+          <select id="tmod-route"><option value="INTERNAL">Internal (ward → lab)</option><option value="EXTERNAL">External (clinic → hospital)</option><option value="INTER_HOSPITAL">Inter-hospital</option><option value="DRONE">Drone / RBC</option></select></div>
+        <div class="dept-form-row"><label>From (Collection Point)</label><input type="text" id="tmod-from" placeholder="Ward / Clinic / Hospital name"></div>
+        <div class="dept-form-row"><label>To (Destination)</label><input type="text" id="tmod-to" placeholder="Laboratory / Hospital"></div>
+        <div class="dept-form-row"><label>Courier / Driver</label><input type="text" id="tmod-courier"></div>
+        <div class="dept-form-row"><label>Temperature Box Required</label>
+          <select id="tmod-temp-box"><option value="AMBIENT">Ambient (room temp)</option><option value="COOLED">Cooled (4°C)</option><option value="FROZEN">Frozen (−20°C)</option></select></div>
+        <div class="dept-form-row"><label>Expected Arrival</label><input type="datetime-local" id="tmod-eta"></div>
+        <div class="dept-form-row full-col"><label>Notes</label><textarea id="tmod-notes" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('transport-modal')">Cancel</button><button class="btn-primary" onclick="submitTransport()">Create Transport</button></div>
+  </div>
+</div>
+
+<div class="dept-modal-overlay" id="coc-modal" style="display:none">
+  <div class="dept-modal">
+    <div class="dept-modal-hdr"><h3>🔗 Record Specimen Handover</h3><button onclick="closeModal('coc-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>SID / Barcode</label><input type="text" id="coc-sid-m" placeholder="Scan barcode…"></div>
+        <div class="dept-form-row"><label>Event Type</label>
+          <select id="coc-event-m"><option value="HANDED_OVER">Handed Over</option><option value="RECEIVED">Received</option><option value="STORED">Stored</option><option value="RETRIEVED">Retrieved</option></select></div>
+        <div class="dept-form-row"><label>Handed By</label><input type="text" id="coc-from-m"></div>
+        <div class="dept-form-row"><label>Received By</label><input type="text" id="coc-to-m"></div>
+        <div class="dept-form-row"><label>From Location</label><input type="text" id="coc-from-loc" placeholder="Ward, department, storage unit"></div>
+        <div class="dept-form-row"><label>To Location</label><input type="text" id="coc-to-loc" placeholder="Lab section, refrigerator, etc."></div>
+        <div class="dept-form-row full-col"><label>Notes</label><textarea id="coc-notes-m" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('coc-modal')">Cancel</button><button class="btn-primary" onclick="submitCOC()">Record Handover</button></div>
+  </div>
+</div>
+
+<div class="dept-modal-overlay" id="disp-modal" style="display:none">
+  <div class="dept-modal">
+    <div class="dept-modal-hdr"><h3>♻️ Record Specimen Disposal</h3><button onclick="closeModal('disp-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Disposal Date / Time</label><input type="datetime-local" id="disp-datetime"></div>
+        <div class="dept-form-row"><label>Specimens Count</label><input type="number" id="disp-count" min="1"></div>
+        <div class="dept-form-row"><label>Disposal Method</label>
+          <select id="disp-method-m"><option value="AUTOCLAVE">Autoclave (121°C, 15 min)</option><option value="INCINERATION">Incineration</option><option value="CHEMICAL">Chemical disinfection</option></select></div>
+        <div class="dept-form-row"><label>Batch / Biohazard Bag #</label><input type="text" id="disp-batch"></div>
+        <div class="dept-form-row"><label>Temperature Achieved (°C)</label><input type="number" id="disp-temp" placeholder="e.g. 121"></div>
+        <div class="dept-form-row"><label>Disposal Officer</label><input type="text" id="disp-officer"></div>
+        <div class="dept-form-row"><label>Witness</label><input type="text" id="disp-witness"></div>
+        <div class="dept-form-row"><label>Certificate Number</label><input type="text" id="disp-cert" placeholder="Waste disposal certificate #"></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('disp-modal')">Cancel</button><button class="btn-danger" onclick="submitDisposal()">♻️ Record Disposal</button></div>
+  </div>
+</div>
+
 <script src="{% static 'modules/specimen_tracking/js/specimen_tracking.js' %}" defer></script>
 {% endblock %}

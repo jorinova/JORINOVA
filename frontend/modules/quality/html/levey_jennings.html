@@ -1,0 +1,273 @@
+{% extends "shared/html/base.html" %}
+{% load static %}
+
+{% block title %}Levey-Jennings QC Chart — NEXUS ALIS-X{% endblock %}
+{% block module_id %}quality{% endblock %}
+{% block nav_active_quality %}active{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'modules/quality/css/levey_jennings.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+{% endblock %}
+
+{% block content %}
+<div class="lj-main">
+
+  <!-- ══ Header ══ -->
+  <div class="lc-header">
+    <div class="lc-header-left">
+      <i class="fas fa-chart-line lc-header-icon" style="color:#0891b2"></i>
+      <div>
+        <div class="lc-header-title">Levey-Jennings QC Chart</div>
+        <div class="lc-header-sub">ISO 15189:2022 · Westgard Multi-Rules · IQC Surveillance</div>
+      </div>
+    </div>
+    <div class="lc-header-right">
+      <span class="lj-run-badge" id="run-decision-badge">—</span>
+      <button class="btn btn-primary btn-sm" onclick="loadChart()">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="exportChart()">
+        <i class="fas fa-download"></i> Export PNG
+      </button>
+      <a href="/quality/" class="btn btn-ghost btn-sm">
+        <i class="fas fa-arrow-left"></i> QC Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- ══ Controls ══ -->
+  <div class="lj-controls">
+    <div class="lj-ctrl-group">
+      <label class="lj-label">Department</label>
+      <select id="ctrl-dept" class="lj-select" onchange="loadAnalytes()">
+        <option value="biochemistry">Biochemistry / Chemistry</option>
+        <option value="hematology">Hematology</option>
+        <option value="coagulation">Coagulation</option>
+        <option value="urinalysis">Urinalysis</option>
+        <option value="microbiology">Microbiology</option>
+        <option value="serology">Serology / Immunology</option>
+        <option value="molecular">Molecular</option>
+      </select>
+    </div>
+    <div class="lj-ctrl-group">
+      <label class="lj-label">Analyte</label>
+      <select id="ctrl-analyte" class="lj-select">
+        <option value="">— Select analyte —</option>
+      </select>
+    </div>
+    <div class="lj-ctrl-group">
+      <label class="lj-label">Control Level</label>
+      <select id="ctrl-level" class="lj-select">
+        <option value="L1">Level 1 (Low)</option>
+        <option value="L2">Level 2 (Normal)</option>
+        <option value="L3">Level 3 (High)</option>
+      </select>
+    </div>
+    <div class="lj-ctrl-group">
+      <label class="lj-label">Period</label>
+      <select id="ctrl-days" class="lj-select">
+        <option value="7">Last 7 days</option>
+        <option value="14">Last 14 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="60">Last 60 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="loadChart()" id="btn-load">
+      <i class="fas fa-chart-line"></i> Plot Chart
+    </button>
+    <button class="btn btn-ghost btn-sm" onclick="openEntryModal()">
+      <i class="fas fa-plus"></i> Add QC Run
+    </button>
+  </div>
+
+  <!-- ══ KPI strip ══ -->
+  <div class="lj-kpi-strip" id="lj-kpi" style="display:none">
+    <div class="lj-kpi kpi-cyan">
+      <div class="lj-kpi-val" id="kpi-n">—</div>
+      <div class="lj-kpi-lbl">QC Runs</div>
+    </div>
+    <div class="lj-kpi kpi-green">
+      <div class="lj-kpi-val" id="kpi-pass">—</div>
+      <div class="lj-kpi-lbl">Pass Rate</div>
+    </div>
+    <div class="lj-kpi kpi-blue">
+      <div class="lj-kpi-val" id="kpi-cv">—</div>
+      <div class="lj-kpi-lbl">CV%</div>
+    </div>
+    <div class="lj-kpi kpi-orange">
+      <div class="lj-kpi-val" id="kpi-mean">—</div>
+      <div class="lj-kpi-lbl">Actual Mean</div>
+    </div>
+    <div class="lj-kpi kpi-purple">
+      <div class="lj-kpi-val" id="kpi-sd">—</div>
+      <div class="lj-kpi-lbl">Actual SD</div>
+    </div>
+    <div class="lj-kpi kpi-red">
+      <div class="lj-kpi-val" id="kpi-violations">—</div>
+      <div class="lj-kpi-lbl">Violations</div>
+    </div>
+  </div>
+
+  <!-- ══ Chart area ══ -->
+  <div class="lj-chart-section" id="lj-chart-section">
+
+    <!-- Empty state -->
+    <div class="lj-empty" id="lj-empty">
+      <i class="fas fa-chart-line lj-empty-icon"></i>
+      <div class="lj-empty-title">Select analyte and click Plot Chart</div>
+      <div class="lj-empty-sub">
+        Supports all 6 Westgard rules: 1-2s · 1-3s · 2-2s · R-4s · 4-1s · 10x
+      </div>
+    </div>
+
+    <!-- Chart canvas -->
+    <div class="lj-canvas-wrap" id="lj-canvas-wrap" style="display:none">
+      <canvas id="lj-canvas"></canvas>
+    </div>
+
+    <!-- SD reference legend -->
+    <div class="lj-sd-legend" id="lj-sd-legend" style="display:none">
+      <span class="lj-sd-item lj3"><span class="lj-sd-dot"></span>±3 SD (REJECT)</span>
+      <span class="lj-sd-item lj2"><span class="lj-sd-dot"></span>±2 SD (WARNING)</span>
+      <span class="lj-sd-item lj1"><span class="lj-sd-dot"></span>±1 SD</span>
+      <span class="lj-sd-item ljm"><span class="lj-sd-dot"></span>Mean</span>
+      <span class="lj-sd-item ljpass"><span class="lj-sd-dot"></span>PASS</span>
+      <span class="lj-sd-item ljwarn"><span class="lj-sd-dot"></span>WARNING</span>
+      <span class="lj-sd-item ljreject"><span class="lj-sd-dot"></span>REJECT</span>
+    </div>
+
+  </div><!-- /chart-section -->
+
+  <!-- ══ Westgard violations panel ══ -->
+  <div class="lj-violations" id="lj-violations" style="display:none">
+    <div class="lj-violations-header">
+      <i class="fas fa-triangle-exclamation"></i>
+      Westgard Rule Violations
+    </div>
+    <div id="lj-violations-list"></div>
+  </div>
+
+  <!-- ══ Run Decision Banner ══ -->
+  <div class="lj-decision" id="lj-decision" style="display:none">
+    <div class="lj-decision-icon" id="lj-decision-icon"></div>
+    <div>
+      <div class="lj-decision-title" id="lj-decision-title">—</div>
+      <div class="lj-decision-sub"  id="lj-decision-sub">—</div>
+    </div>
+  </div>
+
+  <!-- ══ Data table ══ -->
+  <div class="lj-table-wrap" id="lj-table-wrap" style="display:none">
+    <div class="lj-table-header">
+      <span><i class="fas fa-table"></i> QC Run Data</span>
+      <button class="btn btn-ghost btn-sm" onclick="toggleTable()" id="btn-toggle-table">
+        <i class="fas fa-eye-slash"></i> Hide Table
+      </button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="lj-table" id="lj-data-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Date</th><th>Value</th><th>Unit</th>
+            <th>Z-Score</th><th>Status</th><th>Westgard Rule</th>
+            <th>Operator</th><th>Analyzer</th>
+          </tr>
+        </thead>
+        <tbody id="lj-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /lj-main -->
+
+<!-- ══ QC Entry Modal ══ -->
+<div class="modal-overlay" id="qc-entry-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h3 class="modal-title"><i class="fas fa-flask"></i> Add QC Run</h3>
+      <button class="btn-icon" onclick="closeEntryModal()"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Analyte Code</label>
+          <input type="text" id="entry-analyte-code" class="field-input" placeholder="e.g. GLUCOSE">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Analyte Name</label>
+          <input type="text" id="entry-analyte-name" class="field-input" placeholder="e.g. Glucose">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Control Level</label>
+          <select id="entry-level" class="field-input">
+            <option value="L1">L1 — Low</option>
+            <option value="L2">L2 — Normal</option>
+            <option value="L3">L3 — High</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Department</label>
+          <select id="entry-dept" class="field-input">
+            <option value="biochemistry">Biochemistry</option>
+            <option value="hematology">Hematology</option>
+            <option value="coagulation">Coagulation</option>
+            <option value="urinalysis">Urinalysis</option>
+            <option value="serology">Serology</option>
+            <option value="molecular">Molecular</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Target Mean</label>
+          <input type="number" id="entry-mean" class="field-input" placeholder="5.5" step="0.01">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Target SD</label>
+          <input type="number" id="entry-sd" class="field-input" placeholder="0.2" step="0.01">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Result Value</label>
+          <input type="number" id="entry-value" class="field-input" placeholder="5.6" step="0.01">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Unit</label>
+          <input type="text" id="entry-unit" class="field-input" placeholder="mmol/L">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">Lot Number</label>
+          <input type="text" id="entry-lot" class="field-input" placeholder="LOT-2026-001">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Analyzer</label>
+          <input type="text" id="entry-analyzer" class="field-input" placeholder="e.g. Cobas c501">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Run Date</label>
+        <input type="date" id="entry-date" class="field-input">
+      </div>
+      <div id="entry-result" style="display:none;margin-top:.75rem"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeEntryModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitQCRun()">
+        <i class="fas fa-check"></i> Save QC Run
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="{% static 'shared/js/nexus-core.js' %}"></script>
+<script src="{% static 'modules/quality/js/levey_jennings.js' %}"></script>
+{% endblock %}

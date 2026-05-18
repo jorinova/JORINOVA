@@ -1,0 +1,145 @@
+/* ── Immunology Module CSS ─────────────────────────────────────── */
+#imm-app { padding: 0 0 2rem; }
+.module-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, #0a1a2e 0%, #1a2a5e 50%, #0d3a6e 100%);
+  color: #fff; border-radius: 12px; margin-bottom: 1.25rem; gap: 1rem;
+}
+.mh-left .page-title { margin: 0; font-size: 1.6rem; font-weight: 700; }
+.mh-subtitle { font-size: .82rem; opacity: .75; margin-top: .2rem; display: block; }
+.mh-right { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.stat-chip { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+  border-radius: 20px; padding: .3rem .8rem; font-size: .82rem; color: #fff; }
+.stat-chip.critical { background: rgba(220,53,69,.35); border-color: #dc3545; }
+
+/* KPI */
+.kpi-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 1rem; margin-bottom: 1rem; }
+.kpi-card { background: #fff; border: 1px solid #e9ecef; border-radius: 10px;
+  padding: 1.1rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.kpi-card.success { border-left: 4px solid #28a745; }
+.kpi-card.danger  { border-left: 4px solid #dc3545; }
+.kpi-card.warning { border-left: 4px solid #ffc107; }
+.kpi-card.info    { border-left: 4px solid #17a2b8; }
+.kpi-val { font-size: 2rem; font-weight: 700; color: #0a1a2e; line-height: 1; }
+.kpi-lbl { font-size: .78rem; color: #6c757d; margin-top: .4rem; }
+
+/* Section queues */
+.section-queues { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-top: 1rem; }
+.sq-card { display: flex; align-items: center; gap: 1rem; background: #fff;
+  border: 1px solid #e9ecef; border-radius: 10px; padding: 1rem 1.25rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05); }
+.sq-card.hiv-sq  { border-left: 4px solid #dc3545; }
+.sq-card.hep-sq  { border-left: 4px solid #ffc107; }
+.sq-card.auto-sq { border-left: 4px solid #6f42c1; }
+.sq-icon { font-size: 2rem; }
+.sq-name { font-weight: 600; color: #0a1a2e; font-size: .95rem; }
+.sq-tests { font-size: .75rem; color: #6c757d; margin: .2rem 0; }
+.sq-count { font-size: 1.1rem; font-weight: 700; color: #343a40; }
+.sq-btn { margin-left: auto; padding: .35rem .8rem; border: 1px solid #0a1a2e;
+  border-radius: 6px; background: none; color: #0a1a2e; font-size: .8rem; cursor: pointer; }
+.sq-btn:hover { background: #0a1a2e; color: #fff; }
+
+/* Tabs */
+.tab-nav { display: flex; gap: .5rem; padding: .5rem 0; border-bottom: 2px solid #e9ecef;
+  margin-bottom: 1.25rem; flex-wrap: wrap; }
+.tab-btn { background: none; border: none; padding: .5rem 1.1rem; border-radius: 8px 8px 0 0;
+  font-size: .88rem; font-weight: 500; color: #6c757d; cursor: pointer; transition: .2s; }
+.tab-btn:hover  { background: #eaf0ff; color: #0a1a2e; }
+.tab-btn.active { background: #0a1a2e; color: #fff; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Toolbar */
+.pane-toolbar { display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1rem; flex-wrap: wrap; gap: .5rem; }
+.filter-group { display: flex; gap: .5rem; flex-wrap: wrap; }
+.filter-group select, .filter-group input { padding: .35rem .6rem; border: 1px solid #ced4da;
+  border-radius: 6px; font-size: .83rem; background: #fff; }
+
+/* BSL alert */
+.bsl-alert { background: rgba(220,53,69,.1); border: 1px solid rgba(220,53,69,.3);
+  border-radius: 8px; padding: .6rem 1rem; font-size: .82rem; color: #721c24;
+  margin-bottom: 1rem; }
+
+/* Tables */
+.results-table-wrap { overflow-x: auto; overflow-y: auto; max-height: 58vh;
+  border: 1px solid #e9ecef; border-radius: 8px; }
+.data-table { width: 100%; border-collapse: collapse; font-size: .84rem; min-width: 800px; }
+.data-table thead th { background: #0a1a2e; color: #fff; padding: .6rem .75rem;
+  text-align: left; white-space: nowrap; position: sticky; top: 0; z-index: 2; }
+.data-table tbody td { padding: .55rem .75rem; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+.data-table tbody tr:hover td { background: #f0f4ff; }
+
+/* Result badges */
+.res-REACTIVE     { background: #f8d7da; color: #721c24; padding: .2rem .55rem; border-radius: 8px; font-size: .78rem; font-weight: 700; }
+.res-NON_REACTIVE { background: #d4edda; color: #155724; padding: .2rem .55rem; border-radius: 8px; font-size: .78rem; }
+.res-INDETERMINATE{ background: #fff3cd; color: #856404; padding: .2rem .55rem; border-radius: 8px; font-size: .78rem; }
+.res-PENDING      { background: #e2e3e5; color: #383d41; padding: .2rem .55rem; border-radius: 8px; font-size: .78rem; }
+
+/* Allergy grade legend */
+.allergy-legend { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center;
+  padding: .5rem .75rem; background: #f8f9fa; border-radius: 8px; margin-bottom: 1rem;
+  font-size: .8rem; }
+.allergy-legend strong { margin-right: .25rem; }
+.grade { padding: .15rem .5rem; border-radius: 8px; font-size: .75rem; font-weight: 600; }
+.grade-0 { background: #d4edda; color: #155724; }
+.grade-1 { background: #d1ecf1; color: #0c5460; }
+.grade-2 { background: #fff3cd; color: #856404; }
+.grade-3 { background: #ffeeba; color: #856404; }
+.grade-4 { background: #f8d7da; color: #721c24; }
+.grade-5 { background: #f5c6cb; color: #491217; }
+.grade-6 { background: #721c24; color: #fff; }
+
+/* Marker warning */
+.marker-warning { background: rgba(255,193,7,.1); border: 1px solid rgba(255,193,7,.4);
+  border-radius: 8px; padding: .6rem 1rem; font-size: .82rem; color: #856404;
+  margin-bottom: 1rem; }
+
+/* Validation */
+.validation-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.validation-header h3 { margin: 0; }
+.val-count { color: #6c757d; font-size: .85rem; }
+.validation-list { display: grid; gap: .75rem; }
+.val-card { background: #fff; border: 1px solid #e9ecef; border-radius: 10px;
+  padding: 1rem; display: flex; align-items: flex-start; gap: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+.val-card-body { flex: 1; }
+.val-card-id { font-weight: 700; font-size: .9rem; }
+.val-card-sub { font-size: .8rem; color: #6c757d; margin: .2rem 0; }
+
+/* Buttons */
+.btn-primary { background: #0a1a2e; color: #fff; border: none; padding: .5rem 1rem;
+  border-radius: 8px; font-size: .85rem; font-weight: 600; cursor: pointer; }
+.btn-primary:hover { background: #1a2a5e; }
+.btn-secondary { background: #f8f9fa; color: #0a1a2e; border: 1px solid #ced4da;
+  padding: .5rem 1rem; border-radius: 8px; font-size: .85rem; cursor: pointer; }
+.btn-sm { padding: .3rem .65rem; font-size: .8rem; }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6);
+  display: flex; align-items: center; justify-content: center; z-index: 9000;
+  backdrop-filter: blur(3px); }
+.modal-box { background: #fff; border-radius: 14px; width: 90%; max-width: 560px;
+  max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.modal-wide { max-width: 780px; }
+.modal-header { display: flex; justify-content: space-between; align-items: center;
+  padding: 1rem 1.25rem; border-bottom: 1px solid #e9ecef; position: sticky; top: 0; background: #fff; z-index: 1; }
+.modal-header h3 { margin: 0; font-size: 1.1rem; }
+.modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #6c757d; }
+.modal-body { padding: 1rem 1.25rem; }
+.modal-footer { display: flex; justify-content: flex-end; gap: .75rem;
+  padding: 1rem 1.25rem; border-top: 1px solid #e9ecef; position: sticky; bottom: 0; background: #fff; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.form-row { display: flex; flex-direction: column; gap: .3rem; }
+.form-row.full-width { grid-column: span 2; }
+.form-row label { font-size: .82rem; font-weight: 600; color: #495057; }
+.form-row input, .form-row select, .form-row textarea {
+  padding: .4rem .65rem; border: 1px solid #ced4da; border-radius: 6px; font-size: .85rem; }
+.empty-state { text-align: center; color: #6c757d; padding: 2rem; font-size: .9rem; }
+
+@media (max-width: 768px) {
+  .kpi-row { grid-template-columns: repeat(2,1fr); }
+  .section-queues { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-row.full-width { grid-column: span 1; }
+}

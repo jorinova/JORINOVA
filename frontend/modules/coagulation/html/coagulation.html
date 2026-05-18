@@ -1,0 +1,399 @@
+{% extends "shared/html/base.html" %}
+{% load static %}
+
+{% block title %}🩺 Coagulation — NEXUS ALIS-X{% endblock %}
+{% block module_id %}coagulation{% endblock %}
+{% block nav_active_lab %}active{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{% static 'modules/coagulation/css/coagulation.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+{% endblock %}
+
+{% block content %}
+<div id="coag-app">
+
+  <div class="dept-header coag-hdr">
+    <div class="dh-left">
+      <div class="dh-icon">🩺</div>
+      <div><h1 class="dh-title">Coagulation &amp; Haemostasis</h1>
+        <div class="dh-sub">PT · INR · aPTT · Fibrinogen · D-Dimer · Factor assays · Anticoagulant monitoring · Thrombophilia</div></div>
+    </div>
+    <div class="dh-right">
+      <div class="dh-chip" id="hdr-pending">⏳ <span id="stat-pending">—</span> Pending</div>
+      <div class="dh-chip danger" id="hdr-critical">🚨 <span id="stat-critical">—</span> Critical</div>
+      <div class="dh-chip anticoag" id="hdr-anticoag">💊 <span id="stat-anticoag">—</span> On Anticoagulants</div>
+    </div>
+  </div>
+
+  <div class="dept-kpis">
+    <div class="kpi kpi-pt"><div class="kpi-val" id="kpi-pt">—</div><div class="kpi-lbl">Elevated PT/INR Today</div></div>
+    <div class="kpi kpi-aptt"><div class="kpi-val" id="kpi-aptt">—</div><div class="kpi-lbl">Prolonged aPTT</div></div>
+    <div class="kpi kpi-ddimer"><div class="kpi-val" id="kpi-ddimer">—</div><div class="kpi-lbl">D-Dimer Elevated</div></div>
+    <div class="kpi kpi-anticoag"><div class="kpi-val" id="kpi-anticoag">—</div><div class="kpi-lbl">Anticoag. Monitoring</div></div>
+    <div class="kpi kpi-val-q"><div class="kpi-val" id="kpi-val-q">—</div><div class="kpi-lbl">Awaiting Validation</div></div>
+  </div>
+
+  <nav class="dept-tabs">
+    <button class="dt active" data-tab="dashboard">📊 Dashboard</button>
+    <button class="dt" data-tab="worklist">📋 Worklist</button>
+    <button class="dt" data-tab="routine">🩺 Routine Coagulation</button>
+    <button class="dt" data-tab="anticoagulant">💊 Anticoagulant Monitoring</button>
+    <button class="dt" data-tab="thrombophilia">🧬 Thrombophilia Screen</button>
+    <button class="dt" data-tab="factor-assays">🔬 Factor Assays</button>
+    <button class="dt" data-tab="iqc">📐 IQC / Levey-Jennings</button>
+    <button class="dt" data-tab="validation">✅ Validation</button>
+    <button class="dt" data-tab="book">📖 Critical Book</button>
+  </nav>
+
+  <!-- ══ DASHBOARD ════════════════════════════════════════════════ -->
+  <div class="dept-pane active" id="tab-dashboard">
+    <!-- Reference ranges quick card -->
+    <div class="coag-ref-strip">
+      <div class="ref-item"><strong>PT</strong><span>11–14 s</span><span class="ref-crit">Critical &gt;30 s</span></div>
+      <div class="ref-item"><strong>INR</strong><span>0.8–1.2</span><span class="ref-crit">Critical &gt;3.0</span></div>
+      <div class="ref-item"><strong>aPTT</strong><span>25–35 s</span><span class="ref-crit">Critical &gt;70 s</span></div>
+      <div class="ref-item"><strong>Fibrinogen</strong><span>2.0–4.0 g/L</span><span class="ref-crit">Critical &lt;1.0</span></div>
+      <div class="ref-item"><strong>D-Dimer</strong><span>&lt;0.50 mg/L FEU</span><span class="ref-crit">Critical &gt;5.0</span></div>
+      <div class="ref-item"><strong>Thrombin Time</strong><span>14–21 s</span></div>
+      <div class="ref-item"><strong>Warfarin INR target</strong><span>2.0–3.0 (AF / VTE)</span></div>
+      <div class="ref-item"><strong>Heparin aPTT</strong><span>1.5–2.5× baseline</span></div>
+    </div>
+
+    <div class="coag-sq-grid">
+      <div class="sq-card pt-sq"><div class="sq-icon">🩺</div>
+        <div class="sq-body"><div class="sq-name">PT / INR / aPTT / Fibrinogen</div>
+          <div class="sq-tests">Pre-op · Bleeding workup · Liver disease · DIC · Vitamin K deficiency</div>
+          <div class="sq-cnt" id="sq-routine">— pending</div></div>
+        <button onclick="switchTab('routine')">View →</button></div>
+      <div class="sq-card anticoag-sq"><div class="sq-icon">💊</div>
+        <div class="sq-body"><div class="sq-name">Anticoagulant Monitoring</div>
+          <div class="sq-tests">Warfarin (INR) · Heparin (aPTT / anti-Xa) · DOAC levels · LMWH anti-Xa</div>
+          <div class="sq-cnt" id="sq-anticoag">— pending</div></div>
+        <button onclick="switchTab('anticoagulant')">View →</button></div>
+      <div class="sq-card ddimer-sq"><div class="sq-icon">🔴</div>
+        <div class="sq-body"><div class="sq-name">D-Dimer / Thrombosis</div>
+          <div class="sq-tests">DVT screen · PE workup · DIC · Post-COVID coagulopathy</div>
+          <div class="sq-cnt" id="sq-ddimer">— pending</div></div>
+        <button onclick="switchTab('routine')">View →</button></div>
+      <div class="sq-card thrombo-sq"><div class="sq-icon">🧬</div>
+        <div class="sq-body"><div class="sq-name">Thrombophilia Screen</div>
+          <div class="sq-tests">Protein C/S · Antithrombin III · Factor V Leiden · Lupus anticoagulant · APLA</div>
+          <div class="sq-cnt" id="sq-thrombo">— pending</div></div>
+        <button onclick="switchTab('thrombophilia')">View →</button></div>
+    </div>
+
+    <div class="coag-dash-row">
+      <div class="coag-chart-box"><div class="box-title">INR Distribution — Today</div><canvas id="coag-chart" height="200"></canvas></div>
+      <div class="coag-recent-box">
+        <div class="box-title">⚠️ Critical Coagulation Results Today</div>
+        <div id="coag-critical-list"><div class="dept-empty">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ WORKLIST ══════════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-worklist">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <input type="text" class="dept-search" id="coag-wl-search" placeholder="Lab ID, patient, SID…" oninput="loadWorklist()">
+        <select id="coag-wl-status" onchange="loadWorklist()">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="processing">Processing</option>
+          <option value="validated">Validated</option>
+        </select>
+        <select id="coag-wl-priority" onchange="loadWorklist()">
+          <option value="">All Priorities</option>
+          <option value="stat">🚨 STAT</option>
+          <option value="urgent">⚡ Urgent</option>
+          <option value="routine">Routine</option>
+        </select>
+        <input type="date" id="coag-wl-date" onchange="loadWorklist()">
+      </div>
+      <div class="dept-toolbar-right">
+        <button class="dept-print-btn" onclick="NexusPrint?.printAll('coag-wl-table')">🖨️</button>
+        <button class="dept-filter-btn" onclick="NexusFilter?.open('coag-wl-table')">⚙️</button>
+        <button class="btn-primary" onclick="openModal('result-modal')">+ Enter Results</button>
+      </div>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="coag-wl-table">
+        <thead><tr><th>Lab ID</th><th>Patient / PID</th><th>Tests</th>
+          <th>Specimen</th><th>Priority</th><th>TAT</th>
+          <th>PT</th><th>INR</th><th>aPTT</th>
+          <th>Fibrinogen</th><th>D-Dimer</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="coag-wl-tbody"><tr><td colspan="13" class="dept-empty">Loading coagulation worklist…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ ROUTINE COAGULATION ══════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-routine">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="routine-test-f" onchange="loadRoutine()">
+          <option value="">All Tests</option>
+          <option value="PT">PT (Prothrombin Time)</option>
+          <option value="INR">INR</option>
+          <option value="APTT">aPTT</option>
+          <option value="FIBRIN">Fibrinogen</option>
+          <option value="DDIMER">D-Dimer</option>
+          <option value="TT">Thrombin Time</option>
+          <option value="REPTILASE">Reptilase Time</option>
+        </select>
+        <select id="routine-flag-f" onchange="loadRoutine()">
+          <option value="">All Flags</option>
+          <option value="HH">Critical High</option>
+          <option value="LL">Critical Low</option>
+          <option value="H">High</option>
+          <option value="L">Low</option>
+          <option value="N">Normal</option>
+        </select>
+        <input type="date" id="routine-date-f" onchange="loadRoutine()">
+      </div>
+      <div class="dept-toolbar-right">
+        <button class="dept-print-btn" onclick="NexusPrint?.printAll('routine-table')">🖨️</button>
+        <button class="btn-primary" onclick="openModal('result-modal')">+ Enter Result</button>
+      </div>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="routine-table">
+        <thead><tr><th>Lab ID</th><th>Patient</th><th>Test</th><th>Result</th>
+          <th>Unit</th><th>Reference Range</th><th>Flag</th>
+          <th>Source</th><th>Clinical Context</th>
+          <th>AI Interpretation</th><th>Validated</th><th>Actions</th></tr></thead>
+        <tbody id="routine-tbody"><tr><td colspan="12" class="dept-empty">Loading routine coagulation results…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ ANTICOAGULANT MONITORING ══════════════════════════════════ -->
+  <div class="dept-pane" id="tab-anticoagulant">
+    <!-- Anticoagulant dosing guide -->
+    <div class="anticoag-guide-bar">
+      <div class="ag-item"><strong>Warfarin INR</strong><div>Target AF: 2.0–3.0 | Mechanical valve: 2.5–3.5</div></div>
+      <div class="ag-item"><strong>UFH aPTT</strong><div>Therapeutic: 1.5–2.5× control (60–100 s)</div></div>
+      <div class="ag-item"><strong>LMWH anti-Xa</strong><div>Prophylactic: 0.2–0.5 | Therapeutic: 0.5–1.0 IU/mL</div></div>
+      <div class="ag-item"><strong>Dabigatran</strong><div>ECT or dilute TT | Anti-Xa for rivaroxaban/apixaban</div></div>
+    </div>
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="ac-drug-f" onchange="loadAnticoag()">
+          <option value="">All Anticoagulants</option>
+          <option value="WARFARIN">Warfarin (INR)</option>
+          <option value="UFH">Unfractionated Heparin (aPTT)</option>
+          <option value="LMWH">LMWH anti-Xa</option>
+          <option value="DABIGATRAN">Dabigatran (Pradaxa)</option>
+          <option value="RIVAROXABAN">Rivaroxaban (Xarelto)</option>
+          <option value="APIXABAN">Apixaban (Eliquis)</option>
+        </select>
+        <select id="ac-status-f" onchange="loadAnticoag()">
+          <option value="">All Status</option>
+          <option value="THERAPEUTIC">Therapeutic ✓</option>
+          <option value="SUPRATHERAPEUTIC">Supratherapeutic ⚠️</option>
+          <option value="SUBTHERAPEUTIC">Sub-therapeutic ↓</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openModal('anticoag-modal')">+ Enter Anticoag. Result</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="anticoag-table">
+        <thead><tr><th>Lab ID</th><th>Patient</th><th>Drug</th><th>Test</th>
+          <th>Result</th><th>Unit</th><th>Target Range</th>
+          <th>Status</th><th>Dose Recommendation</th>
+          <th>AI Suggestion</th><th>Validated</th><th>Actions</th></tr></thead>
+        <tbody id="anticoag-tbody"><tr><td colspan="12" class="dept-empty">Loading anticoagulant monitoring results…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ THROMBOPHILIA ════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-thrombophilia">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="thrombo-test-f" onchange="loadThrombophilia()">
+          <option value="">All Tests</option>
+          <option value="PROTEIN_C">Protein C (activity)</option>
+          <option value="PROTEIN_S">Protein S (free antigen)</option>
+          <option value="AT3">Antithrombin III</option>
+          <option value="LUPUS_AC">Lupus Anticoagulant</option>
+          <option value="ACL_IGA">Anticardiolipin IgA</option>
+          <option value="ACL_IGG">Anticardiolipin IgG</option>
+          <option value="ACL_IGM">Anticardiolipin IgM</option>
+          <option value="BETA2_GP1">β₂-Glycoprotein I</option>
+          <option value="FACTOR_V_LEIDEN">Factor V Leiden (PCR)</option>
+          <option value="PROTHROMBIN_G20210A">Prothrombin G20210A</option>
+          <option value="HOMO_CYST">Homocysteine</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openModal('thrombo-modal')">+ Enter Thrombophilia Result</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="thrombo-table">
+        <thead><tr><th>Lab ID</th><th>Patient</th><th>Test</th><th>Result</th>
+          <th>Unit</th><th>Reference Range</th><th>Flag</th>
+          <th>Interpretation</th><th>Clinical Significance</th>
+          <th>Repeat Required</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="thrombo-tbody"><tr><td colspan="12" class="dept-empty">Loading thrombophilia screen results…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ FACTOR ASSAYS ════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-factor-assays">
+    <div class="factor-ref-bar">
+      <div class="factor-item"><strong>Factor VIII</strong><span>50–200%</span><div>Haemophilia A: &lt;1% severe, 1–5% moderate, 5–40% mild</div></div>
+      <div class="factor-item"><strong>Factor IX</strong><span>50–150%</span><div>Haemophilia B (Christmas disease): &lt;1% severe</div></div>
+      <div class="factor-item"><strong>vWF antigen</strong><span>50–160%</span><div>Von Willebrand disease: &lt;30% (Type 1)</div></div>
+      <div class="factor-item"><strong>Factor XI</strong><span>70–150%</span><div>Haemophilia C: Ashkenazi Jewish prevalence</div></div>
+    </div>
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="factor-test-f" onchange="loadFactors()">
+          <option value="">All Factor Assays</option>
+          <option value="F8">Factor VIII</option>
+          <option value="F9">Factor IX</option>
+          <option value="F11">Factor XI</option>
+          <option value="F13">Factor XIII</option>
+          <option value="VWF_AG">vWF antigen</option>
+          <option value="VWF_ACT">vWF activity (Ristocetin)</option>
+          <option value="F2">Prothrombin (Factor II)</option>
+          <option value="F5">Factor V (Leiden)</option>
+          <option value="F7">Factor VII</option>
+          <option value="F10">Factor X</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openModal('factor-modal')">+ Enter Factor Assay</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="factor-table">
+        <thead><tr><th>Lab ID</th><th>Patient</th><th>Factor</th><th>Activity / Level</th>
+          <th>Unit</th><th>Reference Range</th><th>Severity</th>
+          <th>Diagnosis Suggested</th><th>Validated</th><th>Actions</th></tr></thead>
+        <tbody id="factor-tbody"><tr><td colspan="10" class="dept-empty">Loading factor assay results…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ IQC / LEVEY-JENNINGS ══════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-iqc">
+    <div class="coag-lj-header">
+      <div class="box-title">📐 Coagulation IQC — Levey-Jennings</div>
+      <select id="coag-lj-analyte" onchange="renderCoagLJ()">
+        <option value="PT">PT</option>
+        <option value="APTT">aPTT</option>
+        <option value="FIBRIN">Fibrinogen</option>
+        <option value="DDIMER">D-Dimer</option>
+      </select>
+      <select id="coag-lj-level">
+        <option value="L1">Level 1 (Low normal)</option>
+        <option value="L2">Level 2 (High normal)</option>
+      </select>
+    </div>
+    <canvas id="coag-lj-chart" height="220"></canvas>
+    <div class="dept-toolbar" style="margin-top:1rem">
+      <button class="btn-primary" onclick="openModal('coag-iqc-modal')">+ Record IQC</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="coag-iqc-table">
+        <thead><tr><th>Date/Time</th><th>Analyte</th><th>Level</th><th>Lot</th>
+          <th>Result</th><th>Mean</th><th>SD</th><th>Z-score</th>
+          <th>Westgard</th><th>Status</th><th>Operator</th></tr></thead>
+        <tbody id="coag-iqc-tbody"><tr><td colspan="11" class="dept-empty">Loading coagulation IQC…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ VALIDATION ════════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-validation">
+    <div class="val-header">
+      <h3>Pending Validation Queue</h3>
+      <span class="val-count" id="coag-val-count">Loading…</span>
+    </div>
+    <div id="coag-val-list" class="val-list"><div class="dept-empty">Loading…</div></div>
+  </div>
+
+  <!-- ══ CRITICAL BOOK ═════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-book">
+    <div class="dept-toolbar">
+      <span class="pqc-badge">🔐 PQC-Signed Immutable Archive</span>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="coag-book-table">
+        <thead><tr><th>Entry #</th><th>Patient</th><th>Test</th><th>Critical Value</th>
+          <th>Clinician Notified</th><th>Read-back</th><th>Archived</th><th>PQC Hash</th></tr></thead>
+        <tbody id="coag-book-tbody"><tr><td colspan="8" class="dept-empty">Loading coagulation critical book…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /#coag-app -->
+
+<!-- ═══ MODALS ════════════════════════════════════════════════ -->
+<div class="dept-modal-overlay" id="result-modal" style="display:none">
+  <div class="dept-modal dept-modal-wide">
+    <div class="dept-modal-hdr"><h3>🩺 Enter Coagulation Result</h3><button onclick="closeModal('result-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Lab Request ID</label><input type="number" id="cres-req"></div>
+        <div class="dept-form-row"><label>Patient ID</label><input type="number" id="cres-pat"></div>
+        <div class="dept-form-row"><label>Test</label>
+          <select id="cres-test" onchange="loadCoagReference()">
+            <option value="PT">PT (Prothrombin Time)</option>
+            <option value="INR">INR</option>
+            <option value="APTT">aPTT</option>
+            <option value="FIBRIN">Fibrinogen</option>
+            <option value="DDIMER">D-Dimer</option>
+            <option value="TT">Thrombin Time</option>
+          </select></div>
+        <div class="dept-form-row"><label>Result Value</label><input type="number" step="0.01" id="cres-value" oninput="autoCoagFlag()"></div>
+        <div class="dept-form-row"><label>Unit</label><input type="text" id="cres-unit" placeholder="seconds, ratio, mg/L FEU, g/L…"></div>
+        <div class="dept-form-row"><label>Flag</label>
+          <select id="cres-flag"><option value="N">Normal</option><option value="H">High</option><option value="L">Low</option><option value="HH">Critical High (HH)</option><option value="LL">Critical Low (LL)</option></select></div>
+        <div class="dept-form-row"><label>Source</label>
+          <select id="cres-source"><option value="MANUAL">Manual entry</option><option value="AUTOMATED">Automated analyzer</option></select></div>
+        <div class="dept-form-row"><label>Analyzer</label><input type="text" id="cres-analyzer" placeholder="e.g. Stago STA-R Max"></div>
+        <div class="dept-form-row full-col"><label>Clinical Context</label><textarea id="cres-context" rows="2" placeholder="Pre-op, bleeding workup, anticoagulation monitoring, liver disease…"></textarea></div>
+      </div>
+      <!-- Reference display -->
+      <div id="coag-ref-display" class="coag-ref-card" style="display:none">
+        <div class="coag-ref-name" id="coag-ref-name">—</div>
+        <div class="coag-ref-range" id="coag-ref-range">—</div>
+        <div class="coag-ref-critical" id="coag-ref-critical">—</div>
+      </div>
+      <!-- AI interpretation panel -->
+      <div id="aip-coag-panel" style="margin-top:.75rem"></div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('result-modal')">Cancel</button><button class="btn-primary" onclick="submitCoagResult()">Save Result</button></div>
+  </div>
+</div>
+
+<div class="dept-modal-overlay" id="anticoag-modal" style="display:none">
+  <div class="dept-modal">
+    <div class="dept-modal-hdr"><h3>💊 Anticoagulant Monitoring</h3><button onclick="closeModal('anticoag-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Lab Request ID</label><input type="number" id="ac-req"></div>
+        <div class="dept-form-row"><label>Patient ID</label><input type="number" id="ac-pat"></div>
+        <div class="dept-form-row"><label>Anticoagulant Drug</label>
+          <select id="ac-drug-m" onchange="loadAcTarget()"><option value="WARFARIN">Warfarin → INR</option><option value="UFH">Unfractionated Heparin → aPTT</option><option value="LMWH">LMWH → anti-Xa</option><option value="DOAC">DOAC (rivaroxaban/apixaban) → anti-Xa</option></select></div>
+        <div class="dept-form-row"><label>Indication</label>
+          <select id="ac-indication"><option value="AF">Atrial Fibrillation</option><option value="VTE">VTE (DVT/PE)</option><option value="VALVE">Mechanical heart valve</option><option value="ACS">ACS / PCI</option><option value="OTHER">Other</option></select></div>
+        <div class="dept-form-row"><label>Result Value</label><input type="number" step="0.01" id="ac-value-m" oninput="interpretAnticoag()"></div>
+        <div class="dept-form-row"><label>Unit</label><input type="text" id="ac-unit-m" placeholder="ratio, seconds, IU/mL"></div>
+        <div class="dept-form-row"><label>Target Range</label><input type="text" id="ac-target-display" readonly placeholder="Loaded from drug selection…"></div>
+        <div class="dept-form-row"><label>Dose / Regimen</label><input type="text" id="ac-dose-m" placeholder="e.g. 5 mg daily, 10,000 IU q8h"></div>
+        <div class="dept-form-row full-col"><label>Notes</label><textarea id="ac-notes-m" rows="2"></textarea></div>
+      </div>
+      <div id="ac-interp-box" class="tdm-interp" style="display:none">
+        <div class="tdm-interp-lbl">⚡ Anticoagulation Interpretation</div>
+        <div id="ac-interp-txt"></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('anticoag-modal')">Cancel</button><button class="btn-primary" onclick="submitAnticoag()">Save Result</button></div>
+  </div>
+</div>
+
+<script src="{% static 'modules/coagulation/js/coagulation.js' %}" defer></script>
+{% endblock %}

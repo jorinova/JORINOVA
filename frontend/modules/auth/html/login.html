@@ -19,10 +19,12 @@
 
     <!-- Top logo -->
     <div class="brand-top">
-      <div class="brand-logo-mark">N</div>
+      <img src="{% static 'shared/assets/logos/jorinova-logo.jpeg' %}"
+           alt="JORINOVA NEXUS Logo"
+           class="brand-logo-img">
       <div class="brand-logo-text">
         <span class="brand-name">JORINOVA NEXUS</span>
-        <span class="brand-sub">ALIS-X · v{{ system_version|default:"1.0" }}</span>
+        <span class="brand-sub">ALIS-X · v{{ system_version|default:"2.0" }}</span>
       </div>
     </div>
 
@@ -105,28 +107,17 @@
       </div>
       {% endif %}
 
-      <!-- Login form -->
-      <form class="login-form" method="post" action="" id="login-form" novalidate>
-        {% csrf_token %}
-        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      <!-- Login form — FastAPI JWT mode (intercepted by JS) -->
+      <form class="login-form" id="login-form" novalidate>
 
         <!-- Username -->
         <div class="field-group">
-          <label class="field-label" for="id_username">Username or Employee ID</label>
+          <label class="field-label" for="id_username">Username</label>
           <div class="field-input-wrap">
-            <input
-              type="text"
-              id="id_username"
-              name="username"
-              class="field-input {% if error %}field-error{% endif %}"
-              placeholder="username or EMP-001"
-              value="{{ request.POST.username|default:'' }}"
-              autocomplete="username"
-              autocorrect="off"
-              autocapitalize="none"
-              spellcheck="false"
-              required
-              autofocus>
+            <input type="text" id="id_username" name="username"
+              class="field-input" placeholder="username"
+              autocomplete="username" autocorrect="off" autocapitalize="none"
+              spellcheck="false" required autofocus>
             <i class="fas fa-user field-icon"></i>
           </div>
         </div>
@@ -135,34 +126,38 @@
         <div class="field-group">
           <label class="field-label" for="id_password">Password</label>
           <div class="field-input-wrap">
-            <input
-              type="password"
-              id="id_password"
-              name="password"
-              class="field-input {% if error %}field-error{% endif %}"
-              placeholder="••••••••••••"
-              autocomplete="current-password"
-              required>
+            <input type="password" id="id_password" name="password"
+              class="field-input" placeholder="••••••••••••"
+              autocomplete="current-password" required>
             <i class="fas fa-key field-icon"></i>
-            <button type="button" class="pwd-toggle" id="pwd-toggle" aria-label="Toggle password visibility">
+            <button type="button" class="pwd-toggle" id="pwd-toggle" aria-label="Toggle password">
               <i class="fas fa-eye" id="pwd-icon"></i>
             </button>
           </div>
         </div>
 
-        <!-- Options row -->
-        <div class="form-options">
-          <label class="remember-label">
-            <input type="checkbox" name="remember_me" id="remember-me">
-            <span class="check-box"><i class="fas fa-check"></i></span>
-            <span>Remember me</span>
-          </label>
+        <!-- 2FA OTP (shown only when 2FA is required) -->
+        <div class="field-group" id="tfa-group" style="display:none">
+          <label class="field-label">🔐 Two-Factor Authentication</label>
+          <div class="field-input-wrap">
+            <input type="text" id="id_totp" name="totp"
+              class="field-input" placeholder="6-digit code from authenticator app"
+              maxlength="6" autocomplete="one-time-code"
+              style="letter-spacing:.2em;font-size:1.1rem;text-align:center;font-family:monospace">
+            <i class="fas fa-shield-halved field-icon"></i>
+          </div>
+          <div style="font-size:.73rem;color:#64748b;margin-top:.25rem;text-align:center">
+            Open Google Authenticator / Authy and enter the current 6-digit code
+          </div>
         </div>
+
+        <!-- Error banner -->
+        <div id="login-error" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:.5rem .75rem;font-size:.8rem;color:#7f1d1d;margin-bottom:.5rem"></div>
 
         <!-- Submit -->
         <button type="submit" class="btn-signin" id="btn-signin">
-          <i class="fas fa-right-to-bracket"></i>
-          <span class="btn-text">Sign In to NEXUS</span>
+          <i class="fas fa-right-to-bracket" id="signin-icon"></i>
+          <span class="btn-text" id="signin-text">Sign In to NEXUS</span>
         </button>
 
       </form><!-- /login-form -->
@@ -197,20 +192,86 @@
     pwdIcon.className = isHidden ? 'fas fa-eye-slash' : 'fas fa-eye';
   });
 
-  /* Loading state on submit */
-  const form   = document.getElementById('login-form');
-  const btnIn  = document.getElementById('btn-signin');
-  form?.addEventListener('submit', e => {
-    const u = document.getElementById('id_username').value.trim();
-    const p = document.getElementById('id_password').value;
-    if (!u || !p) {
-      e.preventDefault();
-      document.getElementById('id_username').classList.toggle('field-error', !u);
-      document.getElementById('id_password').classList.toggle('field-error', !p);
+  /* ── FastAPI JWT Login ──────────────────────────────────────── */
+  const form  = document.getElementById('login-form');
+  const btnIn = document.getElementById('btn-signin');
+
+  form?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const username = document.getElementById('id_username').value.trim();
+    const password = document.getElementById('id_password').value;
+    const totp     = document.getElementById('id_totp')?.value?.trim() || '';
+    const errEl    = document.getElementById('login-error');
+
+    if (!username || !password) {
+      document.getElementById('id_username').classList.toggle('field-error', !username);
+      document.getElementById('id_password').classList.toggle('field-error', !password);
       return;
     }
-    btnIn.classList.add('loading');
+
     btnIn.disabled = true;
+    document.getElementById('signin-icon').className = 'fas fa-spinner fa-spin';
+    document.getElementById('signin-text').textContent = 'Signing in…';
+    if (errEl) errEl.style.display = 'none';
+
+    try {
+      /* Step 1: Password auth — get JWT token */
+      const body = new URLSearchParams();
+      body.append('username', username);
+      body.append('password', password);
+      const r = await fetch('/api/v1/auth/token', { method:'POST', body });
+      const data = await r.json();
+
+      if (!r.ok) throw new Error(data.detail || 'Invalid credentials');
+
+      /* Step 2: Check if 2FA is required */
+      const token = data.access_token;
+      const meResp = await fetch('/api/v1/auth/me', { headers: { Authorization: 'Bearer ' + token } });
+      const user   = await meResp.json();
+
+      if (user.has_2fa && !totp) {
+        /* Show 2FA input */
+        document.getElementById('tfa-group').style.display = '';
+        document.getElementById('id_totp').focus();
+        if (errEl) { errEl.style.display=''; errEl.textContent='🔐 Enter your 2FA code from the authenticator app'; errEl.style.background='#eff6ff'; errEl.style.color='#1e40af'; errEl.style.borderColor='#bfdbfe'; }
+        btnIn.disabled = false;
+        document.getElementById('signin-icon').className = 'fas fa-shield-halved';
+        document.getElementById('signin-text').textContent = 'Verify 2FA Code';
+        return;
+      }
+
+      if (user.has_2fa && totp) {
+        /* Validate 2FA OTP */
+        const tfa = await fetch(`/api/v1/admin/2fa/validate?username=${username}&otp=${totp}`, { method:'POST' });
+        const tfaData = await tfa.json();
+        if (!tfa.ok || !tfaData.valid) throw new Error('Invalid 2FA code. Please try again.');
+      }
+
+      /* Step 3: Store JWT and user info */
+      localStorage.setItem('access_token', token);
+      localStorage.setItem('user_id',      user.id);
+      localStorage.setItem('user_role',    user.role);
+      localStorage.setItem('user_name',    user.full_name || user.username);
+      localStorage.setItem('user_photo',   user.photo_url || '');
+
+      document.getElementById('signin-icon').className = 'fas fa-check';
+      document.getElementById('signin-text').textContent = 'Success! Redirecting…';
+
+      /* Step 4: Redirect to dashboard */
+      setTimeout(() => { window.location.href = '/dashboard/'; }, 400);
+
+    } catch(err) {
+      btnIn.disabled = false;
+      document.getElementById('signin-icon').className = 'fas fa-right-to-bracket';
+      document.getElementById('signin-text').textContent = 'Sign In to NEXUS';
+      if (errEl) {
+        errEl.style.display = '';
+        errEl.style.background = '#fee2e2';
+        errEl.style.color = '#7f1d1d';
+        errEl.style.borderColor = '#fca5a5';
+        errEl.textContent = '❌ ' + (err.message || 'Login failed. Please try again.');
+      }
+    }
   });
 
   /* Auto-dismiss banners */

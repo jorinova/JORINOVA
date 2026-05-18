@@ -103,21 +103,25 @@ html, body {
   z-index: 1;
 }
 
-.brand-logo-mark {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #004499, #00AAFF);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 700;
-  color: #fff;
-  box-shadow: 0 0 24px rgba(0,153,255,0.35), 0 0 60px rgba(0,153,255,0.12);
+/* Real logo image — replaces the "N" letter mark */
+.brand-logo-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
   flex-shrink: 0;
+  border: 2px solid rgba(0, 153, 255, 0.45);
+  box-shadow: 0 0 28px rgba(0,153,255,0.45), 0 0 60px rgba(0,153,255,0.15);
+  animation: logo-pulse 3s ease-in-out infinite;
 }
+@keyframes logo-pulse {
+  0%, 100% { box-shadow: 0 0 28px rgba(0,153,255,0.45), 0 0 60px rgba(0,153,255,0.15); }
+  50%       { box-shadow: 0 0 40px rgba(0,153,255,0.65), 0 0 80px rgba(0,153,255,0.25); }
+}
+
+/* Hide the old letter mark */
+.brand-logo-mark { display: none; }
 
 .brand-logo-text {
   display: flex;

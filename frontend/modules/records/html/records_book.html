@@ -3,262 +3,302 @@
 
 {% block title %}{{ book.name }} — NEXUS ALIS-X{% endblock %}
 {% block module_id %}records{% endblock %}
+{% block nav_active_records %}active{% endblock %}
 
 {% block module_css %}
 <link rel="stylesheet" href="{% static 'modules/records/css/records.css' %}">
+<link rel="stylesheet" href="{% static 'shared/css/light-cyan.css' %}">
+{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+<style>
+/* ── Hard white override — no CSS variable dependency ── */
+html[data-theme], html, body, #app-main, .app-main { background: #f8faff !important; }
+.shift-bar { background: #ffffff !important; border-bottom: 1px solid #bae6fd !important; box-shadow: 0 1px 4px rgba(8,145,178,.08) !important; }
+.shift-bar *, #shift-name, #shift-time, #shift-icon { color: #0891b2 !important; }
+/* Table and card overrides */
+.lc-table tbody td, .wf-table tbody td { color: #0f172a !important; background: #ffffff; }
+.lc-table tbody tr:nth-child(even) td { background: #f7fdff !important; }
+:root { --book-accent: {{ book.accent }}; }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="rec-main rec-book-main" data-book="{{ book.data-book }}">
+<div class="lc-page rec-book-page" data-book-id="{{ book_id }}">
 
-  <!-- ══ LAB BOOK HEADER — SPECIMEN COLOR LINKED ══ -->
-  <div class="book-header book-header-full" data-book="{{ book.data-book }}"
-       style="background:{{ book.gradient }};border-bottom:2px solid {{ book.accent }}88">
-    <div class="book-header-pattern"></div>
+  <!-- ══ BOOK HEADER — STRICTLY 2.5 cm ══════════════════════════
+       Contains: Logo | Book name + dept | Shift | Stats | Actions
+       max-height: 2.5cm enforced by .lc-header CSS class
+       ═══════════════════════════════════════════════════════════ -->
+  <header class="lc-header rec-book-header" style="border-bottom-color:{{ book.accent }}">
 
-    <div class="book-header-left">
-      <div class="book-header-back">
-        <a href="/records/" class="book-back-btn">← All Books</a>
-      </div>
-      <div class="book-tube-swatch tube-{{ book.tube }}" style="background:{{ book.accent }};box-shadow:0 0 16px {{ book.accent }}88"></div>
-      <div>
-        <h1 class="book-header-title" style="color:{{ book.text }}">{{ book.name }}</h1>
-        <div class="book-header-meta-row">
-          <div class="book-shift-badge" id="book-shift-badge">
-            <span id="book-shift-icon">☀️</span>
-            <span id="book-shift-name">Morning Shift</span>
-          </div>
-          <span class="book-header-sep">·</span>
-          <span class="book-header-date">{{ today|date:"d F Y" }}</span>
-          <span class="book-header-sep">·</span>
-          <time class="book-header-clock" id="book-clock"></time>
-        </div>
-      </div>
+    <a href="/records/" class="lc-tool-btn rec-back-link" style="font-size:.7rem">‹ Books</a>
+
+    <!-- Tube-colour dot -->
+    <div class="rec-tube-indicator" style="background:{{ book.accent }};box-shadow:0 0 8px {{ book.accent }}55"></div>
+
+    <!-- Logo -->
+    <img src="{% static 'shared/assets/logos/jorinova-logo.jpeg' %}" alt="JORINOVA" class="lc-logo" style="width:30px;height:30px">
+
+    <!-- Book title -->
+    <div class="lc-header-titles" style="flex:1">
+      <div class="lc-header-title" style="color:{{ book.accent }};font-size:.9rem">{{ book.name }}</div>
+      <div class="lc-header-subtitle" style="color:#475569">{{ book.description }}</div>
     </div>
 
-    <div class="book-header-right">
-      <div class="book-header-stats">
-        <div class="book-hs"><span class="book-hs-val" id="bhs-today">—</span><span class="book-hs-lbl" style="color:{{ book.text }}88">Today</span></div>
-        <div class="book-hs"><span class="book-hs-val" id="bhs-pending" style="color:#FFD600">—</span><span class="book-hs-lbl" style="color:{{ book.text }}88">Pending</span></div>
-        <div class="book-hs"><span class="book-hs-val" id="bhs-validated" style="color:#00E676">—</span><span class="book-hs-lbl" style="color:{{ book.text }}88">Validated</span></div>
-      </div>
-      <button class="book-new-btn" id="book-new-btn" style="border-color:{{ book.accent }}88;color:{{ book.text }}">
-        ➕ New Record
-      </button>
-    </div>
-  </div>
+    <!-- Department badge -->
+    <span class="lc-dept-badge" style="background:{{ book.accent }}15;border-color:{{ book.accent }}33;color:{{ book.accent }}">
+      {{ book.department }}
+    </span>
 
-  <!-- ══ SUB TOOLBAR ══ -->
-  <div class="book-toolbar">
-    <div style="display:flex;gap:var(--space-sm);align-items:center;flex-wrap:wrap">
-      <div class="search-wrap" style="max-width:260px">
-        <i class="fas fa-magnifying-glass search-icon"></i>
-        <input type="text" class="fi" id="book-search" placeholder="🔍 Patient, record ID…">
+    {% if book.bsl2 %}
+    <span class="lc-badge" style="background:#fee2e2;color:#7f1d1d;border:1px solid #fca5a5;font-size:.65rem">⚠️ BSL-2</span>
+    {% endif %}
+
+    <!-- Shift -->
+    <div class="lc-header-shift">
+      <span id="bk-shift-icon">☀️</span>
+      <span id="bk-shift-name">Morning</span>
+      <span>·</span>
+      <time id="bk-clock">--:--:--</time>
+    </div>
+
+    <!-- Stat pills (compact — fit within 2.5cm) -->
+    <div class="rec-header-stats">
+      <div class="lc-stat-pill"><span class="v" id="bk-today">—</span><span class="l">Today</span></div>
+      <div class="lc-stat-pill warn"><span class="v" id="bk-pending">—</span><span class="l">Pending</span></div>
+      <div class="lc-stat-pill ok"><span class="v" id="bk-validated">—</span><span class="l">Valid.</span></div>
+      <div class="lc-stat-pill crit"><span class="v" id="bk-critical">—</span><span class="l">Critical</span></div>
+    </div>
+
+    <!-- Actions -->
+    <button class="lc-header-btn" onclick="openNewEntry()">➕ New Entry</button>
+
+  </header>
+
+  <!-- ══ TOOLBAR ════════════════════════════════════════════════ -->
+  <div class="lc-toolbar rec-toolbar">
+    <div class="lc-toolbar-left">
+      <div class="lc-search-wrap">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" id="bk-search" placeholder="Patient, record ID, result…" oninput="searchRows(this.value)">
       </div>
-      <select class="fi" style="width:auto;font-size:var(--text-xs)" id="book-status-filter">
-        <option value="">All statuses</option>
-        <option value="draft">📝 Draft</option>
-        <option value="pending">⏳ Pending</option>
-        <option value="validated">✅ Validated</option>
+      <select id="bk-status" class="lc-select" onchange="loadEntries()">
+        <option value="">All Status</option>
+        <option value="PENDING">⏳ Pending</option>
+        <option value="VALIDATED">✅ Validated</option>
+        <option value="CRITICAL">🚨 Critical</option>
+        <option value="DRAFT">📝 Draft</option>
       </select>
-      <select class="fi" style="width:auto;font-size:var(--text-xs)" id="book-shift-filter">
-        <option value="">All shifts</option>
+      <input type="date" id="bk-from" class="lc-date-input" onchange="loadEntries()" title="From">
+      <input type="date" id="bk-to"   class="lc-date-input" onchange="loadEntries()" title="To">
+      <select id="bk-shift-f" class="lc-select" onchange="loadEntries()">
+        <option value="">All Shifts</option>
         <option value="morning">☀️ Morning</option>
         <option value="afternoon">🌤️ Afternoon</option>
         <option value="night">🌙 Night</option>
       </select>
     </div>
-    <div style="display:flex;gap:var(--space-sm)">
-      <span class="text-mono" style="font-size:11px;color:var(--text-muted)" id="book-record-count">— records</span>
-      <button class="btn btn-ghost btn-sm" id="book-print-btn"><i class="fas fa-print"></i> Print</button>
-      <button class="btn btn-ghost btn-sm" id="book-export-btn"><i class="fas fa-file-export"></i> Export</button>
+    <div class="lc-toolbar-right">
+      <!-- Print group -->
+      <div class="lc-print-group">
+        <button class="lc-tool-btn" onclick="printAll()" title="Print all">🖨️ All</button>
+        <button class="lc-tool-btn" onclick="printSelected()" title="Print selected">☑️ Sel.</button>
+        <button class="lc-tool-btn" onclick="printFirst()" title="Print first">⏫</button>
+        <button class="lc-tool-btn" onclick="printLast()" title="Print last">⏬</button>
+      </div>
+      <button class="lc-tool-btn" onclick="exportCSV()" title="Export CSV">📥 CSV</button>
+      <button class="lc-tool-btn" onclick="loadEntries()"><i class="fas fa-arrows-rotate"></i></button>
+      <span style="font-family:monospace;font-size:.68rem;color:#15803d;background:#f0fdf4;border:1px solid #86efac;padding:.2rem .55rem;border-radius:15px">🔐 PQC</span>
     </div>
   </div>
 
-  <!-- ══ RECORDS TABLE ══ -->
-  <div class="book-body">
-    <div class="book-records-wrap">
-      <table class="nx-table book-records-table" id="book-records-table">
-        <thead>
-          <tr>
-            <th>🔖 Record ID</th>
-            <th>🧬 Patient</th>
-            <th>⏰ Shift</th>
-            <th>📋 Results Summary</th>
-            <th>📊 Status</th>
-            <th>👤 Entered By</th>
-            <th>🕐 Date / Time</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="book-records-tbody">
-          <!-- Demo records -->
-          {% for i in "12345678" %}
-          <tr class="book-record-row {% cycle 'shift-morning' 'shift-morning' 'shift-afternoon' 'shift-morning' 'shift-night' 'shift-morning' 'shift-afternoon' 'shift-morning' %}">
-            <td>
-              <span class="book-rec-id" style="color:{{ book.accent }}">
-                REC-{{ today|date:"Ymd" }}-{% cycle "A1B2C" "D3E4F" "G5H6J" "K7L8M" "N9P0Q" "R1S2T" "U3V4W" "X5Y6Z" %}
-              </span>
-            </td>
-            <td>
-              <div class="book-patient-cell">
-                <div class="book-patient-name">{% cycle "Uwimana Jean" "Mutoni Marie" "Habimana Patrick" "Nzabahimana Claude" "Kayitesi Rose" "Espérance H." "Mugisha Alain" "Karabo Nadine" %}</div>
-                <div class="book-patient-pid text-mono">{% cycle "PID-001" "PID-002" "PID-003" "PID-005" "PID-007" "PID-009" "PID-008" "PID-011" %}</div>
-              </div>
-            </td>
-            <td>
-              <span class="book-shift-tag {% cycle 'shift-morning' 'shift-morning' 'shift-afternoon' 'shift-morning' 'shift-night' 'shift-morning' 'shift-afternoon' 'shift-morning' %}">
-                {% cycle "☀️ Morning" "☀️ Morning" "🌤️ Afternoon" "☀️ Morning" "🌙 Night" "☀️ Morning" "🌤️ Afternoon" "☀️ Morning" %}
-              </span>
-            </td>
-            <td class="book-results-cell">
-              {% cycle "WBC: 5.2 · Hgb: 12.4 · Plt: 210" "WBC: 3.8⚠️ · Hgb: 8.1🔴 · Plt: 180" "Glucose: 7.2 · Urea: 4.1 · Creat: 72" "PT: 14.2s · APTT: 32s · INR: 1.1" "RBC: 4.1 · Hgb: 11.2 · MCV: 78fl" "ALT: 42 · AST: 38 · ALP: 95" "WBC: 6.8 · Lymph: 35% · Mono: 8%" "Fibrinogen: 2.4 · D-Dimer: 0.3" %}
-            </td>
-            <td>
-              <span class="badge {% cycle 'badge-green' 'badge-red' 'badge-yellow' 'badge-green' 'badge-green' 'badge-green' 'badge-yellow' 'badge-green' %}">
-                {% cycle "✅ Validated" "🚨 Critical" "⏳ Pending" "✅ Validated" "✅ Validated" "✅ Validated" "⏳ Pending" "✅ Validated" %}
-              </span>
-            </td>
-            <td class="text-mono" style="font-size:11px">{% cycle "Lab Tech Mutoni" "Lab Tech Kayitesi" "Lab Tech Mugisha" "Lab Tech Mutoni" "Lab Tech Habimana" "Pathologist Dr.N" "Lab Tech Kayitesi" "Lab Tech Mutoni" %}</td>
-            <td class="text-mono" style="font-size:11px">{{ today|date:"d M" }} · {% cycle "08:14" "09:22" "14:05" "10:33" "22:45" "07:58" "15:17" "09:41" %}</td>
-            <td>
-              <div style="display:flex;gap:4px">
-                <button class="btn-icon btn-icon-sm" title="View"><i class="fas fa-eye"></i></button>
-                <button class="btn-icon btn-icon-sm" title="Edit"><i class="fas fa-pen"></i></button>
-                <button class="btn-icon btn-icon-sm" title="Validate" style="color:var(--alert-green)"><i class="fas fa-check-double"></i></button>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <!-- ══ MAIN TABLE ════════════════════════════════════════════ -->
+  <div class="lc-table-wrap rec-table-container">
+    <table class="lc-table" id="bk-table">
+      <thead id="bk-thead">
+        <!-- Built dynamically by JS -->
+      </thead>
+      <tbody id="bk-tbody">
+        <tr><td colspan="20" style="text-align:center;padding:2rem;color:#94a3b8">
+          <i class="fas fa-spinner fa-spin"></i> Loading book entries…
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="lc-pagination">
+    <button class="lc-page-btn" id="bk-prev" onclick="prevPage()" disabled>‹ Prev</button>
+    <span id="bk-page-info" style="font-weight:600;color:#0891b2">Page 1</span>
+    <button class="lc-page-btn" id="bk-next" onclick="nextPage()">Next ›</button>
+    <span id="bk-total" style="color:#94a3b8;margin-left:.5rem"></span>
+  </div>
+
+  <!-- ══ TREND CHART ════════════════════════════════════════════ -->
+  <div class="rec-trend-section">
+    <div class="rec-trend-hdr" onclick="toggleTrend()">
+      <span style="font-weight:700;color:#0891b2">📊 Entry Trend — Last 14 Days</span>
+      <span id="trend-chevron">▼</span>
+    </div>
+    <div class="rec-trend-body" id="trend-body">
+      <canvas id="bk-trend-chart" height="130"></canvas>
     </div>
   </div>
 
-</div><!-- /rec-book-main -->
+</div><!-- /.rec-book-page -->
 
-<!-- ══ NEW RECORD MODAL ══ -->
-<div class="modal-overlay" id="new-record-modal" role="dialog" aria-modal="true">
-  <div class="modal modal-lg">
-    <div class="modal-header" style="background:{{ book.gradient }}">
-      <h3 class="modal-title" style="color:{{ book.text }}">
-        ➕ New Entry — {{ book.name }}
-        <span class="book-modal-shift" id="modal-shift-badge">☀️ Morning Shift</span>
-      </h3>
-      <button class="modal-close" id="new-rec-modal-close" style="color:{{ book.text }};border-color:{{ book.accent }}44"><i class="fas fa-xmark"></i></button>
+<!-- ══ MODALS ═════════════════════════════════════════════════════ -->
+
+<!-- New Entry -->
+<div class="lc-modal-overlay" id="entry-modal" style="display:none">
+  <div class="lc-modal" style="border-top-color:{{ book.accent }}">
+    <div class="lc-modal-header">
+      <h3 class="lc-modal-title">{{ book.icon }} New Entry — {{ book.name }}</h3>
+      <button class="lc-modal-close" onclick="closeModal('entry-modal')">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <div class="fg">
-          <label class="fl">🧬 Patient ID / Name</label>
-          <input type="text" class="fi" id="nr-patient" placeholder="PID or patient name…" autocomplete="off">
-        </div>
-        <div class="fg">
-          <label class="fl">🔖 Lab Request ID</label>
-          <input type="text" class="fi" id="nr-request" placeholder="LAB-2025-…" autocomplete="off">
-        </div>
-        <div class="fg">
-          <label class="fl">⏰ Shift Override</label>
-          <select class="fi" id="nr-shift">
-            <option value="auto">🔄 Auto-detect from time</option>
-            <option value="morning">☀️ Morning (06:00–14:00)</option>
-            <option value="afternoon">🌤️ Afternoon (14:00–22:00)</option>
-            <option value="night">🌙 Night (22:00–06:00)</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label class="fl">📊 QC Status</label>
-          <select class="fi" id="nr-qc">
-            <option value="pass">✅ QC Pass</option>
-            <option value="repeat">🔄 Repeat Required</option>
-            <option value="fail">❌ QC Fail</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Dynamic test result entry based on book type -->
-      <div class="nr-tests-section" id="nr-tests-section">
-        <div class="nr-tests-header">📋 Test Results Entry</div>
-        <div class="nr-tests-grid" id="nr-tests-grid">
-          {% if book_type == 'hematology' %}
-          {% for test, unit, ref in "WBC:×10⁹/L:4.0–11.0,RBC:×10¹²/L:4.5–5.5,Hemoglobin:g/dL:13.5–17.5,Hematocrit:%:40–50,MCV:fL:80–100,MCH:pg:27–33,MCHC:g/dL:32–36,Platelets:×10⁹/L:150–400,Neutrophils:%:50–70,Lymphocytes:%:20–40,Monocytes:%:2–10,Eosinophils:%:1–4"|make_list %}
-          {% endfor %}
-          {% elif book_type == 'chemistry' %}
-          {% for test in "Glucose,Urea,Creatinine,ALT,AST,ALP,Total Protein,Albumin,Total Bilirubin,Direct Bilirubin,Sodium,Potassium,Chloride,Bicarbonate,Calcium,Phosphorus,Uric Acid,LDH,CK,Amylase"|make_list %}
-          {% endfor %}
-          {% endif %}
-          <!-- JS populates this dynamically -->
-          <div style="color:var(--text-muted);font-size:var(--text-xs);padding:var(--space-md);text-align:center;grid-column:1/-1">
-            Test fields populate based on book type via JavaScript.
-          </div>
-        </div>
-      </div>
-
-      <div class="fg" style="margin-top:var(--space-md)">
-        <label class="fl">📝 Notes / Comments</label>
-        <textarea class="fi fi-ta" id="nr-notes" rows="3" placeholder="Clinical notes, QC observations, instrument notes…"></textarea>
-      </div>
+    <div class="lc-modal-body" id="entry-form-body">
+      <!-- Dynamic form fields rendered by JS -->
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" id="new-rec-cancel">Cancel</button>
-      <button class="btn btn-primary" id="new-rec-save">💾 Save Record</button>
+
+    <!-- AI panel -->
+    <div id="entry-ai-panel" style="display:none;margin:.5rem 1.25rem;background:#f0fdff;border:1px solid #bae6fd;border-radius:8px;padding:.65rem">
+      <div style="font-size:.74rem;font-weight:700;color:#0891b2;margin-bottom:.25rem">🤖 AI Interpretation <span id="entry-ai-layer" style="color:#94a3b8;font-family:monospace;font-size:.65rem"></span></div>
+      <div id="entry-ai-text" style="font-size:.82rem;color:#0f172a;line-height:1.5">Analysing…</div>
+    </div>
+
+    <div class="lc-modal-footer">
+      <div style="display:flex;flex-direction:column;gap:.25rem">
+        <label style="display:flex;align-items:center;gap:.35rem;font-size:.75rem;color:#475569;cursor:pointer">
+          <input type="checkbox" id="chk-critical"> Mark as Critical — notify clinician
+        </label>
+        <label style="display:flex;align-items:center;gap:.35rem;font-size:.75rem;color:#475569;cursor:pointer">
+          <input type="checkbox" id="chk-pqc" checked> PQC-sign entry (CRYSTALS-Dilithium3)
+        </label>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button class="lc-tool-btn" onclick="saveEntry('DRAFT')">💾 Draft</button>
+        <button class="lc-header-btn" onclick="saveEntry('VALIDATED')" style="background:{{ book.accent }}">✅ Save &amp; Validate</button>
+      </div>
     </div>
   </div>
 </div>
 
-{% endblock %}
+<!-- Validate -->
+<div class="lc-modal-overlay" id="val-modal" style="display:none">
+  <div class="lc-modal" style="max-width:480px;border-top-color:#16a34a">
+    <div class="lc-modal-header">
+      <h3 class="lc-modal-title">✅ Validate Entry</h3>
+      <button class="lc-modal-close" onclick="closeModal('val-modal')">✕</button>
+    </div>
+    <div class="lc-modal-body">
+      <div id="val-summary-box" style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:.65rem;font-size:.83rem;color:#14532d;margin-bottom:.65rem"></div>
+      <div class="lc-form-field">
+        <label>Validation Note (optional)</label>
+        <textarea id="val-note" rows="2" class="lc-form-input" placeholder="Clinical note…"></textarea>
+      </div>
+    </div>
+    <div class="lc-modal-footer">
+      <button class="lc-tool-btn" onclick="closeModal('val-modal')">Cancel</button>
+      <button class="lc-header-btn" onclick="confirmValidate()" style="background:#16a34a">✅ Validate &amp; Approve</button>
+    </div>
+  </div>
+</div>
 
-{% block extra_scripts %}
+<!-- Archive Critical -->
+<div class="lc-modal-overlay" id="arch-modal" style="display:none">
+  <div class="lc-modal" style="max-width:500px;border-top-color:#dc2626">
+    <div class="lc-modal-header">
+      <h3 class="lc-modal-title">📖 Archive Critical Result</h3>
+      <button class="lc-modal-close" onclick="closeModal('arch-modal')">✕</button>
+    </div>
+    <div class="lc-modal-body">
+      <div style="background:#fff0f0;border:1px solid #fca5a5;border-radius:8px;padding:.65rem;font-size:.82rem;color:#7f1d1d;margin-bottom:.65rem">
+        🚨 Creates an <strong>immutable PQC-signed record</strong> in the Critical Book. Cannot be modified once archived.
+      </div>
+      <div class="lc-form-grid">
+        <div class="lc-form-field"><label>Clinician Notified</label><input type="text" id="arch-clinician" class="lc-form-input" placeholder="Dr. / Nurse name"></div>
+        <div class="lc-form-field"><label>Method</label>
+          <select id="arch-method" class="lc-form-input">
+            <option value="phone">📞 Phone</option><option value="sms">📱 SMS</option><option value="in_person">🏥 In person</option>
+          </select></div>
+        <div class="lc-form-field span2">
+          <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer">
+            <input type="checkbox" id="arch-readback"> Read-back confirmed by clinician
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="lc-modal-footer">
+      <button class="lc-tool-btn" onclick="closeModal('arch-modal')">Cancel</button>
+      <button class="lc-header-btn" onclick="confirmArchive()" style="background:#dc2626">🔐 Archive (Immutable)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PRINT DOCUMENT TEMPLATE ════════════════════════════════════ -->
+<!-- Hidden — cloned by JS when printing -->
+<template id="print-template">
+  <div class="print-doc">
+    <div class="print-header">
+      <img src="{% static 'shared/assets/logos/jorinova-logo.jpeg' %}" alt="JORINOVA" class="print-header-logo">
+      <div class="print-header-brand">
+        <div class="print-header-name">JORINOVA NEXUS ALIS-X</div>
+        <div class="print-header-sub">Advanced Laboratory Information System · ISO 15189</div>
+        <div class="print-header-sub">{{ book.name }} — {{ book.department }}</div>
+      </div>
+      <div class="print-header-right">
+        <div class="print-header-date" id="pt-date"></div>
+        <div>Shift: <span id="pt-shift"></span></div>
+        <div>Printed by: <span id="pt-user">Laboratory Staff</span></div>
+      </div>
+    </div>
+
+    <div class="print-body">
+      <div class="print-section">
+        <div class="print-section-title">{{ book.name }}</div>
+        <table class="print-table" id="pt-table">
+          <thead id="pt-thead"></thead>
+          <tbody id="pt-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="print-sig-block">
+        <div class="print-sig-item">
+          <div class="print-sig-line"></div>
+          <div class="print-sig-label">Laboratory Scientist / Technician</div>
+        </div>
+        <div class="print-sig-item">
+          <div class="print-sig-line"></div>
+          <div class="print-sig-label">Senior Scientist / Validator</div>
+        </div>
+        <div class="print-sig-item">
+          <div class="print-sig-line"></div>
+          <div class="print-sig-label">Laboratory Manager / Pathologist</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="print-footer">
+      <div class="print-footer-left">
+        <span>JORINOVA NEXUS ALIS-X</span>
+        <span>·</span>
+        <span>{{ book.name }}</span>
+        <span>·</span>
+        <span>ISO 15189:2022</span>
+      </div>
+      <div class="print-footer-right">
+        <div class="print-footer-pqc" id="pt-pqc"></div>
+        <div>Page <span class="print-footer-page"></span></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script src="{% static 'modules/records/js/records.js' %}" defer></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  var accent = '{{ book.accent }}';
-  var bookType = '{{ book_type }}';
-
-  /* Live clock + shift in book header */
-  function updateBookHeader() {
-    var now  = new Date();
-    var ts   = now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    var h    = now.getHours();
-    var shift, icon;
-    if (h>=6&&h<14)       {shift='Morning Shift';   icon='☀️';}
-    else if (h>=14&&h<22) {shift='Afternoon Shift'; icon='🌤️';}
-    else                  {shift='Night Shift';      icon='🌙';}
-    var clockEl=document.getElementById('book-clock');
-    var iconEl=document.getElementById('book-shift-icon');
-    var nameEl=document.getElementById('book-shift-name');
-    var modalSh=document.getElementById('modal-shift-badge');
-    if(clockEl) clockEl.textContent=ts;
-    if(iconEl)  iconEl.textContent=icon;
-    if(nameEl)  nameEl.textContent=shift;
-    if(modalSh) modalSh.textContent=icon+' '+shift;
-  }
-  updateBookHeader();
-  setInterval(updateBookHeader, 1000);
-
-  /* Demo counts */
-  var cnt = Math.floor(Math.random()*20)+5;
-  var pnd = Math.floor(cnt*0.3);
-  var val = cnt - pnd;
-  setText('bhs-today', cnt);
-  setText('bhs-pending', pnd);
-  setText('bhs-validated', val);
-  setText('book-record-count', cnt+' records today');
-
-  function setText(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
-
-  /* Modal */
-  document.getElementById('book-new-btn')?.addEventListener('click',function(){
-    document.getElementById('new-record-modal')?.classList.add('open');
-  });
-  ['new-rec-modal-close','new-rec-cancel'].forEach(function(id){
-    document.getElementById(id)?.addEventListener('click',function(){
-      document.getElementById('new-record-modal')?.classList.remove('open');
-    });
-  });
-  document.getElementById('new-rec-save')?.addEventListener('click',function(){
-    document.getElementById('new-record-modal')?.classList.remove('open');
-    if(window.NEXUS&&NEXUS.Toast) NEXUS.Toast.success('Record saved','Entry added to '+bookType+' book');
-  });
-});
+window.BOOK_CONFIG = {{ book | tojson }};
+window.BOOK_ID = '{{ book_id }}';
+window.BOOK_ACCENT = '{{ book.accent }}';
 </script>
 {% endblock %}

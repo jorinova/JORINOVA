@@ -18,6 +18,8 @@
   <link rel="stylesheet" href="{% static 'shared/css/themes.css' %}">
   <link rel="stylesheet" href="{% static 'shared/css/components.css' %}">
   <link rel="stylesheet" href="{% static 'shared/css/nexus-ui-extras.css' %}">
+  <link rel="stylesheet" href="{% static 'shared/css/light-cyan.css' %}">
+  <link rel="stylesheet" href="{% static 'shared/css/white-futuristic.css' %}">
 
   {% block module_css %}{% endblock %}
   {% block extra_head %}{% endblock %}
@@ -274,8 +276,14 @@
   <nav class="sidebar" id="sidebar" aria-label="Main navigation">
 
     <div class="sidebar-brand">
-      <div class="brand-mark">⚡</div>
-      <span class="brand-text">🌐 NEXUS</span>
+      <img src="{% static 'shared/assets/logos/jorinova-logo.jpeg' %}"
+           alt="JORINOVA NEXUS"
+           class="sidebar-logo"
+           draggable="false">
+      <div class="sidebar-brand-text">
+        <span class="brand-name">JORINOVA</span>
+        <span class="brand-sub">NEXUS ALIS-X</span>
+      </div>
     </div>
 
     <div class="sidebar-nav" role="navigation">
@@ -366,7 +374,7 @@
       </div>
       {% endif %}
 
-      <!-- ⚗️ Laboratory + submenu -->
+      <!-- ⚗️ Laboratory — Clinical Departments -->
       {% if request.user.role in 'lab_technician,lab_manager,pathologist,phlebotomist,super_admin,it_admin' %}
       <div class="nav-group">
         <a href="/laboratory/"
@@ -377,44 +385,66 @@
           <i class="fas fa-chevron-right nav-arrow"></i>
         </a>
         <div class="nav-flyout" style="top:0">
-          <div class="flyout-header"><span>⚗️</span> Lab Modules</div>
+          <div class="flyout-header"><span>⚗️</span> Lab Workflow</div>
           <a href="/laboratory/" class="flyout-item {% block flyout_lab_worklist %}{% endblock %}">
             <span class="flyout-emoji">📋</span> Worklist
           </a>
           <a href="/laboratory/labels/" class="flyout-item {% block flyout_labels %}{% endblock %}">
             <span class="flyout-emoji">🏷️</span> Label Print Center
           </a>
+          <a href="/specimen-tracking/" class="flyout-item {% block flyout_spec_track %}{% endblock %}">
+            <span class="flyout-emoji">📍</span> Specimen Tracking
+          </a>
+          <a href="/reception/rejection-book/" class="flyout-item {% block flyout_rejection %}{% endblock %}">
+            <span class="flyout-emoji">🚫</span> Sample Rejection Book
+          </a>
+        </div>
+      </div>
+
+      <!-- 🔬 Clinical Departments submenu group -->
+      <div class="nav-group">
+        <a href="/hematology/"
+           class="nav-item {% block nav_active_depts %}{% endblock %}"
+           data-tooltip="🔬 Departments">
+          <span class="nav-emoji">🔬</span>
+          <span class="nav-label">🔬 Departments</span>
+          <i class="fas fa-chevron-right nav-arrow"></i>
+        </a>
+        <div class="nav-flyout" style="top:0">
+          <div class="flyout-header"><span>🔬</span> Clinical Departments</div>
           <a href="/hematology/" class="flyout-item {% block flyout_hema %}{% endblock %}">
             <span class="flyout-emoji">🔴</span> Hematology AI
           </a>
-          <a href="/laboratory/chemistry/" class="flyout-item {% block flyout_chem %}{% endblock %}">
-            <span class="flyout-emoji">🧫</span> Chemistry
+          <a href="/biochemistry/" class="flyout-item {% block flyout_biochem %}{% endblock %}">
+            <span class="flyout-emoji">🧬</span> Biochemistry
           </a>
-          <a href="/laboratory/microbiology/" class="flyout-item {% block flyout_micro %}{% endblock %}">
-            <span class="flyout-emoji">🦠</span> Microbiology
+          <a href="/coagulation/" class="flyout-item {% block flyout_coag %}{% endblock %}">
+            <span class="flyout-emoji">🩺</span> Coagulation
           </a>
           <a href="/laboratory/serology/" class="flyout-item {% block flyout_sero %}{% endblock %}">
             <span class="flyout-emoji">🔬</span> Serology
           </a>
+          <a href="/immunology/" class="flyout-item {% block flyout_imm %}{% endblock %}">
+            <span class="flyout-emoji">🛡️</span> Immunology
+          </a>
+          <a href="/microbiology/" class="flyout-item {% block flyout_micro %}{% endblock %}">
+            <span class="flyout-emoji">🦠</span> Microbiology
+          </a>
+          <a href="/molecular/" class="flyout-item {% block flyout_mol %}{% endblock %}">
+            <span class="flyout-emoji">🧬</span> Molecular Biology
+          </a>
+          <a href="/urinalysis/" class="flyout-item {% block flyout_urine %}{% endblock %}">
+            <span class="flyout-emoji">🟡</span> Urinalysis
+          </a>
           <a href="/blood-bank/" class="flyout-item {% block flyout_blood %}{% endblock %}">
             <span class="flyout-emoji">🩸</span> Blood Bank
-          </a>
-          <a href="/laboratory/coagulation/" class="flyout-item {% block flyout_coag %}{% endblock %}">
-            <span class="flyout-emoji">💙</span> Coagulation
           </a>
           <a href="/toxicology/" class="flyout-item {% block flyout_tox %}{% endblock %}">
             <span class="flyout-emoji">☠️</span> Toxicology
           </a>
           <a href="/pathology/" class="flyout-item {% block flyout_path %}{% endblock %}">
-            <span class="flyout-emoji">🩺</span> Anatomical Path.
+            <span class="flyout-emoji">🔭</span> Anatomical Pathology
           </a>
-          <a href="/laboratory/genomics/" class="flyout-item {% block flyout_genome %}{% endblock %}">
-            <span class="flyout-emoji">🧬</span> Genomics
-          </a>
-        </div>
-
-        <!-- Second lab flyout row: quality + IoT -->
-        <div class="nav-flyout" style="top:0;left:calc(var(--sidebar-width) + 220px)" id="lab-tools-flyout">
         </div>
       </div>
       {% endif %}
@@ -557,184 +587,163 @@
         <span class="nav-label">👥 StaffHub</span>
       </a>
 
-      <!-- 🧬 MedGenome -->
-      <a href="/genomics/"
-         class="nav-item {% block nav_active_genomics %}{% endblock %}"
-         data-tooltip="🧬 MedGenome">
-        <span class="nav-emoji">🧬</span>
-        <span class="nav-label">🧬 MedGenome</span>
-      </a>
-
-      <!-- 🦠 Microbiology AI -->
-      {% if request.user.role in 'lab_technician,lab_manager,pathologist,super_admin,it_admin' %}
-      <a href="/micro-ai/"
-         class="nav-item {% block nav_active_micro_ai %}{% endblock %}"
-         data-tooltip="🦠 Micro AI">
-        <span class="nav-emoji">🦠</span>
-        <span class="nav-label">🦠 Micro AI</span>
-      </a>
-      {% endif %}
-
-      <!-- ☠️ Toxicology -->
-      {% if request.user.role in 'lab_technician,lab_manager,pathologist,super_admin,it_admin' %}
-      <a href="/toxicology/"
-         class="nav-item {% block nav_active_toxicology %}{% endblock %}"
-         data-tooltip="☠️ Toxicology">
-        <span class="nav-emoji">☠️</span>
-        <span class="nav-label">☠️ Toxicology</span>
-      </a>
-      {% endif %}
-
-      <!-- 🩺 Anatomical Pathology -->
-      {% if request.user.role in 'pathologist,lab_manager,super_admin,it_admin' %}
-      <a href="/pathology/"
-         class="nav-item {% block nav_active_pathology %}{% endblock %}"
-         data-tooltip="🩺 Pathology">
-        <span class="nav-emoji">🩺</span>
-        <span class="nav-label">🩺 Pathology</span>
-      </a>
-      {% endif %}
-
-      <!-- 📐 Quality Management -->
-      {% if request.user.role in 'lab_manager,pathologist,super_admin,it_admin,quality_officer' %}
-      <a href="/quality/"
-         class="nav-item {% block nav_active_quality %}{% endblock %}"
-         data-tooltip="📐 Quality">
-        <span class="nav-emoji">📐</span>
-        <span class="nav-label">📐 Quality</span>
-      </a>
-      {% endif %}
-
-      <!-- 🔧 IoT / Analyzers -->
-      {% if request.user.role in 'lab_manager,super_admin,it_admin,biomedical_eng' %}
-      <a href="/iot-analyzers/"
-         class="nav-item {% block nav_active_iot %}{% endblock %}"
-         data-tooltip="🔧 IoT Analyzers">
-        <span class="nav-emoji">🔧</span>
-        <span class="nav-label">🔧 IoT Analyzers</span>
-      </a>
-      {% endif %}
-
-      <!-- 🔭 Surveillance -->
-      <a href="/surveillance/"
-         class="nav-item {% block nav_active_surveillance %}{% endblock %}"
-         data-tooltip="🔭 Surveillance">
-        <span class="nav-emoji">🔭</span>
-        <span class="nav-label">🔭 Surveillance</span>
-      </a>
-
-      <!-- 🧫 BioTrack -->
-      {% if request.user.role in 'lab_manager,pathologist,super_admin,it_admin' %}
-      <a href="/biotrack/"
-         class="nav-item {% block nav_active_biotrack %}{% endblock %}"
-         data-tooltip="🧫 BioTrack">
-        <span class="nav-emoji">🧫</span>
-        <span class="nav-label">🧫 BioTrack</span>
-      </a>
-      {% endif %}
-
-      <!-- 💰 FinaOps -->
-      {% if request.user.role in 'lab_manager,super_admin,it_admin,finance' %}
-      <a href="/finaops/"
-         class="nav-item {% block nav_active_finaops %}{% endblock %}"
-         data-tooltip="💰 FinaOps">
-        <span class="nav-emoji">💰</span>
-        <span class="nav-label">💰 FinaOps</span>
-      </a>
-      {% endif %}
-
-      <!-- 🏥 NexusCare -->
-      {% if request.user.role in 'nurse,doctor,lab_manager,super_admin,it_admin' %}
-      <a href="/nexuscare/"
-         class="nav-item {% block nav_active_nexuscare %}{% endblock %}"
-         data-tooltip="🏥 NexusCare">
-        <span class="nav-emoji">🏥</span>
-        <span class="nav-label">🏥 NexusCare</span>
-      </a>
-      {% endif %}
-
-      <!-- 🤖 AI Nexus -->
-      <a href="/ai-nexus/"
-         class="nav-item {% block nav_active_ai %}{% endblock %}"
-         data-tooltip="🤖 AI Nexus">
-        <span class="nav-emoji">🤖</span>
-        <span class="nav-label">🤖 AI Nexus</span>
-      </a>
-
-      <!-- 📡 TeleDiagnostic -->
-      {% if request.user.role in 'lab_manager,super_admin,it_admin,lab_technician,pathologist,doctor,nurse' %}
+      <!-- 🔬 AI & Intelligence -->
       <div class="nav-group">
-        <a href="/telediagnostic/"
-           class="nav-item {% block nav_active_telediag %}{% endblock %}"
-           data-tooltip="📡 TeleDiagnostic">
-          <span class="nav-emoji">📡</span>
-          <span class="nav-label">📡 TeleDiagnostic</span>
+        <a href="/ai-nexus/"
+           class="nav-item {% block nav_active_ai %}{% endblock %}"
+           data-tooltip="🤖 AI &amp; Intelligence">
+          <span class="nav-emoji">🤖</span>
+          <span class="nav-label">🤖 AI &amp; Intelligence</span>
           <i class="fas fa-chevron-right nav-arrow"></i>
         </a>
         <div class="nav-flyout" style="top:0">
-          <div class="flyout-header"><span>📡</span> TeleDiagnostic</div>
-          <a href="/telediagnostic/" class="flyout-item">
-            <span class="flyout-emoji">🖥️</span> Command Center
+          <div class="flyout-header"><span>🤖</span> AI Systems</div>
+          <a href="/ai-nexus/" class="flyout-item {% block flyout_ai_nexus %}{% endblock %}">
+            <span class="flyout-emoji">🤖</span> AI Nexus
           </a>
-          <a href="/telediagnostic/" class="flyout-item">
-            <span class="flyout-emoji">🚀</span> Deploy Session
+          <a href="/micro-ai/" class="flyout-item {% block nav_active_micro_ai %}{% endblock %}">
+            <span class="flyout-emoji">🦠</span> Microbiology AI
           </a>
-          <a href="/telediagnostic/" class="flyout-item">
-            <span class="flyout-emoji">📸</span> AI Gallery
+          <a href="/genomics/" class="flyout-item {% block nav_active_genomics %}{% endblock %}">
+            <span class="flyout-emoji">🧬</span> MedGenome
           </a>
-          <a href="/telediagnostic/" class="flyout-item">
-            <span class="flyout-emoji">🗺️</span> Field Map
+          <a href="/surveillance/" class="flyout-item {% block nav_active_surveillance %}{% endblock %}">
+            <span class="flyout-emoji">🔭</span> Epidemic Surveillance
+          </a>
+          <a href="/forecast/" class="flyout-item {% block nav_active_forecast %}{% endblock %}">
+            <span class="flyout-emoji">🔮</span> Forecast Intelligence
+          </a>
+          <a href="/biotrack/" class="flyout-item {% block nav_active_biotrack %}{% endblock %}">
+            <span class="flyout-emoji">🧫</span> BioTrack
+          </a>
+        </div>
+      </div>
+
+      <!-- 📐 Quality & Equipment -->
+      {% if request.user.role in 'lab_manager,pathologist,super_admin,it_admin,quality_officer,biomedical_eng' %}
+      <div class="nav-group">
+        <a href="/quality/"
+           class="nav-item {% block nav_active_quality %}{% endblock %}"
+           data-tooltip="📐 Quality &amp; Equipment">
+          <span class="nav-emoji">📐</span>
+          <span class="nav-label">📐 Quality &amp; Equipment</span>
+          <i class="fas fa-chevron-right nav-arrow"></i>
+        </a>
+        <div class="nav-flyout" style="top:0">
+          <div class="flyout-header"><span>📐</span> QA &amp; Equipment</div>
+          <a href="/quality/" class="flyout-item">
+            <span class="flyout-emoji">📐</span> Quality Management (IQC/EQA)
+          </a>
+          <a href="/iot-analyzers/" class="flyout-item {% block nav_active_iot %}{% endblock %}">
+            <span class="flyout-emoji">🔧</span> Analyzer &amp; IoT Hub
+          </a>
+          <a href="/quality/sop/" class="flyout-item">
+            <span class="flyout-emoji">📝</span> SOP Library
+          </a>
+          <a href="/quality/ncr/" class="flyout-item">
+            <span class="flyout-emoji">🚨</span> Non-Conformity (NCR)
+          </a>
+          <a href="/quality/capa/" class="flyout-item">
+            <span class="flyout-emoji">🔧</span> CAPA
+          </a>
+          <a href="/quality/iso/" class="flyout-item">
+            <span class="flyout-emoji">🏆</span> ISO 15189 Checklist
           </a>
         </div>
       </div>
       {% endif %}
 
-      <!-- 🏷️ Specimen Tracking -->
-      {% if request.user.role in 'lab_technician,lab_manager,phlebotomist,receptionist,super_admin,it_admin' %}
-      <a href="/specimen-tracking/"
-         class="nav-item {% block nav_active_specimen %}{% endblock %}"
-         data-tooltip="🏷️ Specimens">
-        <span class="nav-emoji">🏷️</span>
-        <span class="nav-label">🏷️ Specimens</span>
-      </a>
-      {% endif %}
-
       <!-- 🩺 Doctor Portal -->
       {% if request.user.role in 'doctor,pathologist,super_admin,it_admin,lab_manager' %}
-      <a href="/doctor-portal/"
-         class="nav-item {% block nav_active_doctor_portal %}{% endblock %}"
-         data-tooltip="🩺 Doctor Portal">
-        <span class="nav-emoji">🩺</span>
-        <span class="nav-label">🩺 Doctor Portal</span>
-      </a>
+      <div class="nav-group">
+        <a href="/doctor-portal/"
+           class="nav-item {% block nav_active_doctor_portal %}{% endblock %}"
+           data-tooltip="🩺 Doctor Portal">
+          <span class="nav-emoji">🩺</span>
+          <span class="nav-label">🩺 Doctor Portal</span>
+          <i class="fas fa-chevron-right nav-arrow"></i>
+        </a>
+        <div class="nav-flyout" style="top:0">
+          <div class="flyout-header"><span>🩺</span> Clinician Portal</div>
+          <a href="/doctor-portal/" class="flyout-item">
+            <span class="flyout-emoji">🔔</span> Result Inbox
+          </a>
+          <a href="/doctor-portal/critical/" class="flyout-item">
+            <span class="flyout-emoji">🚨</span> Critical Alerts
+          </a>
+          <a href="/doctor-portal/orders/" class="flyout-item">
+            <span class="flyout-emoji">📝</span> Order Tests
+          </a>
+          <a href="/doctor-portal/trends/" class="flyout-item">
+            <span class="flyout-emoji">📊</span> Patient Trends
+          </a>
+          <a href="/doctor-portal/ai-assist/" class="flyout-item">
+            <span class="flyout-emoji">🤖</span> AI Clinical Support
+          </a>
+        </div>
+      </div>
       {% endif %}
 
-      <!-- 🔮 Forecast Intelligence -->
-      <a href="/forecast/"
-         class="nav-item {% block nav_active_forecast %}{% endblock %}"
-         data-tooltip="🔮 Forecast AI">
-        <span class="nav-emoji">🔮</span>
-        <span class="nav-label">🔮 Forecast AI</span>
-      </a>
+      <!-- 💰 Finance & Operations -->
+      {% if request.user.role in 'lab_manager,super_admin,it_admin,finance,receptionist' %}
+      <div class="nav-group">
+        <a href="/finaops/"
+           class="nav-item {% block nav_active_finaops %}{% endblock %}"
+           data-tooltip="💰 FinaOps">
+          <span class="nav-emoji">💰</span>
+          <span class="nav-label">💰 Finance &amp; Ops</span>
+          <i class="fas fa-chevron-right nav-arrow"></i>
+        </a>
+        <div class="nav-flyout" style="top:0">
+          <div class="flyout-header"><span>💰</span> Finance &amp; Operations</div>
+          <a href="/finaops/" class="flyout-item">
+            <span class="flyout-emoji">💳</span> MoMo / Payments
+          </a>
+          <a href="/billing/" class="flyout-item">
+            <span class="flyout-emoji">📋</span> Billing
+          </a>
+          <a href="/billing/insurance/" class="flyout-item">
+            <span class="flyout-emoji">🛡️</span> Insurance Claims
+          </a>
+          <a href="/nexuscare/" class="flyout-item">
+            <span class="flyout-emoji">🏥</span> NexusCare
+          </a>
+          <a href="/telediagnostic/" class="flyout-item">
+            <span class="flyout-emoji">📡</span> TeleDiagnostic
+          </a>
+        </div>
+      </div>
+      {% endif %}
 
-      <!-- 🔗 Interoperability -->
+      <!-- 🔗 Interoperability & System -->
       {% if request.user.role in 'super_admin,it_admin,lab_manager' %}
-      <a href="/interoperability/"
-         class="nav-item {% block nav_active_interop %}{% endblock %}"
-         data-tooltip="🔗 Interoperability">
-        <span class="nav-emoji">🔗</span>
-        <span class="nav-label">🔗 Interoperability</span>
-      </a>
-      {% endif %}
-
-      <!-- 🕵️ Audit Trail (security admin only) -->
-      {% if request.user.role in 'super_admin,it_admin,security_officer' or request.user.is_superuser %}
-      <a href="/audit-trail/"
-         class="nav-item {% block nav_active_audit %}{% endblock %}"
-         data-tooltip="🕵️ Audit Trail">
-        <span class="nav-emoji">🕵️</span>
-        <span class="nav-label">🕵️ Audit Trail</span>
-      </a>
+      <div class="nav-group">
+        <a href="/interoperability/"
+           class="nav-item {% block nav_active_interop %}{% endblock %}"
+           data-tooltip="🔗 Interoperability">
+          <span class="nav-emoji">🔗</span>
+          <span class="nav-label">🔗 Interoperability</span>
+          <i class="fas fa-chevron-right nav-arrow"></i>
+        </a>
+        <div class="nav-flyout" style="top:0">
+          <div class="flyout-header"><span>🔗</span> System Integration</div>
+          <a href="/interoperability/" class="flyout-item">
+            <span class="flyout-emoji">🔗</span> HL7 / FHIR
+          </a>
+          <a href="/audit-trail/" class="flyout-item {% block nav_active_audit %}{% endblock %}">
+            <span class="flyout-emoji">🕵️</span> Audit Trail
+          </a>
+          <a href="/security/" class="flyout-item {% block flyout_security_link %}{% endblock %}">
+            <span class="flyout-emoji">🔐</span> Security Centre
+          </a>
+          <a href="/voice/" class="flyout-item">
+            <span class="flyout-emoji">🎙️</span> Voice &amp; Language
+          </a>
+          <a href="/escalation/" class="flyout-item">
+            <span class="flyout-emoji">⚠️</span> HoD Escalations
+          </a>
+        </div>
+      </div>
       {% endif %}
 
       {% block nav_extra %}{% endblock %}
@@ -858,33 +867,29 @@
         </a>
         {% endif %}
 
-        <!-- 3D Profile Sphere -->
+        <!-- 3D Profile Sphere — photo loaded from API after login -->
         <div class="profile-sphere-wrap" id="profile-sphere-wrap">
           <a href="/auth/profile/" class="profile-sphere" id="profile-sphere"
-             title="{{ request.user.get_full_name|default:'My Profile' }} · {{ request.user.get_role_display|default:'' }}"
-             aria-label="User profile">
-            {% if request.user.photo %}
-            <img src="{{ request.user.photo.url }}" alt="{{ request.user.get_full_name }}" class="profile-sphere-img">
-            {% else %}
-            <span class="profile-sphere-initials">{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}</span>
-            {% endif %}
+             title="My Profile" aria-label="User profile">
+            <!-- Photo shown if available, else initials -->
+            <img id="profile-sphere-photo" src="" alt="Profile" class="profile-sphere-img"
+                 style="display:none" onerror="this.style.display='none';document.getElementById('profile-sphere-initials').style.display='flex'">
+            <span class="profile-sphere-initials" id="profile-sphere-initials" style="display:flex">
+              {{ request_user.first_name[0:1]|upper }}{{ request_user.last_name[0:1]|upper }}
+            </span>
             <span class="profile-sphere-glow" aria-hidden="true"></span>
             <span class="profile-online-dot" aria-hidden="true"></span>
           </a>
           <!-- Mini dropdown -->
           <div class="profile-mini-drop" id="profile-mini-drop" role="menu">
             <div class="pmd-header">
-              <div class="pmd-avatar">
-                {% if request.user.photo %}
-                <img src="{{ request.user.photo.url }}" alt="{{ request.user.get_full_name }}">
-                {% else %}
-                <span>{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}</span>
-                {% endif %}
+              <div class="pmd-avatar" id="pmd-avatar-wrap">
+                <!-- Populated by JS with photo or initials -->
+                <span id="pmd-initials">{{ request_user.first_name[0:1]|upper }}{{ request_user.last_name[0:1]|upper }}</span>
               </div>
               <div class="pmd-info">
-                <div class="pmd-name">{{ request.user.get_full_name|default:"User" }}</div>
-                <div class="pmd-role">{{ request.user.get_role_display|default:"Staff" }}</div>
-                {% if hospital %}<div class="pmd-hospital">{{ hospital.name }}</div>{% endif %}
+                <div class="pmd-name" id="pmd-name">{{ request_user.full_name }}</div>
+                <div class="pmd-role" id="pmd-role">{{ request_user.role_display }}</div>
               </div>
             </div>
             <div class="pmd-divider"></div>
@@ -945,10 +950,12 @@ window.NEXUS = Object.assign(window.NEXUS || {}, {
 <script src="{% static 'shared/js/nexus-signature.js' %}" defer></script>
 <script src="{% static 'shared/js/nexus-search.js' %}" defer></script>
 <script src="{% static 'shared/js/nexus-recent.js' %}" defer></script>
+<!-- NEXUS Voice AI — production touch-free control, female voice EN/FR/RW -->
+<script src="{% static 'shared/js/nexus-voice.js' %}" defer></script>
 <script src="{% static 'shared/js/nexus-shortcuts.js' %}" defer></script>
 <script src="{% static 'shared/js/voice-command.js' %}" defer></script>
 
-<!-- Profile sphere dropdown -->
+<!-- Profile sphere dropdown + staff photo loader -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   var sphere  = document.getElementById('profile-sphere');
@@ -962,6 +969,53 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') drop.classList.remove('open'); });
   }
   if (pmdOut) pmdOut.addEventListener('click', function () { var f = document.getElementById('logout-form'); if (f) f.submit(); });
+
+  /* ── Load staff photo + profile from JWT ────────────────────── */
+  var _token = localStorage.getItem('access_token');
+  if (_token) {
+    fetch('/api/v1/auth/me', {
+      headers: { Authorization: 'Bearer ' + _token }
+    })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(user){
+      if (!user) return;
+
+      /* Update profile sphere photo */
+      var photoEl    = document.getElementById('profile-sphere-photo');
+      var initialsEl = document.getElementById('profile-sphere-initials');
+      if (user.photo_url && photoEl) {
+        photoEl.src = user.photo_url;
+        photoEl.style.display = 'block';
+        if (initialsEl) initialsEl.style.display = 'none';
+      }
+
+      /* Update mini-dropdown photo */
+      var pmdWrap = document.getElementById('pmd-avatar-wrap');
+      if (pmdWrap && user.photo_url) {
+        pmdWrap.innerHTML = '<img src="' + user.photo_url + '" alt="Profile" style="width:100%;height:100%;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">';
+      }
+
+      /* Update name + role in mini dropdown */
+      var pmdName = document.getElementById('pmd-name');
+      var pmdRole = document.getElementById('pmd-role');
+      if (pmdName && user.full_name) pmdName.textContent = user.full_name;
+      if (pmdRole && user.role) pmdRole.textContent = user.role.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+
+      /* Store for use by other modules */
+      window._nexusUser = user;
+      localStorage.setItem('user_id',    user.id);
+      localStorage.setItem('user_role',  user.role);
+      localStorage.setItem('user_name',  user.full_name || user.username);
+      localStorage.setItem('user_photo', user.photo_url || '');
+      localStorage.setItem('user_dept',  user.department || '');
+
+      /* Apply preferred language if set */
+      if (user.preferred_language && window.NexusLanguage) {
+        NexusLanguage.setLanguage(user.preferred_language);
+      }
+    })
+    .catch(function(){});
+  }
 });
 </script>
 

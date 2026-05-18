@@ -1,143 +1,202 @@
 {% extends "shared/html/base.html" %}
 {% load static %}
 
-{% block title %}📚 Lab Records — NEXUS ALIS-X{% endblock %}
+{% block title %}📚 Record Books — NEXUS ALIS-X{% endblock %}
 {% block module_id %}records{% endblock %}
+{% block nav_active_records %}active{% endblock %}
 
 {% block module_css %}
 <link rel="stylesheet" href="{% static 'modules/records/css/records.css' %}">
 {% endblock %}
+{% block extra_head %}
+<style>
+/* ── Hard white override — no CSS variable dependency ── */
+html[data-theme], html, body, #app-main, .app-main { background: #ffffff !important; }
+.shift-bar { background: #ffffff !important; border-bottom: 1px solid #bae6fd !important; box-shadow: 0 1px 4px rgba(8,145,178,.08) !important; }
+.shift-bar *, #shift-name, #shift-time, #shift-icon { color: #0891b2 !important; }
+/* Override dark card backgrounds */
+.bg-card, .bg-deep, .bg-surface, .bg-elevated { background: #ffffff !important; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="rec-main">
+<div class="lc-page rec-index-shell">
 
-  <!-- ══ HEADER ══ -->
-  <header class="page-header rec-index-header">
-    <div class="page-header-left">
-      <div class="page-icon-wrap">
-        <span style="font-size:20px">📚</span>
-      </div>
-      <div>
-        <h1 class="page-title">Laboratory Record Books</h1>
-        <div class="page-subtitle">{{ today|date:"l, d F Y" }} · Specimen-Color Linked · Shift-Intelligent Records</div>
-      </div>
+  <!-- ══ HEADER — MAX 2.5 cm ══════════════════════════════════════ -->
+  <header class="lc-header rec-index-header">
+    <img src="{% static 'shared/assets/logos/jorinova-logo.jpeg' %}" alt="JORINOVA" class="lc-logo">
+    <div class="lc-header-titles">
+      <div class="lc-header-title">📚 Laboratory Record Books</div>
+      <div class="lc-header-subtitle">ISO 15189 · PQC-Signed · Shift-Intelligent · Specimen-Colour Linked · {{ total_books }} Books</div>
     </div>
-    <div class="page-header-right">
-      <div class="rec-shift-display" id="rec-shift-display">
-        <span id="rec-shift-icon">☀️</span>
-        <div>
-          <div class="rec-shift-name" id="rec-shift-name">Loading shift…</div>
-          <div class="rec-shift-time" id="rec-shift-time"></div>
-        </div>
+    <span class="lc-dept-badge">ALL DEPARTMENTS</span>
+    <div class="lc-header-shift">
+      <span id="ri-shift-icon">☀️</span>
+      <span id="ri-shift-name">Morning</span>
+      <span>·</span>
+      <time id="ri-clock">--:--:--</time>
+    </div>
+    <div class="lc-header-right">
+      <div class="lc-kpi" style="padding:.2rem .6rem;min-width:80px">
+        <span class="lc-kpi-val" style="font-size:1.2rem" id="ri-today">—</span>
+        <span class="lc-kpi-lbl">Today</span>
+      </div>
+      <div class="lc-kpi danger" style="padding:.2rem .6rem;min-width:80px">
+        <span class="lc-kpi-val" style="font-size:1.2rem" id="ri-rejections">—</span>
+        <span class="lc-kpi-lbl">Rejections</span>
+      </div>
+      <div class="lc-search-wrap">
+        <i class="fas fa-magnifying-glass"></i>
+        <input type="text" id="rec-global-search" placeholder="Search books…" oninput="filterBooks(this.value)">
       </div>
     </div>
   </header>
 
-  <!-- ══ SPECIMEN KEY ══ -->
-  <div class="rec-specimen-key">
-    <div class="rec-key-title">🧪 Specimen Tube ↔ Record Book Color System</div>
-    <div class="rec-key-items">
-      <div class="rec-key-item"><div class="rec-tube-swatch" style="background:linear-gradient(180deg,#9B59B6,#7D3C98)"></div><span>Purple (EDTA) → Hematology · Blood Group · Crossmatch</span></div>
-      <div class="rec-key-item"><div class="rec-tube-swatch" style="background:linear-gradient(180deg,#E74C3C,#CC0000)"></div><span>Red/Yellow (SST) → Chemistry · Serology</span></div>
-      <div class="rec-key-item"><div class="rec-tube-swatch" style="background:linear-gradient(180deg,#2980B9,#1A5276)"></div><span>Blue (Citrate) → Coagulation · Parasitology</span></div>
-      <div class="rec-key-item"><div class="rec-tube-swatch" style="background:linear-gradient(180deg,#27AE60,#1E8449)"></div><span>Green (Fluoride) → Glucose · Metabolic</span></div>
-      <div class="rec-key-item"><div class="rec-tube-swatch" style="background:linear-gradient(180deg,#00BCD4,#00838F)"></div><span>Teal → Microbiology</span></div>
-      <div class="rec-key-item"><div class="rec-tube-swatch" style="background:linear-gradient(180deg,#F1C40F,#F39C12)"></div><span>Yellow → Urinalysis</span></div>
-    </div>
+  <!-- ══ TUBE COLOUR KEY ══════════════════════════════════════════ -->
+  <div class="rec-tube-key-strip">
+    <span class="rtk-title">🧪 Tube → Book Colour:</span>
+    <div class="rtk-item"><div class="rtk-dot" style="background:#7c3aed"></div>Purple EDTA → Haematology</div>
+    <div class="rtk-item"><div class="rtk-dot" style="background:#1d4ed8"></div>Blue → Coagulation</div>
+    <div class="rtk-item"><div class="rtk-dot" style="background:#d97706"></div>Yellow → Chemistry</div>
+    <div class="rtk-item"><div class="rtk-dot" style="background:#0891b2"></div>Teal → Microbiology</div>
+    <div class="rtk-item"><div class="rtk-dot" style="background:#ca8a04"></div>Yellow → Urinalysis</div>
+    <div class="rtk-item"><div class="rtk-dot" style="background:#6d28d9"></div>Dark → Molecular</div>
+    <div class="rtk-item"><div class="rtk-dot" style="background:#be185d"></div>Pink → Blood Bank</div>
+    <div class="rtk-item"><div class="rtk-dot" style="background:#374151"></div>Slate → Admin</div>
   </div>
 
-  <!-- ══ BOOK GRID ══ -->
-  <div class="rec-books-body">
-    <div class="rec-books-grid">
+  <!-- ══ BOOK CATEGORIES ══════════════════════════════════════════ -->
+  <div class="rec-body" id="rec-body">
 
-      {% for book_type, cfg in books %}
-      <a href="/records/{{ book_type }}/" class="rec-book-card" data-book="{{ cfg.data-book }}">
+    {% for category, books in books_by_category.items() %}
+    {% if books %}
+    <section class="rec-cat-section" data-category="{{ category }}">
 
-        <!-- Book header — specimen tube color -->
-        <div class="rec-book-header" style="background: {{ cfg.gradient }}; border-bottom: 2px solid {{ cfg.accent }}55">
-          <div class="rec-book-header-stripe"></div>
-          <div class="rec-book-header-content">
-            <div class="rec-book-title" style="color: {{ cfg.text }}">{{ cfg.name }}</div>
-            <div class="rec-book-meta">
-              <div class="rec-book-shift-badge" id="shift-badge-{{ book_type }}">
-                <span class="rec-book-shift-icon">☀️</span>
-                <span>Morning Shift</span>
+      <div class="rec-cat-hdr">
+        <div class="rec-cat-label">{{ category }}</div>
+        <div class="rec-cat-count">{{ books | length }} books</div>
+        <div class="rec-cat-line"></div>
+      </div>
+
+      <div class="rec-books-grid">
+        {% for book_id, book in books %}
+        <a href="/records/{{ book_id }}/" class="rec-book-tile" data-book="{{ book_id }}">
+          <!-- Spine colour -->
+          <div class="rec-book-spine lc-book-spine spine-{{ book.tube }}"></div>
+
+          <!-- Content -->
+          <div class="rec-book-tile-content">
+            <!-- Book header band (accent colour) -->
+            <div class="rec-book-band" style="background:{{ book.accent }}15;border-left:3px solid {{ book.accent }}">
+              <div class="rec-book-band-icon">{{ book.icon }}</div>
+              <div class="rec-book-band-info">
+                <div class="rec-book-name">{{ book.name }}</div>
+                <div class="rec-book-dept-tag">{{ book.department }}</div>
               </div>
-              <div class="rec-book-ts" id="ts-{{ book_type }}"></div>
+              {% if book.bsl2 %}
+              <span class="rec-bsl2">BSL-2</span>
+              {% endif %}
+            </div>
+
+            <!-- Description -->
+            <div class="rec-book-desc">{{ book.description }}</div>
+
+            <!-- Live counts -->
+            <div class="rec-book-counts">
+              <div class="rec-bc-item">
+                <span class="rec-bc-num" id="cnt-{{ book_id }}">—</span>
+                <span class="rec-bc-lbl">Today</span>
+              </div>
+              <div class="rec-bc-item warn">
+                <span class="rec-bc-num" id="pnd-{{ book_id }}">—</span>
+                <span class="rec-bc-lbl">Pending</span>
+              </div>
+              <div class="rec-bc-item ok">
+                <span class="rec-bc-num" id="val-{{ book_id }}">—</span>
+                <span class="rec-bc-lbl">Validated</span>
+              </div>
+            </div>
+
+            <!-- Open CTA -->
+            <div class="rec-book-cta" style="color:{{ book.accent }}">
+              Open Book <span class="rec-cta-arrow">→</span>
             </div>
           </div>
-          <!-- Tube swatch indicator -->
-          <div class="rec-tube-indicator tube-{{ cfg.tube }}" title="{{ cfg.tube }} tube"></div>
-        </div>
+        </a>
+        {% endfor %}
+      </div><!-- /rec-books-grid -->
 
-        <!-- Book body -->
-        <div class="rec-book-body">
-          <div class="rec-book-stats">
-            <div class="rec-bs"><span class="rec-bs-val" id="cnt-{{ book_type }}">—</span><span class="rec-bs-lbl">Records Today</span></div>
-            <div class="rec-bs"><span class="rec-bs-val rec-bs-pending" id="pend-{{ book_type }}">—</span><span class="rec-bs-lbl">Pending</span></div>
-            <div class="rec-bs"><span class="rec-bs-val rec-bs-ok" id="valid-{{ book_type }}">—</span><span class="rec-bs-lbl">Validated</span></div>
-          </div>
-          <div class="rec-book-open-cta">
-            <span>Open Book →</span>
-          </div>
-        </div>
+    </section>
+    {% endif %}
+    {% endfor %}
 
-      </a>
-      {% endfor %}
+  </div><!-- /rec-body -->
 
-    </div>
-  </div>
+</div><!-- /.lc-page -->
 
-</div>
-{% endblock %}
-
-{% block extra_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  /* Live timestamps on every book card */
-  function updateBookTimes() {
-    var now = new Date();
-    var ts  = now.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    var h   = now.getHours();
-    var shift, icon;
-    if (h>=6 && h<14)      { shift='Morning Shift';   icon='☀️'; }
-    else if (h>=14 && h<22){ shift='Afternoon Shift'; icon='🌤️'; }
-    else                   { shift='Night Shift';      icon='🌙'; }
+'use strict';
+const API = '/api/v1/records';
+function auth(){const t=localStorage.getItem('access_token');return t?{Authorization:`Bearer ${t}`}:{};}
 
-    document.querySelectorAll('[id^="ts-"]').forEach(function(el) { el.textContent=ts; });
-    document.querySelectorAll('[id^="shift-badge-"]').forEach(function(el) {
-      var iconEl = el.querySelector('.rec-book-shift-icon');
-      var lblEl  = el.querySelector('span:last-child');
-      if (iconEl) iconEl.textContent = icon;
-      if (lblEl)  lblEl.textContent  = shift;
-    });
+/* Shift clock */
+function updateClock(){
+  const now=new Date(),h=now.getHours();
+  const [name,icon]=h>=6&&h<14?['Morning','☀️']:h>=14&&h<22?['Afternoon','🌤️']:['Night','🌙'];
+  document.getElementById('ri-shift-icon').textContent=icon;
+  document.getElementById('ri-shift-name').textContent=name;
+  document.getElementById('ri-clock').textContent=now.toLocaleTimeString('en-GB');
+}
+setInterval(updateClock,1000); updateClock();
 
-    /* Update top shift display */
-    var si = document.getElementById('rec-shift-icon');
-    var sn = document.getElementById('rec-shift-name');
-    var st = document.getElementById('rec-shift-time');
-    if(si) si.textContent = icon;
-    if(sn) sn.textContent = shift;
-    if(st) st.textContent = ts;
-  }
-  updateBookTimes();
-  setInterval(updateBookTimes, 1000);
-
-  /* Demo counts */
-  var demoData = {
-    'cnt':   [12,8,3,24,11,6,18,7,5,9,4,2],
-    'pend':  [3,2,1,5,3,2,4,1,0,2,1,0],
-    'valid': [9,6,2,19,8,4,14,6,5,7,3,2],
-  };
-  var ids = ['hematology','blood_group','crossmatch','chemistry','serology','coagulation','glucose','metabolic','microbiology','urinalysis','blood_bank','parasitology'];
-  ids.forEach(function(id, i) {
-    var c=document.getElementById('cnt-'+id);
-    var p=document.getElementById('pend-'+id);
-    var v=document.getElementById('valid-'+id);
-    if(c)c.textContent=demoData.cnt[i]||0;
-    if(p)p.textContent=demoData.pend[i]||0;
-    if(v)v.textContent=demoData.valid[i]||0;
+/* Book search */
+function filterBooks(q){
+  q=q.toLowerCase().trim();
+  document.querySelectorAll('.rec-book-tile').forEach(t=>{
+    t.style.display=(!q||t.textContent.toLowerCase().includes(q))?'':'none';
   });
-});
+  document.querySelectorAll('.rec-cat-section').forEach(s=>{
+    s.style.display=[...s.querySelectorAll('.rec-book-tile')].some(t=>t.style.display!=='none')?'':'none';
+  });
+}
+
+/* Demo counts */
+function setDemoCounts(){
+  const D={
+    hematology:12,blood_group:5,peripheral_smear:3,coagulation:8,
+    general_chemistry:24,endocrinology:6,tumour_markers:4,cardiac_markers:3,
+    serology_hiv:9,hepatitis_book:7,autoimmune_book:4,widal_serogroup:6,
+    blood_culture:5,urine_culture:11,stool_microbiology:7,sputum_tb:4,
+    body_fluid:3,wound_swab:6,urinalysis_book:18,
+    viral_load_book:5,tb_analysis:3,pcr_molecular:4,sequencing_book:2,
+    novel_pattern_book:1,genomic_prediction:2,
+    anapath_histology:4,cytology_book:8,ihc_book:3,image_analysis_book:2,
+    uds_book:6,tdm_book:5,poisoning_book:2,
+    blood_bank_donor:3,transfusion_book:5,
+    reception_opd:35,reception_ipd:18,sample_rejection:4,
+    inventory_book:12,finance_book:1,
+    epidemiology_book:2,iqc_book:20,shift_handover:3,
+  };
+  Object.entries(D).forEach(([id,cnt])=>{
+    const p=Math.floor(cnt*.25);
+    const c=document.getElementById(`cnt-${id}`);
+    const pn=document.getElementById(`pnd-${id}`);
+    const v=document.getElementById(`val-${id}`);
+    if(c)c.textContent=cnt;if(pn)pn.textContent=p;if(v)v.textContent=cnt-p;
+  });
+}
+
+async function loadStats(){
+  try{
+    const r=await fetch(`${API}/stats`,{headers:{...auth()}});
+    if(!r.ok)return;
+    const d=await r.json();
+    const s=id=>document.getElementById(id);
+    if(s('ri-today'))s('ri-today').textContent=d.total_results_today??'—';
+    if(s('ri-rejections'))s('ri-rejections').textContent=d.rejections_today??'—';
+  }catch(_){}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{ setDemoCounts(); loadStats(); });
 </script>
 {% endblock %}

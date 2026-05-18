@@ -3,185 +3,327 @@
 
 {% block title %}🩺 Doctor Portal — NEXUS ALIS-X{% endblock %}
 {% block module_id %}doctor-portal{% endblock %}
+{% block nav_active_lab %}active{% endblock %}
 
-{% block module_css %}
+{% block head_extra %}
 <link rel="stylesheet" href="{% static 'modules/doctor_portal/css/doctor_portal.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 {% endblock %}
 
 {% block content %}
-<div class="dp-main">
+<div id="doctor-app">
 
-  <header class="page-header">
-    <div class="page-header-left">
-      <div class="page-icon-wrap" style="background:rgba(0,128,255,0.09);border-color:rgba(0,128,255,0.22);color:#4488FF">
-        <span style="font-size:20px">🩺</span>
-      </div>
-      <div>
-        <h1 class="page-title">🩺 Doctor Portal</h1>
-        <div class="page-subtitle">{{ today|date:"l, d F Y" }} · Patient Results · Clinical Intelligence · Cross-Hospital Access</div>
-      </div>
+  <div class="dept-header doctor-hdr">
+    <div class="dh-left">
+      <div class="dh-icon">🩺</div>
+      <div><h1 class="dh-title">Doctor / Clinician Portal</h1>
+        <div class="dh-sub">Patient Results · Critical Alerts · Test Orders · Consultation · AI Clinical Support</div></div>
     </div>
-    <div class="page-header-right">
-      <div class="dp-doctor-chip">
-        <span style="font-size:16px">👨‍⚕️</span>
-        <div><div style="font-weight:700;font-size:var(--text-sm)">{{ request.user.get_full_name }}</div>
-        <div style="font-size:10px;color:var(--text-muted)">{{ request.user.get_role_display|default:"Doctor" }}</div></div>
-      </div>
+    <div class="dh-right">
+      <div class="dh-chip danger">🚨 <span id="stat-critical">—</span> Critical Unread</div>
+      <div class="dh-chip">📋 <span id="stat-results">—</span> New Results</div>
+      <div class="dh-chip">📝 <span id="stat-orders">—</span> Pending Orders</div>
     </div>
-  </header>
-
-  <div class="tab-nav dp-tab-nav" role="tablist">
-    <button class="tab-btn active" data-pane="dp-patients-pane">🧬 My Patients</button>
-    <button class="tab-btn" data-pane="dp-results-pane">📋 Recent Results</button>
-    <button class="tab-btn" data-pane="dp-critical-pane">🚨 Critical Alerts</button>
-    <button class="tab-btn" data-pane="dp-history-pane">📚 Patient History</button>
-    <button class="tab-btn" data-pane="dp-order-pane">🧪 Order Tests</button>
   </div>
 
-  <div class="dp-body">
+  <nav class="dept-tabs">
+    <button class="dt active" data-tab="inbox">🔔 Result Inbox</button>
+    <button class="dt" data-tab="critical">🚨 Critical Alerts</button>
+    <button class="dt" data-tab="patient-search">🔍 Patient Search</button>
+    <button class="dt" data-tab="patient-results">📋 Patient Results</button>
+    <button class="dt" data-tab="orders">📝 Order Tests</button>
+    <button class="dt" data-tab="consultation">💬 Consultation Notes</button>
+    <button class="dt" data-tab="trends">📊 Patient Trends</button>
+    <button class="dt" data-tab="ai-assist">🤖 AI Clinical Support</button>
+  </nav>
 
-    <!-- ══ MY PATIENTS ══ -->
-    <div class="tab-pane active" id="dp-patients-pane">
-      <div style="padding:var(--space-xl)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-lg);flex-wrap:wrap;gap:var(--space-md)">
-          <div style="display:flex;align-items:center;gap:var(--space-sm)">
-            <div class="worklist-search-wrap">
-              <i class="fas fa-magnifying-glass"></i>
-              <input type="text" id="dp-patient-search" class="worklist-search" placeholder="Search patient name, PID…">
-            </div>
-            <select class="filter-select" id="dp-ward-filter">
-              <option value="">All Wards</option>
-              <option>Medical Ward A</option><option>Medical Ward B</option>
-              <option>ICU</option><option>Maternity</option><option>Surgery</option>
-              <option>Paediatrics</option><option>Outpatient</option>
-            </select>
-          </div>
-          <span class="badge badge-blue" id="dp-patient-count">Loading…</span>
-        </div>
-        <div class="dp-patient-grid" id="dp-patient-grid">
-          <div class="worklist-loading"><i class="fas fa-spinner"></i> Loading patients…</div>
-        </div>
+  <!-- ══ RESULT INBOX ══════════════════════════════════════════════ -->
+  <div class="dept-pane active" id="tab-inbox">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="inbox-filter" onchange="loadInbox()">
+          <option value="all">All Results</option>
+          <option value="unread">Unread</option>
+          <option value="critical">Critical Only</option>
+          <option value="today">Today</option>
+        </select>
+        <select id="inbox-dept-f" onchange="loadInbox()">
+          <option value="">All Departments</option>
+          <option value="HEM">Hematology</option>
+          <option value="BIOCHEM">Biochemistry</option>
+          <option value="MICRO">Microbiology</option>
+          <option value="MOL">Molecular</option>
+        </select>
+        <input type="date" id="inbox-date-f" onchange="loadInbox()">
+      </div>
+      <div class="dept-toolbar-right">
+        <button class="dept-print-btn" onclick="NexusPrint?.printAll('inbox-table')">🖨️</button>
+        <button class="btn-secondary" onclick="markAllRead()">✓ Mark All Read</button>
       </div>
     </div>
 
-    <!-- ══ RECENT RESULTS ══ -->
-    <div class="tab-pane" id="dp-results-pane">
-      <div style="padding:var(--space-xl)">
-        <div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-lg);flex-wrap:wrap">
-          <div class="worklist-search-wrap">
-            <i class="fas fa-magnifying-glass"></i>
-            <input type="text" id="dp-result-search" class="worklist-search" placeholder="Lab ID, patient, test name…">
-          </div>
-          <select class="filter-select" id="dp-result-filter">
-            <option value="">All results</option>
-            <option value="critical">🚨 Critical only</option>
-            <option value="abnormal">⚠️ Abnormal</option>
-            <option value="today">📅 Today</option>
-          </select>
-          <select class="filter-select" id="dp-dept-filter">
-            <option value="">All departments</option>
-            <option>Hematology</option><option>Chemistry</option>
-            <option>Microbiology</option><option>Serology</option>
-            <option>Blood Bank</option>
-          </select>
-        </div>
-        <table class="nx-table">
-          <thead><tr>
-            <th>🧬 Patient</th><th>🔖 Lab ID</th><th>🧪 Test</th>
-            <th>📊 Result</th><th>🚦 Flag</th><th>🕐 Released</th><th>Action</th>
-          </tr></thead>
-          <tbody id="dp-results-tbody">
-            <tr><td colspan="7"><div class="worklist-loading"><i class="fas fa-spinner"></i> Loading results…</div></td></tr>
-          </tbody>
-        </table>
+    <!-- Critical banner (if any) -->
+    <div id="critical-banner" class="critical-result-banner" style="display:none">
+      <div class="crb-icon">🚨</div>
+      <div class="crb-text">
+        <strong>Critical Results Awaiting Acknowledgement</strong>
+        <div id="crb-count" class="crb-sub">— results need your immediate attention</div>
+      </div>
+      <button class="crb-btn" onclick="switchTab('critical')">View Critical Results</button>
+    </div>
+
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="inbox-table">
+        <thead><tr><th>🔔</th><th>Patient</th><th>PID / LID</th><th>Test</th>
+          <th>Result</th><th>Flag</th><th>Department</th>
+          <th>Validated</th><th>AI Summary</th><th>Actions</th></tr></thead>
+        <tbody id="inbox-tbody"><tr><td colspan="10" class="dept-empty">Loading result inbox…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ CRITICAL ALERTS ══════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-critical">
+    <div class="critical-intro">
+      🚨 <strong>Critical Value Protocol:</strong> These results require immediate clinical action.
+      Please acknowledge each critical result and document your response.
+      Unacknowledged critical results are escalated to ward nurses every 30 minutes.
+    </div>
+    <div id="critical-alerts-list"><div class="dept-empty">Loading critical alerts…</div></div>
+  </div>
+
+  <!-- ══ PATIENT SEARCH ════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-patient-search">
+    <div class="doctor-search-area">
+      <div class="doc-search-wrap">
+        <input type="text" id="doc-patient-search" class="doc-search-input"
+          placeholder="Search by patient name, PID, LID (RW-...), national ID, phone…"
+          oninput="searchPatients()">
+        <button class="doc-search-btn" onclick="searchPatients()">🔍 Search</button>
+      </div>
+      <div id="doc-search-results" class="doc-search-results">
+        <div class="dept-empty">Enter patient name or ID to search</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PATIENT RESULTS ════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-patient-results">
+    <div class="patient-results-header" id="patient-results-header" style="display:none">
+      <div class="pr-patient-info">
+        <div class="pr-name" id="pr-patient-name">—</div>
+        <div class="pr-ids"><span id="pr-pid">—</span> · <span id="pr-lid">—</span> · <span id="pr-dob">—</span></div>
+      </div>
+      <div class="pr-actions">
+        <button class="btn-primary" onclick="printPatientResults()">🖨️ Print All Results</button>
+        <button class="btn-secondary" onclick="switchTab('orders')">📝 Order New Test</button>
       </div>
     </div>
 
-    <!-- ══ CRITICAL ALERTS ══ -->
-    <div class="tab-pane" id="dp-critical-pane">
-      <div style="padding:var(--space-xl)">
-        <div style="background:rgba(255,23,68,.06);border:1px solid rgba(255,23,68,.20);border-radius:var(--radius-lg);padding:var(--space-lg);margin-bottom:var(--space-lg)">
-          <div style="font-family:var(--font-display);font-size:var(--text-lg);font-weight:700;color:var(--alert-red);margin-bottom:var(--space-sm)">🚨 Unacknowledged Critical Results</div>
-          <div style="font-size:var(--text-xs);color:var(--text-muted)">These results require your immediate clinical attention and acknowledgment.</div>
-        </div>
-        <div id="dp-critical-list"></div>
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="pr-dept-f" onchange="loadPatientResults()">
+          <option value="">All Departments</option>
+          <option value="HEM">Hematology</option>
+          <option value="BIOCHEM">Biochemistry</option>
+          <option value="MICRO">Microbiology</option>
+          <option value="COAG">Coagulation</option>
+        </select>
+        <select id="pr-date-range-f" onchange="loadPatientResults()">
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 3 months</option>
+          <option value="365">Last year</option>
+          <option value="all">All time</option>
+        </select>
+      </div>
+      <div class="dept-toolbar-right">
+        <button class="dept-print-btn" onclick="NexusPrint?.printAll('patient-results-table')">🖨️</button>
+        <button class="dept-filter-btn" onclick="NexusFilter?.open('patient-results-table')">⚙️</button>
       </div>
     </div>
 
-    <!-- ══ PATIENT HISTORY (Cross-hospital LID) ══ -->
-    <div class="tab-pane" id="dp-history-pane">
-      <div style="padding:var(--space-xl);max-width:900px">
-        <div style="margin-bottom:var(--space-lg)">
-          <div style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary);margin-bottom:var(--space-sm)">📚 Cross-Hospital Patient History (LID Lookup)</div>
-          <div style="font-size:var(--text-xs);color:var(--text-muted)">Enter a patient's Lifelong ID (LID) to access their complete laboratory history across all NEXUS-connected facilities.</div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="patient-results-table">
+        <thead><tr><th>Date</th><th>Test</th><th>Department</th><th>Result</th>
+          <th>Unit</th><th>Reference Range</th><th>Flag</th>
+          <th>AI Interpretation</th><th>Validated By</th><th>Actions</th></tr></thead>
+        <tbody id="patient-results-tbody"><tr><td colspan="10" class="dept-empty">Search and select a patient to view their results.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ ORDER TESTS ════════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-orders">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <select id="orders-status-f" onchange="loadOrders()">
+          <option value="">All Status</option>
+          <option value="PENDING">Pending (not collected)</option>
+          <option value="COLLECTED">Collected</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="COMPLETED">Completed</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+        <input type="date" id="orders-date-f" onchange="loadOrders()">
+      </div>
+      <button class="btn-primary" onclick="openModal('order-modal')">+ New Test Order</button>
+    </div>
+    <div class="tox-table-wrap">
+      <table class="dept-table" id="orders-table">
+        <thead><tr><th>Order #</th><th>Patient</th><th>Tests Ordered</th>
+          <th>Priority</th><th>Clinical Note</th><th>Ordered At</th>
+          <th>Status</th><th>Results Available</th><th>Actions</th></tr></thead>
+        <tbody id="orders-tbody"><tr><td colspan="9" class="dept-empty">Loading test orders…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ CONSULTATION NOTES ════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-consultation">
+    <div class="consultation-area">
+      <div class="consult-composer">
+        <div class="cc-header"><h3>💬 Add Consultation Note</h3></div>
+        <div class="cc-body">
+          <div class="cc-field"><label>Patient PID / LID</label><input type="text" id="consult-patient-id" placeholder="PID-XXXX or RW-XXXXXXX"><button class="btn-secondary" style="margin-left:.5rem" onclick="loadPatientForConsult()">Find</button></div>
+          <div class="cc-field"><label>Lab ID / Result Reference</label><input type="text" id="consult-lab-id" placeholder="LAB-2026-XXXXX"></div>
+          <div class="cc-field"><label>Note Type</label>
+            <select id="consult-type"><option value="CLINICAL_QUERY">Clinical query to lab</option><option value="INTERPRETATION_REQUEST">Request AI interpretation</option><option value="ADDITIONAL_TEST">Request additional test</option><option value="REPEAT_TEST">Request repeat test</option><option value="CLINICAL_CORRELATION">Clinical correlation note</option><option value="ACKNOWLEDGEMENT">Critical value acknowledgement</option></select></div>
+          <div class="cc-field"><label>Note</label><textarea id="consult-note" rows="4" placeholder="Your clinical note, query, or observation…"></textarea></div>
+          <div class="cc-field"><label>Priority</label>
+            <select id="consult-priority"><option value="ROUTINE">Routine</option><option value="URGENT">Urgent</option><option value="STAT">STAT</option></select></div>
         </div>
-        <div style="display:flex;gap:var(--space-sm);margin-bottom:var(--space-xl)">
-          <input type="text" class="form-input" id="dp-lid-input" placeholder="Enter LID (e.g. NXS-LID-2024-000142) or PID…" style="flex:1">
-          <button class="btn btn-primary" id="dp-lid-search-btn">🔍 Search History</button>
+        <div class="cc-footer">
+          <button class="btn-primary" onclick="submitConsultNote()">📤 Send to Laboratory</button>
         </div>
-        <div id="dp-history-results">
-          <div class="empty-state">
-            <div class="empty-state-icon" style="font-size:40px">🔍</div>
-            <p>Enter a patient LID or PID to load their complete cross-hospital laboratory history.</p>
+      </div>
+
+      <div class="consult-history">
+        <div class="ch-title">Recent Consultation Notes</div>
+        <div id="consult-history-list"><div class="dept-empty">Loading consultation history…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PATIENT TRENDS ════════════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-trends">
+    <div class="dept-toolbar">
+      <div class="dept-filters">
+        <input type="text" id="trend-patient-id" placeholder="PID or LID for trend analysis">
+        <select id="trend-test-f">
+          <option value="">Select test to trend</option>
+          <option value="HGB">Haemoglobin</option>
+          <option value="WBC">WBC count</option>
+          <option value="PLT">Platelets</option>
+          <option value="CREAT">Creatinine</option>
+          <option value="K">Potassium</option>
+          <option value="NA">Sodium</option>
+          <option value="FBG">Glucose</option>
+          <option value="HBA1C">HbA1c</option>
+          <option value="ALT">ALT / SGPT</option>
+          <option value="INR">INR</option>
+        </select>
+        <select id="trend-period">
+          <option value="30">30 days</option>
+          <option value="90">3 months</option>
+          <option value="180">6 months</option>
+          <option value="365">1 year</option>
+        </select>
+        <button class="btn-primary" onclick="loadTrend()">📊 Show Trend</button>
+      </div>
+    </div>
+    <div class="trend-chart-area">
+      <canvas id="trend-chart" height="280"></canvas>
+    </div>
+    <div id="trend-interpretation" class="trend-interp-box" style="display:none">
+      <div class="ti-lbl">🤖 AI Trend Analysis</div>
+      <div id="trend-interp-text"></div>
+    </div>
+  </div>
+
+  <!-- ══ AI CLINICAL SUPPORT ══════════════════════════════════════ -->
+  <div class="dept-pane" id="tab-ai-assist">
+    <div class="ai-assist-disclaimer">
+      🤖 <strong>AI Clinical Decision Support:</strong>
+      AI provides evidence-based suggestions only. All clinical decisions remain with the responsible clinician.
+      AI output is not a substitute for clinical judgment or specialist consultation.
+    </div>
+
+    <div class="ai-chat-area">
+      <div class="ai-chat-box" id="ai-chat-box">
+        <div class="ai-msg ai-msg-system">
+          <div class="ai-msg-icon">🤖</div>
+          <div class="ai-msg-content">
+            <div class="ai-msg-name">ALIS-X AI Clinical Assistant</div>
+            <div class="ai-msg-text">Hello Doctor. I can help with: result interpretation, differential diagnosis support, drug interaction checks, treatment guideline references, and clinical decision support. How can I assist you today?</div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ══ ORDER TESTS ══ -->
-    <div class="tab-pane" id="dp-order-pane">
-      <div style="max-width:720px;margin:0 auto;padding:var(--space-xl)">
-        <div style="font-family:var(--font-display);font-size:var(--text-xl);color:var(--text-primary);margin-bottom:var(--space-lg)">🧪 Order Laboratory Tests</div>
-        <div style="display:flex;flex-direction:column;gap:var(--space-md)">
-          <div class="form-group">
-            <label class="form-label">🧬 Patient</label>
-            <input type="text" class="form-input" id="dp-order-patient" placeholder="Search by PID or name…">
-          </div>
-          <div class="form-group">
-            <label class="form-label">🏥 Ward / Location</label>
-            <select class="form-input" id="dp-order-ward">
-              <option>Medical Ward A</option><option>Medical Ward B</option>
-              <option>ICU</option><option>Maternity</option><option>Surgery</option>
-              <option>Outpatient</option><option>Emergency</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">📋 Clinical Indication</label>
-            <textarea class="form-input fi fi-ta" id="dp-order-indication" rows="2" placeholder="Reason for testing…"></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">⚡ Priority</label>
-            <div style="display:flex;gap:var(--space-sm)">
-              <label class="priority-pill routine selected"><input type="radio" name="dp-priority" value="routine" checked> 📋 Routine</label>
-              <label class="priority-pill urgent"><input type="radio" name="dp-priority" value="urgent"> ⚡ Urgent</label>
-              <label class="priority-pill emerg"><input type="radio" name="dp-priority" value="emergency"> 🚨 STAT</label>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">🧪 Select Tests</label>
-            <div style="display:flex;gap:var(--space-sm);margin-bottom:var(--space-sm);flex-wrap:wrap">
-              <button class="btn btn-ghost btn-sm dp-preset" data-tests="CBC,ESR,CRP">📋 FBC Panel</button>
-              <button class="btn btn-ghost btn-sm dp-preset" data-tests="Glucose,Creatinine,Urea,Electrolytes">⚗️ U+E Panel</button>
-              <button class="btn btn-ghost btn-sm dp-preset" data-tests="ALT,AST,ALP,Bilirubin,Albumin">🫀 LFT Panel</button>
-              <button class="btn btn-ghost btn-sm dp-preset" data-tests="HIV,HBsAg,HCV,VDRL">🔬 Serology Screen</button>
-              <button class="btn btn-ghost btn-sm dp-preset" data-tests="Malaria RDT,Blood Film (Giemsa),CBC">🦟 Malaria Panel</button>
-              <button class="btn btn-ghost btn-sm dp-preset" data-tests="GeneXpert MTB/RIF,ZN Stain,Culture">🫁 TB Panel</button>
-            </div>
-            <div id="dp-selected-tests" style="display:flex;flex-wrap:wrap;gap:5px;min-height:32px;padding:var(--space-sm);background:var(--bg-glass);border-radius:var(--radius-md);border:1px solid var(--border-dim)">
-              <span style="color:var(--text-muted);font-size:11px;padding:3px">No tests selected — choose a panel or add individually</span>
-            </div>
-          </div>
-          <button class="btn btn-primary" id="dp-submit-order-btn" style="width:100%;margin-top:var(--space-sm)">
-            🧪 Submit Laboratory Order
-          </button>
-        </div>
+      <div class="ai-quick-btns">
+        <button onclick="aiQuickAsk('Interpret the CBC result for anemia classification')">CBC anemia classification</button>
+        <button onclick="aiQuickAsk('Differential diagnosis for elevated liver enzymes (ALT/AST)')">Elevated liver enzymes DDx</button>
+        <button onclick="aiQuickAsk('Drug interaction check: warfarin + antibiotics')">Drug interaction check</button>
+        <button onclick="aiQuickAsk('WHO guidelines for HIV viral load monitoring')">HIV VL guidelines</button>
+        <button onclick="aiQuickAsk('Interpret TSH result and thyroid function tests')">Thyroid function</button>
+        <button onclick="aiQuickAsk('Critical value management protocol')">Critical value protocol</button>
+      </div>
+
+      <div class="ai-input-area">
+        <textarea id="ai-prompt" rows="2" placeholder="Ask the AI about patient results, differential diagnoses, treatment guidelines, drug interactions…"></textarea>
+        <button class="btn-primary" onclick="sendAIMessage()">💬 Ask AI</button>
       </div>
     </div>
+  </div>
 
-  </div><!-- /dp-body -->
+</div><!-- /#doctor-app -->
+
+<!-- ═══ MODALS ════════════════════════════════════════════════ -->
+
+<!-- Critical Value Acknowledgement Modal -->
+<div class="dept-modal-overlay" id="ack-modal" style="display:none">
+  <div class="dept-modal">
+    <div class="dept-modal-hdr"><h3>🚨 Acknowledge Critical Value</h3><button onclick="closeModal('ack-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="critical-ack-box" id="ack-result-display">—</div>
+      <div class="dept-form-grid" style="margin-top:.75rem">
+        <div class="dept-form-row full-col"><label>Your Response / Clinical Action</label><textarea id="ack-response" rows="3" placeholder="What clinical action did you take? (e.g. Patient assessed, medication adjusted, admitted to ICU…)"></textarea></div>
+        <div class="dept-form-row"><label>Action Time</label><input type="datetime-local" id="ack-time"></div>
+        <div class="dept-form-row"><label>Action Type</label>
+          <select id="ack-action-type"><option value="ASSESSED_PATIENT">Patient clinically assessed</option><option value="MEDICATION_CHANGE">Medication changed / adjusted</option><option value="ADMITTED">Patient admitted / transferred</option><option value="ORDERED_REPEAT">Repeat test ordered</option><option value="WATCHFUL_WAIT">Watchful waiting — no change</option></select></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('ack-modal')">Cancel</button><button class="btn-danger" onclick="submitAcknowledgement()">✅ Acknowledge &amp; Confirm Action</button></div>
+  </div>
 </div>
-{% endblock %}
 
-{% block module_scripts %}
+<!-- New Test Order Modal -->
+<div class="dept-modal-overlay" id="order-modal" style="display:none">
+  <div class="dept-modal dept-modal-wide">
+    <div class="dept-modal-hdr"><h3>📝 New Test Order</h3><button onclick="closeModal('order-modal')">✕</button></div>
+    <div class="dept-modal-body">
+      <div class="dept-form-grid">
+        <div class="dept-form-row"><label>Patient ID</label><input type="number" id="ord-pat"></div>
+        <div class="dept-form-row"><label>PID</label><input type="text" id="ord-pid" placeholder="PID-XXXX"></div>
+        <div class="dept-form-row"><label>Ward / Location</label><input type="text" id="ord-ward" placeholder="e.g. Ward 3B, ICU, OPD"></div>
+        <div class="dept-form-row"><label>Priority</label>
+          <select id="ord-priority"><option value="routine">Routine</option><option value="urgent">Urgent</option><option value="stat">STAT (Emergency)</option></select></div>
+        <div class="dept-form-row"><label>Requesting Clinician</label><input type="text" id="ord-clinician"></div>
+        <div class="dept-form-row"><label>High Risk Patient?</label>
+          <select id="ord-high-risk"><option value="false">No</option><option value="true">Yes (HIV/HBV/TB)</option></select></div>
+        <div class="dept-form-row full-col"><label>Tests Requested (select from catalog)</label>
+          <div class="test-picker" id="test-picker">
+            <input type="text" id="test-picker-search" placeholder="Search test catalog…" oninput="searchTestCatalog()" style="width:100%;padding:.4rem;border:1px solid #ced4da;border-radius:6px;margin-bottom:.4rem">
+            <div id="test-picker-results" style="max-height:160px;overflow-y:auto;border:1px solid #e9ecef;border-radius:6px"></div>
+            <div id="test-picker-selected" style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem"></div>
+          </div>
+        </div>
+        <div class="dept-form-row full-col"><label>Clinical Note / Diagnosis</label><textarea id="ord-diagnosis" rows="2" placeholder="Clinical indication, provisional diagnosis…"></textarea></div>
+      </div>
+    </div>
+    <div class="dept-modal-ftr"><button class="btn-secondary" onclick="closeModal('order-modal')">Cancel</button><button class="btn-primary" onclick="submitOrder()">📤 Submit Order</button></div>
+  </div>
+</div>
+
 <script src="{% static 'modules/doctor_portal/js/doctor_portal.js' %}" defer></script>
 {% endblock %}

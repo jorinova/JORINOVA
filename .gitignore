@@ -126,5 +126,29 @@ dmypy.json
 *.prof
 
 # Docker
-.dockerignore (generated)
 docker-compose.override.yml
+
+# ═══ CRITICAL SECURITY — NEVER COMMIT ════════════════════════════
+backend/.env.production    # Production secrets
+backend/.env.staging       # Staging secrets
+backend/.env               # Any env with real secrets
+nginx/certs/               # SSL private keys
+scripts/backup_*.sql.gz    # Database backups
+backups/                   # Local backup directory
+media/                     # Uploaded patient files / staff photos
+
+# Database files (SQLite dev only — PostgreSQL for production)
+backend/alis_x.db
+backend/alis_x.db-shm
+backend/alis_x.db-wal
+
+# Generated secrets
+secrets_generated_*.txt
+
+# Logs
+logs/
+*.log
+
+# AI model cache (very large)
+.ollama/
+models/

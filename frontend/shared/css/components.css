@@ -1211,3 +1211,180 @@
   .ai-diag-grid  { grid-template-columns: 1fr; }
   .ai-model-grid { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   DYNAMIC TABLES — Horizontal + Vertical scroll (all modules)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Universal dynamic table wrapper */
+.table-wrap,
+.results-table-wrap,
+.worklist-area,
+.data-table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 62vh;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-dim);
+  position: relative;
+  /* Horizontal scroll shadow indicator */
+  background:
+    linear-gradient(to right, var(--bg-card) 30%, transparent) left center / 40px 100% no-repeat,
+    linear-gradient(to left,  var(--bg-card) 30%, transparent) right center / 40px 100% no-repeat,
+    linear-gradient(to right, rgba(0,0,0,.15), transparent) left center / 15px 100% no-repeat,
+    linear-gradient(to left,  rgba(0,0,0,.15), transparent) right center / 15px 100% no-repeat,
+    var(--bg-card);
+  background-attachment: local, local, scroll, scroll, scroll;
+}
+
+/* Sticky table headers */
+.worklist-table thead th,
+.data-table thead th,
+table.sticky-header thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-surface, #0D1F3E);
+  box-shadow: 0 2px 0 0 var(--border-mid);
+  white-space: nowrap;
+}
+
+/* Sticky first column (patient name) */
+.worklist-table tbody td:first-child,
+.data-table tbody td:first-child,
+table.sticky-col td:first-child,
+table.sticky-col th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-dim);
+  box-shadow: 2px 0 6px rgba(0,0,0,.15);
+}
+
+/* Ensure tables fill their wrapper */
+.worklist-table,
+.data-table {
+  width: 100%;
+  min-width: max-content;   /* enables horizontal scroll for many columns */
+  border-collapse: collapse;
+}
+
+/* Horizontally scrollable pill indicator */
+.table-scroll-hint {
+  font-size: .7rem;
+  color: var(--text-muted);
+  text-align: right;
+  padding: .2rem .5rem;
+  display: none;
+}
+.table-wrap.is-scrollable .table-scroll-hint { display: block; }
+
+/* Scrollbar styling */
+.table-wrap::-webkit-scrollbar,
+.results-table-wrap::-webkit-scrollbar,
+.worklist-area::-webkit-scrollbar { width: 6px; height: 6px; }
+.table-wrap::-webkit-scrollbar-track,
+.results-table-wrap::-webkit-scrollbar-track { background: transparent; }
+.table-wrap::-webkit-scrollbar-thumb,
+.results-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--border-mid, rgba(255,255,255,.15));
+  border-radius: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PRINT STYLES — Hides UI chrome, shows only content
+   ═══════════════════════════════════════════════════════════════ */
+@media print {
+  .sidebar, nav, #tf-pill, #jv-panel, .filter-icon-group,
+  .print-icon-group, .btn, .worklist-toolbar, .pane-toolbar,
+  .tab-nav, .page-header-right, .modal-overlay { display: none !important; }
+  .table-wrap, .results-table-wrap, .worklist-area {
+    overflow: visible !important;
+    max-height: none !important;
+    border: none !important;
+  }
+  .worklist-table thead th, .data-table thead th { position: static !important; }
+  body { font-size: 10pt; background: #fff; color: #000; }
+  table { page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REJECTION BOOK — Severity colour coding
+   ═══════════════════════════════════════════════════════════════ */
+.rej-critical { background: rgba(239,68,68,.15); border-left: 3px solid #ef4444; }
+.rej-high     { background: rgba(249,115,22,.10); border-left: 3px solid #f97316; }
+.rej-moderate { background: rgba(234,179,8,.08);  border-left: 3px solid #eab308; }
+.rej-low      { background: rgba(34,197,94,.06);  border-left: 3px solid #22c55e; }
+.rej-badge {
+  display: inline-block; padding: .2rem .55rem; border-radius: 8px;
+  font-size: .75rem; font-weight: 700;
+}
+.rej-badge.critical { background: #ef4444; color: #fff; }
+.rej-badge.high     { background: #f97316; color: #fff; }
+.rej-badge.moderate { background: #eab308; color: #000; }
+.rej-badge.low      { background: #22c55e; color: #fff; }
+
+/* ═══════════════════════════════════════════════════════════════
+   AI RESULT PANEL — Integration with result entry forms
+   ═══════════════════════════════════════════════════════════════ */
+.result-entry-with-ai {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .result-entry-with-ai { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BARCODE LABEL — Human readable text
+   ═══════════════════════════════════════════════════════════════ */
+.label-human-text {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 9pt;
+  letter-spacing: .12em;
+  text-align: center;
+  margin-top: 2px;
+  color: #000;
+  font-weight: 600;
+}
+.label-patient-line {
+  font-size: 8pt;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.label-dept-strip {
+  height: 5px;
+  border-radius: 0 0 4px 4px;
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOUCH-FREE MODE — Overrides applied by touch-free.js
+   ═══════════════════════════════════════════════════════════════ */
+body.touch-free-mode .worklist-table td,
+body.touch-free-mode .data-table td {
+  padding: .85rem .75rem;
+  font-size: .93rem;
+}
+body.touch-free-mode .tab-btn {
+  padding: .65rem 1.25rem;
+  font-size: .92rem;
+}
+body.touch-free-mode button.btn,
+body.touch-free-mode a.btn {
+  padding: .65rem 1.5rem;
+  font-size: .9rem;
+}
+/* Focus ring (always visible in touch-free for keyboard nav) */
+body.touch-free-mode *:focus-visible {
+  outline: 3px solid #6366f1 !important;
+  outline-offset: 3px !important;
+  border-radius: 4px;
+}

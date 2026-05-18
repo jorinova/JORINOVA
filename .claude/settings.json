@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip show *)",
+      "Read(//c/Users/hp/Downloads/**)",
+      "Bash(python -c \"import uvicorn; print\\('ok'\\)\")",
+      "Bash(python backend/main.py)",
+      "Bash(python -c ' *)"
+    ]
+  }
+}

@@ -1,165 +1,125 @@
-/* ═══════════════════════════════════════════════════════════════
-   JORINOVA NEXUS ALIS-X — Hematology AI Module
-   ═══════════════════════════════════════════════════════════════ */
+/* ══ Haematology Module CSS — White/Futuristic Theme ═══════════ */
 
-.hema-main { display:flex; flex-direction:column; flex:1; overflow:hidden; }
-.hema-header { background:linear-gradient(90deg, var(--bg-deep), rgba(255,23,68,0.03)); }
+.hem-shell { background: #fff; min-height: 100%; display: flex; flex-direction: column; }
 
-.hema-iso-pill {
-  display:inline-flex; align-items:center; gap:8px;
-  padding:5px 13px; border-radius:var(--radius-full);
-  background:rgba(255,23,68,0.07); border:1px solid rgba(255,23,68,0.20);
-  font-size:11px; font-weight:600; color:rgba(255,80,80,.85); letter-spacing:.04em;
+/* ── Header ──────────────────────────────────────────────────── */
+.hem-header  { border-bottom-color: #dc2626 !important; }
+.hem-dept-badge { background: #fee2e2; border: 1px solid #fca5a5; color: #7f1d1d; font-size:.68rem; font-weight:700; padding:.15rem .55rem; border-radius:20px; white-space:nowrap; }
+.hem-shift-info { display:flex; align-items:center; gap:.3rem; font-size:.72rem; color:#64748b; background:#f8fafc; border:1px solid #e4e8f0; border-radius:20px; padding:.18rem .65rem; }
+.hem-iso-pill   { background:#fff0f0; border:1px solid #fca5a5; color:#7f1d1d; font-size:.68rem; font-weight:700; padding:.18rem .65rem; border-radius:20px; }
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+.hem-tabs { display:flex; gap:.4rem; padding:.5rem 1rem .4rem; background:#fff; border-bottom:2px solid #e4e8f0; flex-wrap:wrap; }
+.hem-tab  { background:none; border:none; padding:.35rem .9rem; border-radius:8px 8px 0 0; font-size:.82rem; font-weight:600; color:#64748b; cursor:pointer; transition:.15s; }
+.hem-tab:hover  { background:#fff0f0; color:#dc2626; }
+.hem-tab.active { background:#dc2626; color:#fff; box-shadow:0 2px 8px rgba(220,38,38,.25); }
+.hem-pane { display:none; padding:.65rem .85rem; }
+.hem-pane.active { display:block; }
+
+/* ── CBC Entry Layout ────────────────────────────────────────── */
+.cbc-entry-shell { display:grid; grid-template-columns:1fr 340px; gap:.75rem; align-items:start; }
+.cbc-params-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:.75rem; margin-top:.65rem; }
+
+/* ── Parameter Entry ─────────────────────────────────────────── */
+.cbc-section    { background:#fafbff; border:1px solid #e4e8f0; border-radius:10px; padding:.75rem; }
+.param-entry-row { display:grid; grid-template-columns:1fr 90px 60px 50px; gap:.3rem; align-items:center; padding:.25rem .3rem; border-radius:5px; }
+.param-entry-row:hover { background:rgba(6,182,212,.04); }
+.param-entry-row.cbc-total-row { background:#f0fdff; border:1px solid #bae6fd; border-radius:6px; margin-bottom:.35rem; padding:.4rem .5rem; }
+.pe-label     { font-size:.79rem; font-weight:700; color:#334155; display:flex; flex-direction:column; line-height:1.2; }
+.pe-label-big { font-size:.9rem; font-weight:800; }
+.pe-unit      { font-size:.63rem; color:#94a3b8; font-weight:400; }
+.pe-input     { background:#fff; border:1px solid #e4e8f0; border-radius:7px; padding:.28rem .45rem; font-size:.82rem; font-weight:700; color:#0f172a; outline:none; text-align:right; transition:.15s; width:100%; }
+.pe-input:focus { border-color:#0891b2; box-shadow:0 0 0 2px rgba(8,145,178,.12); }
+.pe-input.crit { border-color:#dc2626; background:#fff0f0; animation:hem-crit 1.5s infinite; }
+.pe-input.high  { border-color:#d97706; background:#fffbeb; }
+.pe-input.low   { border-color:#3b82f6; background:#eff6ff; }
+.pe-input-big   { font-size:1.05rem; font-weight:800; }
+.pe-input-abs   { background:#f8fafc; color:#475569; font-size:.75rem; }
+.pe-ref         { font-size:.67rem; color:#94a3b8; white-space:nowrap; text-align:center; }
+.pe-flag        { text-align:center; font-size:.7rem; font-weight:700; }
+.pe-flag-big    { font-size:.78rem; }
+@keyframes hem-crit { 0%,100%{opacity:1}50%{opacity:.6} }
+
+/* ── WBC Differential ────────────────────────────────────────── */
+.diff-header-row { display:grid; grid-template-columns:12px 1fr 78px 85px 55px 40px; gap:.3rem; align-items:center; padding:.2rem .3rem; font-size:.67rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; border-bottom:1px solid #e4e8f0; margin-bottom:.25rem; }
+.diff-row { display:grid; grid-template-columns:12px 1fr 78px 85px 55px 40px; gap:.3rem; align-items:center; padding:.28rem .3rem; border-radius:6px; }
+.diff-row:hover { background:rgba(6,182,212,.04); }
+.diff-dot  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.diff-name { font-size:.78rem; font-weight:600; color:#334155; display:flex; flex-direction:column; line-height:1.1; }
+.diff-abbr { font-size:.63rem; color:#94a3b8; font-family:monospace; letter-spacing:.04em; }
+.diff-total-row { display:flex; align-items:center; gap:.5rem; padding:.35rem .5rem; background:#f0f4ff; border-radius:6px; font-size:.78rem; margin-top:.35rem; }
+
+/* ── Flags grid ──────────────────────────────────────────────── */
+.cbc-flags-grid { display:grid; grid-template-columns:1fr 1fr; gap:.25rem; }
+.cbc-flag-cb { display:flex; align-items:center; gap:.3rem; font-size:.76rem; color:#475569; cursor:pointer; padding:.2rem; border-radius:4px; }
+.cbc-flag-cb:hover { background:#f8fafc; }
+.cbc-patient-row { display:grid; grid-template-columns:repeat(6,1fr); gap:.5rem; margin-bottom:.65rem; }
+.wf-form-group { display:flex; flex-direction:column; gap:.2rem; }
+.wf-form-group label { font-size:.72rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.04em; }
+.wf-input { background:#f8fafc; border:1px solid #e4e8f0; border-radius:8px; padding:.35rem .6rem; font-size:.83rem; color:#0f172a; outline:none; width:100%; }
+.wf-input:focus { border-color:#0891b2; background:#fff; }
+
+/* ── Indices grid ────────────────────────────────────────────── */
+.indices-grid { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; }
+.index-item   { background:#f8faff; border:1px solid #e4e8f0; border-radius:8px; padding:.5rem .65rem; }
+.idx-name     { font-size:.72rem; font-weight:700; color:#475569; }
+.idx-formula  { font-size:.62rem; color:#94a3b8; font-family:monospace; }
+.idx-val      { font-size:1.25rem; font-weight:800; color:#0e7490; margin:.2rem 0; }
+.idx-interp   { font-size:.7rem; color:#64748b; }
+
+/* ── Differential chart legend ───────────────────────────────── */
+.diff-chart-legend { display:flex; flex-wrap:wrap; gap:.3rem .65rem; margin-top:.5rem; justify-content:center; }
+.dcl-item { display:flex; align-items:center; gap:.25rem; font-size:.7rem; color:#475569; }
+.dcl-dot  { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+/* ── AI interpretation ───────────────────────────────────────── */
+#ai-interp-body .interp-panel { margin-bottom:.5rem; }
+
+/* ── Anaemia analysis ────────────────────────────────────────── */
+.anaemia-shell { padding:.5rem 0; }
+.anaemia-algorithm { display:flex; flex-direction:column; align-items:center; gap:.5rem; margin-bottom:1rem; }
+.alg-start { background:linear-gradient(90deg,#fef3c7,#fffbeb); border:2px solid #d97706; border-radius:20px; padding:.4rem 1.25rem; font-weight:700; font-size:.88rem; color:#92400e; }
+.alg-arrow { font-size:.85rem; font-weight:700; color:#64748b; }
+.alg-branches { display:grid; grid-template-columns:repeat(3,1fr); gap:.75rem; width:100%; }
+.alg-branch { border-radius:10px; overflow:hidden; border:2px solid #e4e8f0; }
+.alg-branch-header { padding:.45rem .75rem; font-size:.8rem; font-weight:800; text-align:center; border-bottom:2px solid; }
+.alg-dx-list { display:flex; flex-direction:column; gap:.1rem; padding:.4rem; background:#fff; }
+.alg-dx { display:flex; align-items:flex-start; gap:.4rem; padding:.35rem .5rem; border-radius:6px; cursor:pointer; transition:.12s; font-size:.76rem; }
+.alg-dx:hover { background:rgba(6,182,212,.06); }
+.alg-dx-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:.15rem; }
+
+/* IDA vs Thal comparison */
+.diff-compare-table-wrap { overflow-x:auto; }
+.diff-compare-table thead th:nth-child(2) { background:#dc2626 !important; }
+.diff-compare-table thead th:nth-child(3) { background:#f97316 !important; }
+.diff-compare-table thead th:nth-child(4) { background:#f59e0b !important; }
+.diff-likely   { color:#dc2626; font-weight:700; }
+.diff-possible { color:#f59e0b; font-weight:600; }
+
+.anaemia-warning-box { background:#fef9c3; border:1px solid #fde68a; border-left:4px solid #d97706; border-radius:8px; padding:.65rem 1rem; font-size:.8rem; color:#713f12; margin-top:1rem; }
+
+/* Worklist table flags */
+.wf-table .flag-HH, .wf-table .flag-LL { color:#7f1d1d; font-weight:800; animation:hem-crit 1.5s infinite; }
+.wf-table .flag-H  { color:#92400e; font-weight:700; }
+.wf-table .flag-L  { color:#1e40af; font-weight:700; }
+.wf-table .flag-N  { color:#166534; }
+
+/* IQC chart */
+.iqc-chart-wrap { background:#fff; border:1px solid #e4e8f0; border-radius:10px; padding:.75rem 1rem; }
+
+/* Malaria positive badge */
+.mal-pos  { background:#fee2e2; color:#7f1d1d; padding:.15rem .5rem; border-radius:8px; font-weight:700; font-size:.75rem; }
+.mal-neg  { background:#f0fdf4; color:#166534; padding:.15rem .5rem; border-radius:8px; font-size:.75rem; }
+
+/* Print overrides */
+@media print {
+  .hem-tabs, .wf-toolbar, .kpi-strip { display:none !important; }
+  .hem-pane { display:block !important; page-break-before:always; }
+  .cbc-entry-shell { grid-template-columns:1fr; }
+  .cbc-params-grid { grid-template-columns:1fr 1fr; }
+  .wf-table-wrap { max-height:none !important; }
 }
 
-.hema-tab-nav { padding:0 var(--space-xl); background:var(--bg-deep); border-bottom:1px solid var(--border-dim); flex-shrink:0; }
-.hema-body { flex:1; overflow-y:auto; }
-
-/* ─── Two-panel layout ──────────────────────────────────────── */
-.hema-cbc-layout {
-  display:grid; grid-template-columns:380px 1fr;
-  min-height:calc(100vh - 200px); overflow:hidden;
-}
-
-.hema-input-panel {
-  border-right:1px solid var(--border-dim);
-  display:flex; flex-direction:column; overflow:hidden;
-}
-.hema-panel-title {
-  padding:var(--space-md) var(--space-lg);
-  background:var(--bg-deep); border-bottom:1px solid var(--border-dim);
-  font-family:var(--font-display); font-size:var(--text-sm); font-weight:700;
-  color:var(--text-primary); letter-spacing:.04em; flex-shrink:0;
-}
-.hema-input-body { flex:1; overflow-y:auto; padding:var(--space-lg); display:flex; flex-direction:column; gap:var(--space-md); }
-
-.cbc-section-label {
-  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.09em;
-  color:var(--text-muted); padding:var(--space-xs) 0; margin-top:var(--space-sm);
-  border-bottom:1px solid var(--border-dim);
-}
-
-/* ─── CBC Parameter Grid ────────────────────────────────────── */
-.cbc-param-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-sm); }
-.cbc-param-item { display:flex; flex-direction:column; gap:2px; }
-.cbc-param-item label { font-size:11px; font-weight:600; color:var(--text-secondary); }
-.cbc-unit { font-size:9px; color:var(--text-muted); font-weight:400; }
-
-.cbc-input {
-  background:var(--bg-surface); border:1px solid var(--border-dim);
-  border-radius:var(--radius-sm); color:var(--text-primary);
-  font-family:var(--font-mono); font-size:var(--text-sm); font-weight:600;
-  padding:6px 8px; outline:none; width:100%;
-  transition:border-color var(--duration-fast), box-shadow var(--duration-fast);
-}
-.cbc-input:focus { border-color:var(--border-bright); box-shadow:0 0 0 3px rgba(0,153,255,.10); }
-.cbc-input.abnormal { border-color:var(--alert-yellow); background:rgba(255,214,0,.05); }
-.cbc-input.critical { border-color:var(--alert-red); background:rgba(255,23,68,.06); animation:pulse-border 1.2s infinite; }
-
-@keyframes pulse-border { 0%,100%{box-shadow:0 0 0 2px rgba(255,23,68,.15)} 50%{box-shadow:0 0 0 4px rgba(255,23,68,.30)} }
-
-.cbc-ref { font-size:9px; color:var(--text-muted); font-style:italic; }
-
-/* ─── Result Panel ──────────────────────────────────────────── */
-.hema-result-panel {
-  background:var(--bg-surface); overflow-y:auto;
-  display:flex; flex-direction:column;
-}
-.hema-result-empty {
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  flex:1; gap:var(--space-md); color:var(--text-muted); font-size:var(--text-sm); text-align:center;
-  padding:var(--space-2xl);
-}
-
-/* ─── AI Interpretation Output ──────────────────────────────── */
-.ai-result-content { padding:var(--space-xl); display:flex; flex-direction:column; gap:var(--space-lg); }
-
-.finding-primary {
-  font-family:var(--font-display); font-size:22px; font-weight:700;
-  color:var(--text-primary); letter-spacing:.03em; line-height:1.2;
-}
-.finding-severity {
-  display:inline-flex; align-items:center; gap:6px;
-  padding:4px 14px; border-radius:var(--radius-full);
-  font-size:11px; font-weight:700; letter-spacing:.06em; border:1px solid;
-  margin-top:4px;
-}
-.sev-normal  { color:var(--alert-green); border-color:var(--alert-green); background:rgba(0,230,118,.08); }
-.sev-mild    { color:var(--alert-yellow);border-color:var(--alert-yellow);background:rgba(255,214,0,.08); }
-.sev-moderate{ color:var(--alert-orange);border-color:var(--alert-orange);background:rgba(255,109,0,.08); }
-.sev-severe  { color:var(--alert-red);   border-color:var(--alert-red);   background:rgba(255,23,68,.08); }
-
-.interp-section {
-  background:var(--bg-glass); border:1px solid var(--border-dim);
-  border-radius:var(--radius-md); padding:var(--space-md);
-}
-.interp-section-title {
-  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
-  color:var(--text-muted); margin-bottom:var(--space-sm);
-}
-.interp-finding { font-size:var(--text-sm); color:var(--text-secondary); line-height:1.6; }
-.interp-finding strong { color:var(--text-primary); }
-
-.reflex-tags { display:flex; flex-wrap:wrap; gap:6px; }
-.reflex-tag {
-  display:inline-flex; align-items:center; gap:5px;
-  padding:4px 10px; border-radius:var(--radius-full);
-  background:rgba(0,153,255,.08); border:1px solid rgba(0,153,255,.20);
-  font-size:11px; font-weight:600; color:var(--blue-glow);
-  cursor:pointer; transition:background var(--duration-fast);
-}
-.reflex-tag:hover { background:rgba(0,153,255,.15); }
-
-.leukemia-flag {
-  padding:var(--space-md); border-radius:var(--radius-md);
-  background:rgba(255,109,0,.09); border:1px solid rgba(255,109,0,.30);
-  color:var(--alert-orange); font-weight:700; font-size:var(--text-sm);
-  display:flex; align-items:center; gap:var(--space-sm);
-  animation:pulse-orange 1.4s infinite;
-}
-@keyframes pulse-orange { 0%,100%{box-shadow:0 0 0 0 rgba(255,109,0,.0)} 50%{box-shadow:0 0 0 6px rgba(255,109,0,.12)} }
-
-.sepsis-alert {
-  padding:var(--space-md); border-radius:var(--radius-md);
-  background:rgba(255,23,68,.09); border:2px solid var(--alert-red);
-  color:var(--alert-red); font-weight:700; font-size:var(--text-sm);
-  display:flex; align-items:center; gap:var(--space-sm);
-  animation:pulse-red 1s infinite;
-}
-@keyframes pulse-red { 0%,100%{box-shadow:0 0 0 0 rgba(255,23,68,.0)} 50%{box-shadow:0 0 0 8px rgba(255,23,68,.15)} }
-
-.iso-disclaimer {
-  padding:var(--space-sm) var(--space-md); border-radius:var(--radius-sm);
-  background:rgba(0,153,255,.05); border:1px solid rgba(0,153,255,.15);
-  font-size:10px; color:var(--text-muted); letter-spacing:.03em;
-}
-
-/* ─── Smear Upload Zone ──────────────────────────────────────── */
-.smear-upload-zone {
-  border:2px dashed var(--border-mid); border-radius:var(--radius-lg);
-  padding:var(--space-xl); text-align:center; cursor:pointer;
-  transition:border-color var(--duration-fast), background var(--duration-fast);
-  display:flex; flex-direction:column; align-items:center; gap:var(--space-sm);
-}
-.smear-upload-zone:hover, .smear-upload-zone.drag-over {
-  border-color:var(--blue-glow); background:rgba(0,153,255,.04);
-}
-.smear-upload-icon { font-size:40px; }
-
-/* ─── Morphology bar ─────────────────────────────────────────── */
-.morphology-row { display:flex; align-items:center; gap:var(--space-md); margin-bottom:6px; }
-.morphology-name { font-size:var(--text-xs); color:var(--text-secondary); width:140px; flex-shrink:0; }
-.morphology-bar-wrap { flex:1; background:var(--bg-glass); border-radius:var(--radius-full); height:8px; overflow:hidden; }
-.morphology-bar-fill { height:100%; border-radius:var(--radius-full); transition:width .6s var(--ease-out); }
-.morphology-pct { font-size:11px; font-family:var(--font-mono); color:var(--text-muted); width:36px; text-align:right; flex-shrink:0; }
-
-/* ─── KPI Cards ──────────────────────────────────────────────── */
-.hema-kpi-card {
-  background:var(--bg-surface); border:1px solid var(--border-dim);
-  border-radius:var(--radius-lg); padding:var(--space-lg);
-  display:flex; flex-direction:column; align-items:flex-start; gap:6px;
-}
-.hema-kpi-val { font-family:var(--font-display); font-size:28px; font-weight:700; color:var(--text-primary); line-height:1; }
-.hema-kpi-lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); }
-
-@media (max-width:900px) { .hema-cbc-layout { grid-template-columns:1fr; } }
+/* Responsive */
+@media(max-width:1100px){ .cbc-params-grid{grid-template-columns:1fr 1fr;} .cbc-entry-shell{grid-template-columns:1fr;} }
+@media(max-width:768px)  { .cbc-params-grid{grid-template-columns:1fr;} .alg-branches{grid-template-columns:1fr;} }

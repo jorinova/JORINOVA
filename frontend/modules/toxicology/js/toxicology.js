@@ -1,313 +1,362 @@
-/**
- * JORINOVA NEXUS ALIS-X — Toxicology Intelligence
- * UDS · TDM · Poisoning Assessment · ISO 15189 DSS
- */
+/* Toxicology Module — NEXUS ALIS-X */
 'use strict';
 
-(function () {
-  const toast = (m, t) => window.NEXUS?.Toast?.show?.(m, t);
-  const esc   = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const API = '/api/v1/laboratory';
+let _toxChart = null;
 
-  /* ─── Tab switching ─────────────────────────────────────────── */
-  function initTabs() {
-    document.querySelectorAll('.tox-tab-nav .tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tox-tab-nav .tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tox-body .tab-pane').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        const pane = document.getElementById(btn.dataset.pane);
-        if (pane) pane.classList.add('active');
-        if (btn.dataset.pane === 'tox-analytics-pane') loadAnalytics();
+// ── TDM therapeutic ranges (offline reference) ────────────────
+const TDM_RANGES = {
+  VANCO:  {name:'Vancomycin', trough_lo:10, trough_hi:20, peak_lo:20, peak_hi:40, toxic:20, unit:'mg/L'},
+  DIGOX:  {name:'Digoxin',    trough_lo:.8, trough_hi:2.0, toxic:2.0, unit:'ng/mL'},
+  PHENY:  {name:'Phenytoin',  trough_lo:10, trough_hi:20, toxic:20, unit:'mg/L'},
+  LITHI:  {name:'Lithium',    trough_lo:.6, trough_hi:1.2, toxic:1.5, unit:'mmol/L'},
+  CARBA:  {name:'Carbamazepine', trough_lo:4, trough_hi:12, toxic:15, unit:'mg/L'},
+  TACRO:  {name:'Tacrolimus', trough_lo:5, trough_hi:15, toxic:20, unit:'ng/mL'},
+  THEO:   {name:'Theophylline', trough_lo:10, trough_hi:20, toxic:20, unit:'mg/L'},
+  METHO:  {name:'Methotrexate', trough_lo:0, trough_hi:.1, toxic:1, unit:'µmol/L (24h)'},
+  GENTA:  {name:'Gentamicin', trough_lo:0, trough_hi:1, peak_lo:5, peak_hi:10, toxic:12, unit:'mg/L'},
+  VALP:   {name:'Valproate',  trough_lo:50, trough_hi:100, toxic:100, unit:'mg/L'},
+};
+
+// ── Poisoning antidotes (offline reference) ────────────────────
+const ANTIDOTES = {
+  PARACETAMOL:   'N-Acetylcysteine (NAC) — IV loading dose',
+  LEAD:          'DMSA (succimer) or EDTA chelation',
+  ARSENIC:       'Dimercaprol (BAL) or DMSA',
+  MERCURY:       'Dimercaprol (BAL) or DMSA',
+  CO_HGB:        '100% O₂ / Hyperbaric O₂ if COHb >25%',
+  CHOLINESTERASE:'Atropine + Pralidoxime (2-PAM) — STAT',
+  ETHANOL:       'Supportive care / thiamine',
+  METHANOL:      'Fomepizole (4-MP) + dialysis',
+  SALICYLATE:    'Urinary alkalinisation + haemodialysis if severe',
+  CADMIUM:       'Supportive — no specific antidote; EDTA may worsen',
+  CYANIDE:       'Hydroxocobalamin 5g IV',
+  DIGOX:         'Digoxin-specific Fab fragments (DigiFab)',
+  LITHI:         'Haemodialysis if severe; stop lithium',
+};
+
+function auth() { const t = localStorage.getItem('access_token'); return t ? {Authorization:`Bearer ${t}`} : {}; }
+async function apiFetch(url, opts={}) {
+  const r = await fetch(url, {headers:{'Content-Type':'application/json',...auth()},...opts});
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.detail||`HTTP ${r.status}`); }
+  return r.json();
+}
+function toast(msg,type='success') { window.NexusCore?.toast ? NexusCore.toast(msg,type) : console.log('[Tox]',type,msg); }
+function setText(id,v) { const e=document.getElementById(id); if(e) e.textContent=v??'—'; }
+function openModal(id) { document.getElementById(id).style.display='flex'; }
+function closeModal(id) { document.getElementById(id).style.display='none'; }
+
+// ── Tab switching ──────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.dt').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.dept-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`.dt[data-tab="${tab}"]`)?.classList.add('active');
+  document.getElementById(`tab-${tab}`)?.classList.add('active');
+  if (tab==='uds')        loadUDS();
+  if (tab==='tdm')        loadTDM();
+  if (tab==='poison')     loadPoison();
+  if (tab==='bio')        loadBio();
+  if (tab==='validation') loadToxVal();
+  if (tab==='book')       loadBook();
+}
+document.querySelectorAll('.dt').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+
+// ── Dashboard ──────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const r = await apiFetch(`${API}/requests?limit=1`);
+    setText('stat-pending','—');
+    setText('stat-emerg','—');
+    // Render a placeholder trend chart
+    const ctx = document.getElementById('tox-chart')?.getContext('2d');
+    if (ctx && !_toxChart) {
+      _toxChart = new Chart(ctx, {
+        type:'bar',
+        data:{
+          labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets:[
+            {label:'UDS',data:[4,6,3,8,5,2,1],backgroundColor:'rgba(220,53,69,.6)'},
+            {label:'TDM',data:[8,5,7,9,6,4,3],backgroundColor:'rgba(249,115,22,.6)'},
+            {label:'Poisoning',data:[1,2,0,1,2,0,0],backgroundColor:'rgba(124,58,237,.6)'},
+          ]
+        },
+        options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:false},y:{beginAtZero:true}}}
       });
-    });
-  }
+    }
+  } catch(e) { console.error('[Tox] Dashboard:', e); }
+}
 
-  /* ══════════════════════════════════════════════════════════════
-     UDS PANEL
-  ══════════════════════════════════════════════════════════════ */
-  const PANELS = {
-    '5':  ['Amphetamines','Cocaine (BZE)','THC / Cannabis','Opiates','Benzodiazepines'],
-    '10': ['Amphetamines','Cocaine (BZE)','THC / Cannabis','Opiates','Benzodiazepines','Methadone','Buprenorphine','Barbiturates','PCP','Methamphetamine'],
-    '12': ['Amphetamines','Cocaine (BZE)','THC / Cannabis','Opiates','Benzodiazepines','Methadone','Buprenorphine','Barbiturates','PCP','Methamphetamine','MDMA / Ecstasy','Tricyclics (TCA)'],
-  };
-  const CUTOFFS = {
-    'Amphetamines':'1000 ng/mL','Cocaine (BZE)':'300 ng/mL','THC / Cannabis':'50 ng/mL',
-    'Opiates':'2000 ng/mL','Benzodiazepines':'200 ng/mL','Methadone':'300 ng/mL',
-    'Buprenorphine':'10 ng/mL','Barbiturates':'200 ng/mL','PCP':'25 ng/mL',
-    'Methamphetamine':'1000 ng/mL','MDMA / Ecstasy':'500 ng/mL','Tricyclics (TCA)':'1000 ng/mL',
-  };
-  const _drugResults = {};
+// ── UDS ────────────────────────────────────────────────────────
+async function loadUDS() {
+  const tbody = document.getElementById('uds-tbody');
+  tbody.innerHTML = '<tr><td colspan="15" class="dept-empty">Loading drug screen results…</td></tr>';
+  try {
+    const data = await apiFetch(`${API}/results?department=TOX&limit=50`);
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="15" class="dept-empty">No drug screen results found.</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `<tr>
+      <td><strong>${r.lab_id||r.lid||'—'}</strong></td>
+      <td>${r.pid||'—'}</td>
+      <td><span style="background:#e9ecef;padding:.15rem .4rem;border-radius:6px;font-size:.78rem">Standard</span></td>
+      ${['—','—','—','—','—','—','—'].map(d=>`<td>${d}</td>`).join('')}
+      <td><span class="res-${r.qualitative_value||'NEGATIVE'}">${r.qualitative_value||'Negative'}</span></td>
+      <td>—</td>
+      <td><span class="status-badge">${r.status||'PENDING'}</span></td>
+      <td><button class="dept-print-btn" onclick="NexusPrint?.printLast('uds-table')">🖨️</button></td>
+    </tr>`).join('');
+  } catch(e) { tbody.innerHTML = `<tr><td colspan="15" class="dept-empty">Error: ${e.message}</td></tr>`; }
+}
 
-  function renderUDSPanel(size) {
-    const drugs = PANELS[size] || PANELS['5'];
-    const grid = document.getElementById('uds-drug-grid');
-    if (!grid) return;
-    grid.innerHTML = drugs.map(d => `
-      <div class="uds-drug-row" id="drug-row-${d.replace(/[^a-z]/gi,'_')}">
-        <div>
-          <div class="uds-drug-name">${esc(d)}</div>
-          <div style="font-size:9px;color:var(--text-muted)">Cut-off: ${esc(CUTOFFS[d]||'—')}</div>
+async function submitUDS() {
+  const drugs = {
+    thc:document.getElementById('d-thc')?.value,opi:document.getElementById('d-opi')?.value,
+    coc:document.getElementById('d-coc')?.value,amp:document.getElementById('d-amp')?.value,
+    benz:document.getElementById('d-benz')?.value,meth:document.getElementById('d-meth')?.value,
+    mdma:document.getElementById('d-mdma')?.value,barb:document.getElementById('d-barb')?.value,
+  };
+  const overall = Object.values(drugs).includes('POSITIVE') ? 'POSITIVE' : 'NEGATIVE';
+  const body = {
+    lab_request_id: +document.getElementById('uds-req')?.value || 0,
+    qualitative_value: overall,
+    result_source: 'MANUAL',
+    result_type: 'QUALITATIVE',
+    result_value: JSON.stringify(drugs),
+    notes: document.getElementById('uds-notes-m')?.value || null,
+  };
+  try {
+    await apiFetch(`${API}/results`, {method:'POST', body:JSON.stringify(body)});
+    closeModal('uds-modal');
+    toast(`Drug screen saved — Overall: ${overall}`);
+    loadUDS();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ── TDM ────────────────────────────────────────────────────────
+async function loadTDM() {
+  const tbody = document.getElementById('tdm-tbody');
+  tbody.innerHTML = '<tr><td colspan="12" class="dept-empty">Loading TDM results…</td></tr>';
+  try {
+    const data = await apiFetch(`${API}/results?test_type=TDM&limit=50`);
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="12" class="dept-empty">No TDM results found. Enter results using + Enter TDM button.</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `<tr>
+      <td>${r.lab_id||r.lid||'—'}</td><td>${r.pid||'—'}</td>
+      <td>${r.test_name||'—'}</td><td>Trough</td>
+      <td><strong>${r.numeric_value||r.result_value||'—'}</strong></td>
+      <td>${r.unit||'—'}</td><td>—</td>
+      <td>${interpretTDMRange(r)}</td><td>—</td><td>${r.ai_interpretation||'—'}</td>
+      <td>${r.is_validated?'✅':'⏳'}</td>
+      <td><button class="btn-primary" style="font-size:.78rem;padding:.2rem .5rem" onclick="validate(${r.id})">Validate</button></td>
+    </tr>`).join('');
+  } catch(e) { tbody.innerHTML = `<tr><td colspan="12" class="dept-empty">Error: ${e.message}</td></tr>`; }
+}
+
+function interpretTDMRange(result) {
+  const drug = TDM_RANGES[result.test_code?.toUpperCase()] || {};
+  const val = parseFloat(result.numeric_value);
+  if (!drug.trough_hi || isNaN(val)) return '—';
+  if (val > drug.toxic) return '<span class="res-TOXIC">TOXIC</span>';
+  if (val >= drug.trough_lo && val <= drug.trough_hi) return '<span class="res-THERAPEUTIC">Therapeutic</span>';
+  return '<span class="res-SUBTHERAPEUTIC">Sub-therapeutic</span>';
+}
+
+function tdmInterp() {
+  const drug = document.getElementById('tdm-drug-m')?.value;
+  const conc = parseFloat(document.getElementById('tdm-conc-m')?.value);
+  const r = TDM_RANGES[drug];
+  if (!r || isNaN(conc)) return;
+  const box = document.getElementById('tdm-interp-box');
+  const txt = document.getElementById('tdm-interp-txt');
+  if (!box || !txt) return;
+  box.style.display = '';
+  if (conc > r.toxic) { txt.innerHTML = `<strong style="color:#dc3545">⚠️ TOXIC RANGE</strong> — ${r.name}: ${conc} ${r.unit} is above toxic threshold (${r.toxic} ${r.unit}). Consider dose reduction / hold dose. Monitor closely.`; }
+  else if (r.trough_hi && conc >= r.trough_lo && conc <= r.trough_hi) { txt.innerHTML = `<strong style="color:#28a745">✓ THERAPEUTIC</strong> — ${r.name}: ${conc} ${r.unit} is within therapeutic range (${r.trough_lo}–${r.trough_hi} ${r.unit}).`; }
+  else { txt.innerHTML = `<strong style="color:#0c5460">↓ SUB-THERAPEUTIC</strong> — ${r.name}: ${conc} ${r.unit} is below therapeutic range. Consider dose increase.`; }
+}
+
+async function submitTDM() {
+  const drug = document.getElementById('tdm-drug-m')?.value;
+  const conc = parseFloat(document.getElementById('tdm-conc-m')?.value);
+  const r = TDM_RANGES[drug];
+  let flag = 'N';
+  if (r && conc > r.toxic) flag = 'HH';
+  else if (r && conc < r.trough_lo) flag = 'L';
+  const body = {
+    lab_request_id: +document.getElementById('tdm-req')?.value || 0,
+    test_name: r?.name || drug,
+    numeric_value: conc,
+    unit: document.getElementById('tdm-unit-m')?.value || r?.unit || '',
+    flag, result_source: 'MANUAL', result_type: 'QUANTITATIVE',
+    notes: document.getElementById('tdm-notes-m')?.value || null,
+  };
+  try {
+    await apiFetch(`${API}/results`, {method:'POST', body:JSON.stringify(body)});
+    closeModal('tdm-modal');
+    toast(`TDM saved — ${r?.name || drug}: ${conc} ${body.unit}`);
+    loadTDM();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ── Poisoning ──────────────────────────────────────────────────
+async function loadPoison() {
+  const tbody = document.getElementById('poison-tbody');
+  tbody.innerHTML = '<tr><td colspan="11" class="dept-empty">Loading poisoning cases…</td></tr>';
+  try {
+    const data = await apiFetch(`${API}/results?test_type=POISON&limit=50`);
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="11" class="dept-empty">No poisoning cases on record.</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `<tr>
+      <td>${r.lab_id||r.lid||'—'}</td><td>${r.pid||'—'}</td><td>${r.test_name||'—'}</td>
+      <td><strong>${r.result_value||r.numeric_value||'—'}</strong></td><td>${r.unit||'—'}</td>
+      <td>${r.flag==='HH'?'<span class="res-TOXIC">CRITICAL</span>':'—'}</td>
+      <td>${r.qualitative_value||'—'}</td>
+      <td>${ANTIDOTES[r.test_code?.toUpperCase()] ? '✅ Required' : '—'}</td>
+      <td>${r.ai_interpretation?.substring(0,60)||'—'}</td>
+      <td>${r.is_validated?'✅':'⏳'}</td>
+      <td><button class="btn-primary" style="font-size:.78rem;padding:.2rem .5rem" onclick="validate(${r.id})">Validate</button></td>
+    </tr>`).join('');
+  } catch(e) { tbody.innerHTML = `<tr><td colspan="11" class="dept-empty">Error: ${e.message}</td></tr>`; }
+}
+
+function poisonSeverity() {
+  const type = document.getElementById('pois-type-m')?.value;
+  const val = parseFloat(document.getElementById('pois-val-m')?.value);
+  const box = document.getElementById('pois-interp-box');
+  const txt = document.getElementById('pois-interp-txt');
+  const ant = document.getElementById('pois-antidote-txt');
+  if (!box || !txt || isNaN(val)) return;
+  box.style.display = '';
+  const antidote = ANTIDOTES[type] || 'Supportive care — consult toxicology';
+  txt.innerHTML = `<strong>${type?.replace('_',' ')}</strong>: Detected value ${val}`;
+  ant.innerHTML = `Antidote / Treatment: ${antidote}`;
+}
+
+async function submitPoison() {
+  const type = document.getElementById('pois-type-m')?.value;
+  const val = parseFloat(document.getElementById('pois-val-m')?.value);
+  const body = {
+    lab_request_id: +document.getElementById('pois-req')?.value || 0,
+    test_name: type?.replace('_',' ') || 'Unknown Poison',
+    numeric_value: val,
+    unit: document.getElementById('pois-unit-m')?.value || '',
+    flag: 'HH', result_source: 'MANUAL', result_type: 'QUANTITATIVE',
+    qualitative_value: document.getElementById('pois-sev-m')?.value,
+    notes: document.getElementById('pois-clinical-m')?.value || null,
+  };
+  try {
+    await apiFetch(`${API}/results`, {method:'POST', body:JSON.stringify(body)});
+    closeModal('poison-modal');
+    toast('Poisoning case recorded. Critical notification required.', 'warn');
+    loadPoison();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ── Bio-Toxins ────────────────────────────────────────────────
+async function loadBio() {
+  const tbody = document.getElementById('bio-tbody');
+  tbody.innerHTML = '<tr><td colspan="10" class="dept-empty">Loading bio-toxin results…</td></tr>';
+  try {
+    const data = await apiFetch(`${API}/results?test_type=BIOTOXIN&limit=50`);
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="dept-empty">No bio-toxin cases recorded.</td></tr>'; return; }
+    tbody.innerHTML = data.map(r => `<tr>
+      <td>${r.lab_id||r.lid||'—'}</td><td>${r.pid||'—'}</td><td>${r.test_name||'—'}</td>
+      <td>—</td><td><span class="res-${r.qualitative_value||'NEGATIVE'}">${r.qualitative_value||'—'}</span></td>
+      <td>${r.numeric_value||'—'}</td><td>${r.unit||'—'}</td>
+      <td>—</td><td>—</td>
+      <td><button class="btn-primary" style="font-size:.78rem;padding:.2rem .5rem">Validate</button></td>
+    </tr>`).join('');
+  } catch(e) { tbody.innerHTML = `<tr><td colspan="10" class="dept-empty">Error: ${e.message}</td></tr>`; }
+}
+
+async function submitBio() {
+  const body = {
+    lab_request_id: +document.getElementById('bio-req')?.value || 0,
+    test_name: document.getElementById('bio-cat-m')?.value?.replace('_',' '),
+    qualitative_value: document.getElementById('bio-result-m')?.value,
+    numeric_value: parseFloat(document.getElementById('bio-level-m')?.value) || null,
+    unit: document.getElementById('bio-unit-m')?.value || null,
+    flag: document.getElementById('bio-result-m')?.value === 'POSITIVE' ? 'POS' : 'N',
+    result_source: 'MANUAL', result_type: 'QUALITATIVE',
+    notes: document.getElementById('bio-notes-m')?.value || null,
+  };
+  try {
+    await apiFetch(`${API}/results`, {method:'POST', body:JSON.stringify(body)});
+    closeModal('bio-modal');
+    toast('Bio-toxin result saved.');
+    loadBio();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function submitEmerg() {
+  const body = {
+    lab_request_id: +document.getElementById('emerg-req')?.value || 0,
+    test_name: document.getElementById('emerg-test-m')?.value,
+    numeric_value: parseFloat(document.getElementById('emerg-val-m')?.value) || null,
+    unit: document.getElementById('emerg-unit-m')?.value || null,
+    flag: 'HH', result_source: 'MANUAL', result_type: 'QUANTITATIVE',
+    notes: `STAT Emergency: ${document.getElementById('emerg-notes-m')?.value || ''}`,
+  };
+  try {
+    await apiFetch(`${API}/results`, {method:'POST', body:JSON.stringify(body)});
+    closeModal('emerg-modal');
+    toast('🚨 STAT Emergency result recorded. Critical notification sent.', 'warn');
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ── Validation queue ──────────────────────────────────────────
+async function loadToxVal() {
+  const list = document.getElementById('tox-val-list');
+  list.innerHTML = '<div class="dept-empty">Loading…</div>';
+  try {
+    const data = await apiFetch(`${API}/results?validated=false&limit=30`);
+    setText('tox-val-count', `${data.length} awaiting validation`);
+    if (!data.length) { list.innerHTML = '<div class="dept-empty">No results awaiting validation.</div>'; return; }
+    list.innerHTML = data.map(r => `
+      <div class="val-card">
+        <div class="val-body">
+          <div class="val-id">${r.lab_id||r.test_name||'—'}</div>
+          <div class="val-sub">PID: ${r.pid||'—'} · Result: ${r.result_value||r.numeric_value||'—'} ${r.unit||''} · Flag: ${r.flag||'N'}</div>
+          <div style="margin-top:.4rem;display:flex;gap:.4rem">
+            <button class="btn-primary" style="font-size:.79rem;padding:.25rem .65rem" onclick="validate(${r.id})">✅ Validate</button>
+          </div>
         </div>
-        <div class="uds-drug-buttons">
-          <button class="uds-btn" data-drug="${esc(d)}" data-result="negative" onclick="window.UDS.setResult('${d}','negative',this)">NEG</button>
-          <button class="uds-btn" data-drug="${esc(d)}" data-result="positive" onclick="window.UDS.setResult('${d}','positive',this)">POS</button>
-          <button class="uds-btn" data-drug="${esc(d)}" data-result="invalid"  onclick="window.UDS.setResult('${d}','invalid',this)">INV</button>
-        </div>
+        ${r.flag==='HH'||r.flag==='LL'?'<span class="dh-chip danger">🚨 Critical</span>':''}
       </div>`).join('');
-    drugs.forEach(d => { _drugResults[d] = null; });
-  }
+  } catch(e) { list.innerHTML = `<div class="dept-empty">Error: ${e.message}</div>`; }
+}
 
-  window.UDS = {
-    setResult(drug, result, btn) {
-      _drugResults[drug] = result;
-      const row = document.getElementById('drug-row-' + drug.replace(/[^a-z]/gi,'_'));
-      if (row) {
-        row.querySelectorAll('.uds-btn').forEach(b => b.classList.remove('selected-neg','selected-pos','selected-inv'));
-        btn.classList.add(`selected-${result === 'negative' ? 'neg' : result === 'positive' ? 'pos' : 'inv'}`);
-      }
-    },
-    updatePanel(size) { renderUDSPanel(size); }
-  };
+async function validate(id) {
+  try {
+    await apiFetch(`${API}/results/${id}/validate`, {method:'POST'});
+    toast('Result validated ✓');
+    loadToxVal();
+  } catch(e) { toast(e.message,'error'); }
+}
 
-  function initUDS() {
-    renderUDSPanel('5');
-    document.getElementById('uds-interpret-btn')?.addEventListener('click', () => {
-      const positives = Object.entries(_drugResults).filter(([,v]) => v === 'positive').map(([k]) => k);
-      const invalids  = Object.entries(_drugResults).filter(([,v]) => v === 'invalid').map(([k]) => k);
-      const entered   = Object.entries(_drugResults).filter(([,v]) => v !== null).length;
-      if (!entered) { toast('Set at least one drug result.', 'error'); return; }
-      renderUDSResult(positives, invalids);
-    });
-  }
+async function loadBook() {
+  const tbody = document.getElementById('book-tbody');
+  tbody.innerHTML = '<tr><td colspan="9" class="dept-empty">Loading critical book…</td></tr>';
+  try {
+    const data = await apiFetch(`${API}/critical-book?limit=50`);
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="9" class="dept-empty">No critical book entries for Toxicology.</td></tr>'; return; }
+    tbody.innerHTML = data.map(e => `<tr>
+      <td><strong>${e.entry_number}</strong></td>
+      <td>${e.pid||'—'}</td><td>${e.test_name||'—'}</td>
+      <td>${e.critical_reason||'—'}</td><td>—</td>
+      <td>${e.clinician_notified||'—'}</td>
+      <td>${e.readback_confirmed?'✅':'⚠️'}</td>
+      <td>${e.archived_at?new Date(e.archived_at).toLocaleString():'—'}</td>
+      <td><span style="font-family:monospace;font-size:.7rem">${(e.pqc_hash||'').substring(0,20)}…</span></td>
+    </tr>`).join('');
+  } catch(e) { tbody.innerHTML = `<tr><td colspan="9" class="dept-empty">Error: ${e.message}</td></tr>`; }
+}
 
-  function renderUDSResult(positives, invalids) {
-    const panel = document.getElementById('uds-result-panel');
-    const anyPositive = positives.length > 0;
-    const gcms = positives.map(d => `<span class="reflex-tag" style="background:rgba(255,23,68,.10);border-color:rgba(255,23,68,.25);color:var(--alert-red)">🔬 GC-MS confirm: ${esc(d)}</span>`).join('');
+// ── Close modals on overlay click ─────────────────────────────
+document.querySelectorAll('.dept-modal-overlay').forEach(o =>
+  o.addEventListener('click', e => { if(e.target===o) o.style.display='none'; })
+);
 
-    panel.innerHTML = `<div class="tox-result-content">
-      <div>
-        <div style="font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--text-primary)">
-          ${anyPositive ? '⚠️ POSITIVE RESULTS DETECTED' : '✅ ALL RESULTS NEGATIVE'}
-        </div>
-        <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:var(--radius-full);font-size:11px;font-weight:700;border:1px solid;margin-top:4px;
-          ${anyPositive ? 'color:var(--alert-red);border-color:var(--alert-red);background:rgba(255,23,68,.08)' : 'color:var(--alert-green);border-color:var(--alert-green);background:rgba(0,230,118,.08)'}">
-          ${positives.length} positive, ${invalids.length} invalid
-        </span>
-      </div>
-      ${anyPositive ? `<div class="tox-interp-section" style="border-color:rgba(255,23,68,.25);background:rgba(255,23,68,.04)">
-        <div class="tox-section-title">⚠️ Positive Substances</div>
-        <div class="tox-finding">${positives.map(d=>`🔴 <strong>${esc(d)}</strong> — Screened POSITIVE (immunoassay). GC-MS/LC-MS confirmation required before clinical/legal action.`).join('<br>')}</div>
-      </div>` : ''}
-      <div class="tox-interp-section">
-        <div class="tox-section-title">🤖 AI Clinical Context</div>
-        <div class="tox-finding">
-          ${positives.includes('Benzodiazepines') ? '⚠️ Benzodiazepines positive — verify prescribed medications (diazepam, clonazepam, lorazepam) before reporting abuse.<br>' : ''}
-          ${positives.includes('Opiates') ? '⚠️ Opiates positive — cross-reactivity with codeine, tramadol. Confirm morphine vs therapeutic opioid.<br>' : ''}
-          ${positives.includes('Amphetamines') ? '⚠️ Amphetamines — cross-reactivity with pseudoephedrine, some antidepressants (bupropion). Confirm by GC-MS.<br>' : ''}
-          ${invalids.length ? `⚪ ${invalids.length} test(s) invalid — repeat testing recommended.<br>` : ''}
-          ${!anyPositive ? 'All screened substances below detection cutoffs.' : ''}
-        </div>
-      </div>
-      ${anyPositive ? `<div class="tox-interp-section"><div class="tox-section-title">🔬 Confirmatory Testing Required</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px">${gcms}</div>
-      </div>` : ''}
-      ${invalids.length ? '<div style="padding:var(--space-sm) var(--space-md);border-radius:var(--radius-sm);background:rgba(255,214,0,.06);border:1px solid rgba(255,214,0,.20);font-size:var(--text-xs);color:var(--alert-yellow)">⚪ INVALID results: dilute or adulterated sample suspected — repeat with observed collection</div>' : ''}
-      <div class="iso-disclaimer">🔒 Immunoassay screening results — confirmatory GC-MS/LC-MS required · ISO 15189:2022</div>
-    </div>`;
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     TDM ENGINE
-  ══════════════════════════════════════════════════════════════ */
-  const TDM_DRUGS = {
-    digoxin:     { unit:'µg/L',  trough:{lo:0.8, hi:2.0}, toxic:2.5,  critical:4.0,  dose_hint:'0.125–0.25mg/day oral. Adjust for renal function.' },
-    phenytoin:   { unit:'mg/L',  trough:{lo:10,  hi:20},  toxic:20,   critical:30,   dose_hint:'300–400mg/day. Check albumin for free phenytoin.' },
-    carbamazepine:{ unit:'mg/L', trough:{lo:4,   hi:12},  toxic:12,   critical:20,   dose_hint:'400–1600mg/day in divided doses.' },
-    valproate:   { unit:'mg/L',  trough:{lo:50,  hi:100}, toxic:120,  critical:200,  dose_hint:'1000–2500mg/day. Check LFTs and ammonia if encephalopathy.' },
-    lithium:     { unit:'mmol/L',trough:{lo:0.6, hi:1.2}, toxic:1.5,  critical:2.0,  dose_hint:'Trough 12hrs post-dose. Toxic: tremor, ataxia, confusion.' },
-    gentamicin:  { unit:'mg/L',  peak:{lo:5,hi:10},trough:{lo:0,hi:2},toxic:2,critical:4, dose_hint:'Peak 30min post-infusion, trough pre-dose. Once-daily dosing: trough <1mg/L.' },
-    vancomycin:  { unit:'mg/L',  trough:{lo:10, hi:20},  toxic:20,   critical:40,   dose_hint:'AUC/MIC 400–600 preferred over trough alone.' },
-    tacrolimus:  { unit:'µg/L',  trough:{lo:5,  hi:15},  toxic:20,   critical:30,   dose_hint:'Target varies by transplant type/timing post-op. Check renal function.' },
-    cyclosporine:{ unit:'µg/L',  trough:{lo:100,hi:300}, toxic:400,  critical:600,  dose_hint:'C2 monitoring preferred for cyclosporine A.' },
-    theophylline:{ unit:'mg/L',  trough:{lo:10, hi:20},  toxic:20,   critical:30,   dose_hint:'Narrow TI. Toxicity: seizures, arrhythmias at >30mg/L.' },
-    methotrexate:{ unit:'µmol/L',trough:{lo:0,  hi:0.1}, toxic:1.0,  critical:5.0,  dose_hint:'MTX >1µmol/L at 48h = delayed elimination — leucovorin rescue.' },
-    amikacin:    { unit:'mg/L',  peak:{lo:20,hi:35},trough:{lo:0,hi:5}, toxic:5, critical:10, dose_hint:'Trough <5mg/L (nephrotoxicity), Peak 20–35mg/L (efficacy).' },
-  };
-
-  function initTDM() {
-    const drugSel = document.getElementById('tdm-drug');
-    const unitEl  = document.getElementById('tdm-unit');
-    drugSel?.addEventListener('change', () => {
-      const d = TDM_DRUGS[drugSel.value];
-      if (d && unitEl) unitEl.textContent = d.unit;
-    });
-    if (unitEl && drugSel) unitEl.textContent = TDM_DRUGS[drugSel.value]?.unit || '—';
-
-    document.getElementById('tdm-interpret-btn')?.addEventListener('click', () => {
-      const drug   = document.getElementById('tdm-drug')?.value;
-      const value  = parseFloat(document.getElementById('tdm-value')?.value);
-      const timing = document.getElementById('tdm-timing')?.value || 'trough';
-      if (!drug || isNaN(value)) { toast('Enter drug and measured level.', 'error'); return; }
-      renderTDMResult(drug, value, timing);
-    });
-  }
-
-  function renderTDMResult(drug, value, timing) {
-    const spec = TDM_DRUGS[drug];
-    if (!spec) return;
-    const ref = timing === 'peak' && spec.peak ? spec.peak : spec.trough;
-    const panel = document.getElementById('tdm-result-panel');
-
-    let zone, zonePct, severity;
-    if (value < ref.lo) {
-      zone = 'sub-therapeutic'; severity = 'mild';
-      zonePct = Math.min(95, Math.max(2, (value / ref.lo) * 30));
-    } else if (value <= ref.hi) {
-      zone = 'therapeutic'; severity = 'normal';
-      zonePct = 30 + ((value - ref.lo) / (ref.hi - ref.lo)) * 25;
-    } else if (value <= spec.toxic) {
-      zone = 'potentially toxic'; severity = 'moderate';
-      zonePct = 55 + ((value - ref.hi) / (spec.toxic - ref.hi)) * 20;
-    } else {
-      zone = 'TOXIC / CRITICAL'; severity = 'severe';
-      zonePct = 75 + ((value - spec.toxic) / (spec.critical - spec.toxic)) * 20;
-    }
-    zonePct = Math.min(98, Math.max(2, zonePct));
-
-    const totalWidth = ref.hi + (spec.critical - ref.hi);
-    const pctSub = (ref.lo / totalWidth * 100).toFixed(1);
-    const pctTher= ((ref.hi - ref.lo) / totalWidth * 100).toFixed(1);
-    const pctTox = ((spec.toxic - ref.hi) / totalWidth * 100).toFixed(1);
-    const pctCrit= ((spec.critical - spec.toxic) / totalWidth * 100).toFixed(1);
-
-    const doseAdj = zone === 'sub-therapeutic' ? '⬆️ Consider dose increase — consult prescriber' :
-                    zone === 'therapeutic' ? '✅ Level therapeutic — continue current dose' :
-                    zone === 'potentially toxic' ? '⬇️ Consider dose reduction — monitor closely' :
-                    '🚨 WITHHOLD dose — urgent clinical assessment';
-
-    panel.innerHTML = `<div class="tox-result-content">
-      ${zone === 'TOXIC / CRITICAL' ? '<div class="notify-clinical">🚨 CRITICAL LEVEL — NOTIFY CLINICAL TEAM IMMEDIATELY. Withhold next dose pending assessment.</div>' : ''}
-      <div>
-        <div style="font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--text-primary)">${drug.toUpperCase()} — ${value} ${esc(spec.unit)}</div>
-        <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:var(--radius-full);font-size:11px;font-weight:700;border:1px solid;margin-top:4px;
-          ${severity==='normal'?'color:var(--alert-green);border-color:var(--alert-green);background:rgba(0,230,118,.08)':severity==='mild'?'color:var(--blue-glow);border-color:var(--blue-glow);background:rgba(0,153,255,.08)':severity==='moderate'?'color:var(--alert-orange);border-color:var(--alert-orange);background:rgba(255,109,0,.08)':'color:var(--alert-red);border-color:var(--alert-red);background:rgba(255,23,68,.08)'}">
-          ${zone.toUpperCase()} (${timing})
-        </span>
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Therapeutic Range: ${ref.lo}–${ref.hi} ${esc(spec.unit)} (${timing})</div>
-        <div class="tdm-range-container">
-          <div class="tdm-zone tdm-zone-subtherapeutic" style="width:${pctSub}%">SUB</div>
-          <div class="tdm-zone tdm-zone-therapeutic" style="width:${pctTher}%">THERAPEUTIC</div>
-          <div class="tdm-zone tdm-zone-toxic" style="width:${pctTox}%">TOXIC</div>
-          <div class="tdm-zone tdm-zone-critical" style="width:${pctCrit}%">CRIT</div>
-          <div class="tdm-pointer" style="left:${zonePct}%"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-muted);margin-top:4px">
-          <span>0</span><span>${ref.lo}</span><span>${ref.hi}</span><span>${spec.toxic}</span><span>${spec.critical}+ ${esc(spec.unit)}</span>
-        </div>
-      </div>
-      <div class="tox-interp-section">
-        <div class="tox-section-title">💊 Dosage Guidance</div>
-        <div class="tox-finding"><strong>${doseAdj}</strong><br><br>${esc(spec.dose_hint)}</div>
-      </div>
-      <div class="iso-disclaimer">🔒 TDM Decision Support — Consult clinical pharmacologist · ISO 15189:2022</div>
-    </div>`;
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     POISONING ASSESSMENT
-  ══════════════════════════════════════════════════════════════ */
-  const POISON_DB = {
-    organophosphate: { antidote:'Atropine IV + Pralidoxime (2-PAM) within 6h', mechanism:'Cholinesterase inhibition → cholinergic crisis', symptoms:'SLUDGE: Salivation, Lacrimation, Urination, Defecation, GI distress, Emesis. Miosis, bradycardia, bronchospasm.', mgmt:'ABCDE stabilization. Atropine 2–4mg IV every 5–10min until secretions dry. Pralidoxime 1–2g IV over 15–30min.', severity:'severe' },
-    paracetamol:     { antidote:'N-Acetylcysteine (NAC) IV', mechanism:'NAPQI accumulation → hepatocyte necrosis', symptoms:'Nausea/vomiting (0–24h), hepatotoxicity (24–72h), liver failure (>72h).', mgmt:'NAC 150mg/kg over 1h, then 50mg/kg over 4h, then 100mg/kg over 16h. Check LFTs, INR, creatinine.', severity:'moderate' },
-    salicylate:      { antidote:'Sodium bicarbonate IV (urine alkalinization), Haemodialysis if severe', mechanism:'Uncoupling oxidative phosphorylation, respiratory alkalosis then metabolic acidosis', symptoms:'Tinnitus, hyperventilation, mixed acid-base disorder, hypoglycaemia.', mgmt:'IV bicarbonate to alkalinize urine (pH 7.5–8.5). Haemodialysis if level >700mg/L or renal failure.', severity:'moderate' },
-    alcohol:         { antidote:'Supportive — no specific antidote', mechanism:'CNS depression, GABA potentiation', symptoms:'CNS depression, ataxia, respiratory depression at high levels, hypoglycaemia.', mgmt:'Airway protection, IV glucose, thiamine 100mg IV (prevent Wernicke\'s), monitor BGL.', severity:'mild' },
-    methanol:        { antidote:'Fomepizole (4-MP) or Ethanol + Folic acid', mechanism:'Formate accumulation → optic nerve / CNS toxicity', symptoms:'Visual disturbance, anion gap metabolic acidosis, CNS depression.', mgmt:'Fomepizole 15mg/kg IV. Haemodialysis. Folic acid 50mg IV. Correct acidosis.', severity:'severe' },
-    heavy_metal:     { antidote:'DMSA (succimer), DMPS, BAL (dimercaprol), EDTA depending on metal', mechanism:'Enzyme inhibition, cellular toxicity, mitochondrial disruption', symptoms:'Neurotoxicity, renal failure, GI symptoms, chronic exposure effects.', mgmt:'Chelation therapy. Identify specific metal. Nephrology + toxicology consultation.', severity:'moderate' },
-    co:              { antidote:'100% O₂ via tight-fitting mask / hyperbaric oxygen', mechanism:'COHb formation, cellular hypoxia, cytochrome oxidase inhibition', symptoms:'Headache, confusion, cherry-red skin (late). COHb >25% = severe, >50% = coma.', mgmt:'Remove from exposure. 100% O₂ reduces COHb half-life from 5h to 60min. HBO for severe cases.', severity:'severe' },
-    cyanide:         { antidote:'Hydroxocobalamin IV + Sodium thiosulphate', mechanism:'Cytochrome c oxidase inhibition → cellular asphyxia', symptoms:'Rapid loss of consciousness, lactic acidosis, almond odour (50% cannot detect).', mgmt:'Hydroxocobalamin 5g IV IMMEDIATELY. Sodium thiosulphate 12.5g IV. 100% O₂.', severity:'severe' },
-    benzodiazepine:  { antidote:'Flumazenil (use with caution)', mechanism:'GABA-A potentiation → CNS depression', symptoms:'Sedation, ataxia, respiratory depression with co-ingestion.', mgmt:'Supportive. Flumazenil 0.2mg IV (risk of seizures in chronic users/mixed OD). Airway management.', severity:'mild' },
-    opioid:          { antidote:'Naloxone IV/IM/IN', mechanism:'µ-opioid receptor agonism → respiratory depression, miosis', symptoms:'Triad: miosis, reduced consciousness, respiratory depression.', mgmt:'Naloxone 0.4–2mg IV/IM/IN. Repeat every 2–3min. Infusion for long-acting opioids. Monitor for re-narcotization.', severity:'severe' },
-    rodenticide:     { antidote:'Vitamin K1 (phytonadione) oral/IV', mechanism:'Warfarin-type: vitamin K epoxide reductase inhibition → coagulopathy', symptoms:'Delayed coagulopathy (24–48h), bleeding from multiple sites.', mgmt:'Vitamin K1 100–300mg/day oral or slow IV infusion. Monitor PT/INR. FFP for acute bleeding.', severity:'moderate' },
-  };
-
-  function initPoisoning() {
-    document.getElementById('poison-interpret-btn')?.addEventListener('click', () => {
-      const substance = document.getElementById('poison-substance')?.value;
-      const value = parseFloat(document.getElementById('poison-value')?.value);
-      const unit  = document.getElementById('poison-unit')?.value || 'mg/L';
-      const time  = parseFloat(document.getElementById('poison-time')?.value) || 0;
-      if (!substance) { toast('Select a substance.', 'error'); return; }
-      renderPoisonResult(substance, value, unit, time);
-    });
-  }
-
-  function renderPoisonResult(substance, value, unit, time) {
-    const db = POISON_DB[substance];
-    if (!db) return;
-    const panel = document.getElementById('poison-result-panel');
-    const severityClass = `poison-${db.severity}`;
-
-    panel.innerHTML = `<div class="tox-result-content">
-      <div class="notify-clinical">🚨 NOTIFY CLINICAL TEAM — Suspected ${esc(substance.replace(/_/g,' ').toUpperCase())} toxicity${value ? ` (${value} ${esc(unit)})` : ''}</div>
-      <div>
-        <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text-primary)">${esc(substance.replace(/_/g,' ').toUpperCase())} TOXICITY</div>
-        <span class="poison-severity-badge ${severityClass}">${db.severity.toUpperCase()}</span>
-      </div>
-      <div class="tox-interp-section">
-        <div class="tox-section-title">⚗️ Mechanism</div>
-        <div class="tox-finding">${esc(db.mechanism)}</div>
-      </div>
-      <div class="tox-interp-section">
-        <div class="tox-section-title">🔍 Expected Clinical Features</div>
-        <div class="tox-finding">${esc(db.symptoms)}</div>
-      </div>
-      <div class="antidote-card">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:var(--space-sm)">💊 ANTIDOTE / SPECIFIC TREATMENT</div>
-        <div style="font-weight:700;font-size:var(--text-sm)">${esc(db.antidote)}</div>
-      </div>
-      <div class="tox-interp-section">
-        <div class="tox-section-title">🏥 Management Protocol</div>
-        <div class="tox-finding">${esc(db.mgmt)}${time > 0 ? `<br><br>⏱️ Time since exposure: ~${time}h` : ''}</div>
-      </div>
-      <div class="iso-disclaimer">🔒 AI Toxicology DSS — Consult toxicologist/poison centre · ISO 15189:2022</div>
-    </div>`;
-  }
-
-  /* ─── Worklist ──────────────────────────────────────────────── */
-  function loadWorklist() {
-    const tbody = document.getElementById('tox-worklist-tbody');
-    if (!tbody) return;
-    tbody.innerHTML = `
-      <tr><td><div style="font-weight:600">NIYONZIMA Patrick</div><div style="font-size:10px;color:var(--text-muted)">RWA-2024-00521</div></td>
-        <td><span style="font-family:var(--font-mono);font-size:11px;color:var(--blue-glow)">LAB-240515-010</span></td>
-        <td>Paracetamol level</td><td><span class="badge badge-red">🚨 STAT</span></td>
-        <td><span class="badge badge-yellow">Pending</span></td>
-        <td style="text-align:right"><button class="btn btn-primary btn-sm" onclick="document.querySelector('[data-pane=tox-poison-pane]').click()">☠️ Assess</button></td></tr>
-      <tr><td><div style="font-weight:600">MUKAMANA Solange</div><div style="font-size:10px;color:var(--text-muted)">RWA-2024-00442</div></td>
-        <td><span style="font-family:var(--font-mono);font-size:11px;color:var(--blue-glow)">LAB-240515-011</span></td>
-        <td>Vancomycin trough</td><td><span class="badge badge-blue">Routine</span></td>
-        <td><span class="badge badge-yellow">Pending</span></td>
-        <td style="text-align:right"><button class="btn btn-primary btn-sm" onclick="document.querySelector('[data-pane=tox-tdm-pane]').click()">🏥 TDM</button></td></tr>`;
-  }
-
-  /* ─── Analytics ─────────────────────────────────────────────── */
-  function loadAnalytics() {
-    const el1 = document.getElementById('tox-uds-chart');
-    const el2 = document.getElementById('tox-tdm-chart');
-    if (el1 && window.Chart && !el1._done) {
-      el1._done = true;
-      new Chart(el1, { type:'bar', data:{ labels:['THC','BZE','Opiates','Amph','Cocaine'], datasets:[{label:'Positive %',data:[12,8,6,4,2],backgroundColor:'rgba(168,85,247,.5)',borderRadius:4}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#8899aa',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#8899aa'},grid:{color:'rgba(255,255,255,.04)'}}}} });
-    }
-    if (el2 && window.Chart && !el2._done) {
-      el2._done = true;
-      new Chart(el2, { type:'bar', data:{ labels:['Vancomycin','Phenytoin','Valproate','Tacrolimus','Carbamazepine'], datasets:[{label:'Out-of-range %',data:[22,15,18,12,8],backgroundColor:'rgba(255,109,0,.5)',borderRadius:4}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#8899aa',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#8899aa'},grid:{color:'rgba(255,255,255,.04)'}}}} });
-    }
-  }
-
-  /* ─── Init ──────────────────────────────────────────────────── */
-  function init() { initTabs(); initUDS(); initTDM(); initPoisoning(); loadWorklist(); }
-  document.addEventListener('DOMContentLoaded', init);
-})();
+// ── Init ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadDashboard();
+  // Init print and filter
+  if (window.NexusPrint) { ['uds-table','tdm-table','poison-table','bio-table','emerg-table','book-table'].forEach(id => NexusPrint.init(id)); }
+  setInterval(loadDashboard, 60000);
+});

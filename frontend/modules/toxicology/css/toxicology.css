@@ -1,55 +1,96 @@
-/* JORINOVA NEXUS ALIS-X — Toxicology Module */
-.tox-main  { display:flex; flex-direction:column; flex:1; overflow:hidden; }
-.tox-tab-nav { padding:0 var(--space-xl); background:var(--bg-deep); border-bottom:1px solid var(--border-dim); flex-shrink:0; }
-.tox-body  { flex:1; overflow-y:auto; }
-.tox-iso-pill { display:inline-flex;align-items:center;gap:8px;padding:5px 13px;border-radius:var(--radius-full);background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.22);font-size:11px;font-weight:600;color:#c084fc;letter-spacing:.04em; }
-
-.tox-two-col { display:grid; grid-template-columns:380px 1fr; min-height:calc(100vh - 200px); }
-.tox-input-panel { border-right:1px solid var(--border-dim); display:flex; flex-direction:column; overflow:hidden; }
-.tox-panel-title { padding:var(--space-md) var(--space-lg); background:var(--bg-deep); border-bottom:1px solid var(--border-dim); font-family:var(--font-display); font-size:var(--text-sm); font-weight:700; color:var(--text-primary); letter-spacing:.04em; }
-.tox-result-panel { background:var(--bg-surface); overflow-y:auto; }
-.tox-result-empty { display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:var(--space-md);color:var(--text-muted);font-size:var(--text-sm);text-align:center;padding:var(--space-2xl);min-height:300px; }
-
-/* UDS Drug Grid */
-.uds-drug-grid { display:flex; flex-direction:column; gap:6px; }
-.uds-drug-row { display:grid; grid-template-columns:130px 1fr; align-items:center; gap:var(--space-sm); padding:6px var(--space-sm); border-radius:var(--radius-sm); background:var(--bg-glass); }
-.uds-drug-name { font-size:11px; font-weight:600; color:var(--text-secondary); }
-.uds-drug-buttons { display:flex; gap:4px; }
-.uds-btn { padding:4px 10px; border-radius:var(--radius-sm); border:1px solid var(--border-mid); background:var(--bg-surface); font-size:10px; font-weight:700; cursor:pointer; transition:all var(--duration-fast); color:var(--text-muted); }
-.uds-btn.selected-neg { background:rgba(0,230,118,.12); border-color:var(--alert-green); color:var(--alert-green); }
-.uds-btn.selected-pos { background:rgba(255,23,68,.12); border-color:var(--alert-red); color:var(--alert-red); animation:pulse-red 1.2s infinite; }
-.uds-btn.selected-inv { background:var(--bg-surface); border-color:var(--border-mid); color:var(--text-muted); }
-@keyframes pulse-red { 0%,100%{box-shadow:0 0 0 0 rgba(255,23,68,0)} 50%{box-shadow:0 0 0 4px rgba(255,23,68,.15)} }
-
-/* TDM Range Bar */
-.tdm-range-container { position:relative; height:32px; border-radius:var(--radius-md); overflow:hidden; display:flex; margin:var(--space-md) 0; }
-.tdm-zone { height:100%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; letter-spacing:.04em; }
-.tdm-zone-subtherapeutic { background:rgba(0,153,255,.25); color:var(--blue-glow); }
-.tdm-zone-therapeutic     { background:rgba(0,230,118,.25); color:var(--alert-green); }
-.tdm-zone-toxic           { background:rgba(255,109,0,.25); color:var(--alert-orange); }
-.tdm-zone-critical        { background:rgba(255,23,68,.30); color:var(--alert-red); animation:pulse-red 1s infinite; }
-.tdm-pointer {
-  position:absolute; top:0; bottom:0; width:3px; background:#fff;
-  box-shadow:0 0 8px rgba(255,255,255,.8); transform:translateX(-50%);
-  transition:left .5s var(--ease-out);
-}
-.tdm-pointer::after { content:'▲'; position:absolute; bottom:-14px; left:50%; transform:translateX(-50%); font-size:10px; color:#fff; white-space:nowrap; }
-
-/* Poison */
-.poison-severity-badge { display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:var(--radius-full);font-family:var(--font-display);font-size:var(--text-base);font-weight:700;letter-spacing:.04em;border:1px solid; }
-.poison-mild     { color:var(--alert-yellow);border-color:var(--alert-yellow);background:rgba(255,214,0,.08); }
-.poison-moderate { color:var(--alert-orange);border-color:var(--alert-orange);background:rgba(255,109,0,.08); }
-.poison-severe   { color:var(--alert-red);   border-color:var(--alert-red);   background:rgba(255,23,68,.08); }
-.poison-fatal    { color:#ff0000;border-color:#ff0000;background:rgba(255,0,0,.12);animation:pulse-red .7s infinite; }
-
-.antidote-card { padding:var(--space-md);border-radius:var(--radius-md);background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.20);color:var(--alert-green); }
-.notify-clinical { padding:var(--space-md);border-radius:var(--radius-md);background:rgba(255,23,68,.09);border:2px solid var(--alert-red);color:var(--alert-red);font-weight:700;animation:pulse-red 1s infinite; }
-
-/* Result content */
-.tox-result-content { padding:var(--space-xl); display:flex; flex-direction:column; gap:var(--space-lg); }
-.tox-interp-section { background:var(--bg-glass);border:1px solid var(--border-dim);border-radius:var(--radius-md);padding:var(--space-md); }
-.tox-section-title { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:var(--space-sm); }
-.tox-finding { font-size:var(--text-sm);color:var(--text-secondary);line-height:1.6; }
-.iso-disclaimer { padding:var(--space-sm) var(--space-md);border-radius:var(--radius-sm);background:rgba(0,153,255,.05);border:1px solid rgba(0,153,255,.15);font-size:10px;color:var(--text-muted);letter-spacing:.03em; }
-
-@media (max-width:900px) { .tox-two-col { grid-template-columns:1fr; } }
+/* ── Toxicology Department CSS ─────────────────────────── */
+#tox-app { padding:0 0 2rem; }
+.dept-header{display:flex;justify-content:space-between;align-items:flex-start;padding:1.25rem 1.5rem;border-radius:12px;margin-bottom:1.25rem;gap:1rem;}
+.tox-hdr{background:linear-gradient(135deg,#1a0030 0%,#3d0070 50%,#5a00a0 100%);color:#fff;}
+.dh-left{display:flex;align-items:flex-start;gap:.85rem;}
+.dh-icon{font-size:2rem;}
+.dh-title{margin:0;font-size:1.6rem;font-weight:700;}
+.dh-sub{font-size:.81rem;opacity:.75;margin-top:.2rem;}
+.dh-right{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;}
+.dh-chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:.3rem .8rem;font-size:.82rem;}
+.dh-chip.danger{background:rgba(220,53,69,.35);border-color:#dc3545;}
+.dh-badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:.3rem .9rem;font-size:.78rem;}
+.dept-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:1.25rem;}
+.kpi{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:1.1rem;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.kpi.positive{border-left:4px solid #dc3545;}.kpi.toxic{border-left:4px solid #f97316;}.kpi.danger{border-left:4px solid #7c3aed;}.kpi.mushroom{border-left:4px solid #16a34a;}.kpi.neutral{border-left:4px solid #64748b;}
+.kpi-val{font-size:2rem;font-weight:700;color:#1a0030;line-height:1;}
+.kpi-lbl{font-size:.78rem;color:#6c757d;margin-top:.4rem;}
+.dept-tabs{display:flex;gap:.5rem;border-bottom:2px solid #e9ecef;margin-bottom:1.25rem;flex-wrap:wrap;}
+.dt{background:none;border:none;padding:.5rem 1rem;border-radius:8px 8px 0 0;font-size:.87rem;font-weight:500;color:#6c757d;cursor:pointer;transition:.2s;}
+.dt:hover{background:#f5f0ff;color:#1a0030;}.dt.active{background:#1a0030;color:#fff;}
+.dept-pane{display:none;}.dept-pane.active{display:block;}
+.dept-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;}
+.dept-filters{display:flex;gap:.5rem;flex-wrap:wrap;}
+.dept-filters select,.dept-filters input,.dept-search{padding:.35rem .6rem;border:1px solid #ced4da;border-radius:6px;font-size:.83rem;background:#fff;}
+.dept-toolbar-right{display:flex;gap:.4rem;align-items:center;}
+.dept-print-btn,.dept-filter-btn{background:none;border:1px solid #ced4da;border-radius:8px;padding:.35rem .65rem;cursor:pointer;font-size:.85rem;}
+.tox-table-wrap{overflow-x:auto;overflow-y:auto;max-height:58vh;border:1px solid #e9ecef;border-radius:8px;}
+.dept-table{width:100%;border-collapse:collapse;font-size:.83rem;min-width:900px;}
+.dept-table thead th{background:#1a0030;color:#fff;padding:.6rem .75rem;text-align:left;white-space:nowrap;position:sticky;top:0;z-index:2;}
+.dept-table tbody td{padding:.55rem .75rem;border-bottom:1px solid #f0f0f0;vertical-align:middle;}
+.dept-table tbody tr:hover td{background:#f9f5ff;}
+.dept-empty{text-align:center;color:#6c757d;padding:2rem;}
+.tox-sq-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.25rem;}
+.sq-card{display:flex;flex-direction:column;gap:.5rem;background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:1rem;box-shadow:0 2px 6px rgba(0,0,0,.05);cursor:pointer;transition:.15s;}
+.sq-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.1);}
+.sq-card.uds{border-left:4px solid #dc3545;}.sq-card.tdm{border-left:4px solid #f97316;}.sq-card.poison{border-left:4px solid #7c3aed;}.sq-card.bio{border-left:4px solid #16a34a;}
+.sq-icon{font-size:1.75rem;}.sq-name{font-weight:700;font-size:.95rem;color:#1a0030;}.sq-tests{font-size:.73rem;color:#6c757d;line-height:1.4;}.sq-cnt{font-size:1.1rem;font-weight:700;color:#343a40;}
+.sq-card button{align-self:flex-end;background:none;border:1px solid #1a0030;border-radius:6px;padding:.25rem .7rem;font-size:.79rem;cursor:pointer;}
+.sq-card button:hover{background:#1a0030;color:#fff;}
+.tox-dash-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;}
+.tox-chart-box,.tox-antidote-box{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:1rem;box-shadow:0 2px 6px rgba(0,0,0,.05);}
+.box-title{font-weight:700;font-size:.92rem;color:#1a0030;margin-bottom:.75rem;}
+.ant-list{display:flex;flex-direction:column;gap:.35rem;}
+.ant-row{display:grid;grid-template-columns:130px auto 140px;gap:.4rem;align-items:center;padding:.3rem .5rem;border-radius:6px;font-size:.8rem;}
+.ant-row:nth-child(odd){background:#f9f5ff;}
+.ant-p{font-weight:600;color:#1a0030;}.ant-a{color:#7c3aed;font-weight:600;}.ant-t{color:#6c757d;font-size:.75rem;}
+.tdm-ref-bar{display:flex;flex-wrap:wrap;gap:.5rem;padding:.6rem 1rem;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;margin-bottom:.75rem;}
+.tdm-ref-item{font-size:.79rem;color:#856404;}
+.tox-bio-info-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:.75rem;margin-bottom:1rem;}
+.bio-card{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:.85rem;box-shadow:0 1px 4px rgba(0,0,0,.06);font-size:.78rem;}
+.bio-card.amatoxin{border-top:3px solid #dc3545;}.bio-card.muscarine{border-top:3px solid #f97316;}.bio-card.aflatoxin{border-top:3px solid #eab308;}.bio-card.ochratoxin{border-top:3px solid #6366f1;}.bio-card.zearalenone{border-top:3px solid #ec4899;}
+.bio-icon{font-size:1.5rem;margin-bottom:.25rem;}.bio-name{font-weight:700;font-size:.88rem;color:#1a0030;margin-bottom:.2rem;}.bio-src{color:#6c757d;font-size:.72rem;margin-bottom:.2rem;}.bio-fx{color:#374151;margin-bottom:.25rem;}.bio-tx{color:#1a0030;font-weight:600;}
+.emerg-banner{display:flex;align-items:center;gap:1rem;background:rgba(220,53,69,.1);border:1px solid rgba(220,53,69,.35);border-radius:10px;padding:.85rem 1.2rem;margin-bottom:1rem;flex-wrap:wrap;}
+.emerg-banner-icon{font-size:1.5rem;}.emerg-banner strong{color:#dc3545;}
+.emerg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1rem;}
+.emerg-card{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:1rem;text-align:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:.15s;}
+.emerg-card:hover{border-color:#dc3545;box-shadow:0 4px 12px rgba(220,53,69,.15);}
+.ec-icon{font-size:1.75rem;margin-bottom:.3rem;}.ec-name{font-weight:700;font-size:.88rem;color:#1a0030;}.ec-thresh{font-size:.75rem;color:#dc3545;font-weight:600;margin:.2rem 0;}.ec-tat{font-size:.72rem;color:#6c757d;}
+.tdm-interp{background:#d1ecf1;border:1px solid #bee5eb;border-radius:8px;padding:.65rem .85rem;margin-top:.75rem;}
+.tdm-interp-lbl{font-weight:700;font-size:.82rem;color:#0c5460;margin-bottom:.3rem;}
+.pois-interp{background:#f8d7da;border:1px solid #f5c6cb;border-radius:8px;padding:.65rem .85rem;margin-top:.75rem;font-size:.84rem;}
+.pois-antidote{margin-top:.4rem;font-weight:700;color:#721c24;}
+.val-header{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;}
+.val-header h3{margin:0;}.val-count{color:#6c757d;font-size:.85rem;}
+.val-list{display:grid;gap:.75rem;}
+.val-card{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:1rem;display:flex;align-items:flex-start;gap:1rem;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.val-body{flex:1;}.val-id{font-weight:700;font-size:.9rem;color:#1a0030;}.val-sub{font-size:.8rem;color:#6c757d;margin:.2rem 0;}
+.pqc-badge{background:#1a0030;color:#c4b5fd;padding:.3rem .8rem;border-radius:20px;font-size:.78rem;font-weight:600;font-family:monospace;}
+.uds-drug-grid-hdr{display:grid;grid-template-columns:1fr 140px 120px;gap:.5rem;font-size:.75rem;font-weight:700;color:#6c757d;padding:.25rem 0;border-bottom:1px solid #e9ecef;}
+.uds-entry-grid{display:flex;flex-direction:column;gap:.4rem;margin-top:.35rem;}
+.uds-entry{display:grid;grid-template-columns:1fr 140px 120px;gap:.5rem;align-items:center;padding:.25rem 0;border-bottom:1px solid #f0f0f0;font-size:.84rem;}
+.uds-entry span{color:#374151;font-weight:500;}
+.uds-entry select,.uds-entry input{padding:.3rem .5rem;border:1px solid #ced4da;border-radius:6px;font-size:.82rem;}
+.res-POSITIVE{background:#f8d7da;color:#721c24;padding:.15rem .5rem;border-radius:8px;font-size:.78rem;font-weight:700;}
+.res-NEGATIVE{background:#d4edda;color:#155724;padding:.15rem .5rem;border-radius:8px;font-size:.78rem;}
+.res-TOXIC{background:#f97316;color:#fff;padding:.15rem .5rem;border-radius:8px;font-size:.78rem;font-weight:700;}
+.res-THERAPEUTIC{background:#d4edda;color:#155724;padding:.15rem .5rem;border-radius:8px;font-size:.78rem;}
+.res-SUBTHERAPEUTIC{background:#d1ecf1;color:#0c5460;padding:.15rem .5rem;border-radius:8px;font-size:.78rem;}
+.btn-primary{background:#1a0030;color:#fff;border:none;padding:.5rem 1rem;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;}
+.btn-primary:hover{background:#3d0070;}.btn-secondary{background:#f8f9fa;color:#1a0030;border:1px solid #ced4da;padding:.5rem 1rem;border-radius:8px;font-size:.85rem;cursor:pointer;}
+.btn-danger{background:#dc3545;color:#fff;border:none;padding:.5rem 1rem;border-radius:8px;font-size:.85rem;cursor:pointer;}
+.btn-emergency{background:#dc3545;color:#fff;border:none;padding:.5rem 1.25rem;border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer;margin-left:auto;}
+.dept-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:9000;backdrop-filter:blur(3px);}
+.dept-modal{background:#fff;border-radius:14px;width:90%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.dept-modal-wide{max-width:760px;}
+.dept-modal-hdr{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid #e9ecef;position:sticky;top:0;background:#fff;z-index:1;}
+.dept-modal-hdr h3{margin:0;font-size:1.05rem;}.dept-modal-hdr button{background:none;border:none;font-size:1.2rem;cursor:pointer;color:#6c757d;}
+.dept-modal-body{padding:1rem 1.25rem;}
+.dept-modal-ftr{display:flex;justify-content:flex-end;gap:.75rem;padding:1rem 1.25rem;border-top:1px solid #e9ecef;position:sticky;bottom:0;background:#fff;}
+.dept-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+.dept-form-row{display:flex;flex-direction:column;gap:.3rem;}
+.dept-form-row.full-col{grid-column:span 2;}
+.dept-form-row label{font-size:.82rem;font-weight:600;color:#495057;}
+.dept-form-row input,.dept-form-row select,.dept-form-row textarea{padding:.4rem .65rem;border:1px solid #ced4da;border-radius:6px;font-size:.85rem;}
+.dept-form-row textarea{resize:vertical;}
+@media(max-width:900px){.tox-sq-grid,.emerg-grid{grid-template-columns:1fr 1fr;}.tox-bio-info-strip{grid-template-columns:1fr 1fr;}.dept-kpis{grid-template-columns:repeat(3,1fr);}.tox-dash-row{grid-template-columns:1fr;}.dept-form-grid{grid-template-columns:1fr;}.dept-form-row.full-col{grid-column:span 1;}}

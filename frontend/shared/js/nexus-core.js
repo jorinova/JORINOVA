@@ -28,17 +28,13 @@
       security:       'ai-matrix',
       records:        'default',
       finaops:        'default',
-      staffhub:       'nexuscare',
+      staffhub:       'default',
       genome:         'medgenome',
       molecular:      'medgenome',
       epidemic:       'default',
       surveillance:   'default',
-      nexuscare:      'nexuscare',
-      nursing:        'nexuscare',
       'ai-training':  'ai-matrix',
       nexuscore:     'ai-matrix',
-      nexuscare:     'nexuscare',
-      nursing:       'nexuscare',
       default:       'default',
     },
 
@@ -124,20 +120,76 @@
   };
 
   /* ─────────────────────────────────────────────────────────────
+     JWT TOKEN REFRESH ENGINE
+     Auto-refreshes the Bearer token 7 hours after the last refresh.
+     Token lifetime is 8 hours; refreshing at 7h keeps the session alive.
+     On failure (server returned 401) → redirects to login.
+  ──────────────────────────────────────────────────────────────── */
+  const TokenRefreshEngine = {
+    _INTERVAL_MS: 7 * 60 * 60 * 1000,  /* 7 hours */
+    _timerId: null,
+
+    init() {
+      if (!localStorage.getItem('access_token')) return;
+      this._schedule();
+    },
+
+    _schedule() {
+      clearTimeout(this._timerId);
+      this._timerId = setTimeout(() => this._doRefresh(), this._INTERVAL_MS);
+    },
+
+    async _doRefresh() {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      try {
+        const r = await fetch('/api/v1/auth/refresh', {
+          method:  'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': 'Bearer ' + token,
+          },
+          body: JSON.stringify({ access_token: token }),
+        });
+        if (r.ok) {
+          const data = await r.json();
+          localStorage.setItem('access_token', data.access_token);
+          console.debug('[NEXUS] Token refreshed, next refresh in 7h');
+          this._schedule();
+        } else {
+          console.warn('[NEXUS] Token refresh failed (%d) — redirecting to login', r.status);
+          localStorage.removeItem('access_token');
+          window.location.href = '/auth/login/?timeout=1';
+        }
+      } catch (err) {
+        console.warn('[NEXUS] Token refresh network error — will retry in 30 min', err);
+        this._timerId = setTimeout(() => this._doRefresh(), 30 * 60 * 1000);
+      }
+    },
+
+    /* Call after a successful login to start the refresh cycle immediately */
+    start() { this.init(); },
+  };
+
+  /* ─────────────────────────────────────────────────────────────
      API CLIENT
-     Wraps fetch with CSRF, shift tag, and base URL.
+     Wraps fetch with JWT Bearer token, shift tag, and base URL.
+     Token is read from localStorage on every request so it stays fresh.
      Usage: NEXUS.API.get('/patients/', { q: 'Jean' })
             NEXUS.API.post('/patients/', { family_name: 'Doe', ... })
   ──────────────────────────────────────────────────────────────── */
   const API = {
     _headers(extra) {
       const shift = ShiftEngine.currentTag();
-      return Object.assign({
+      const token = localStorage.getItem('access_token');
+      const h = {
         'Content-Type':  'application/json',
         'X-CSRFToken':   NEXUS.csrf,
         'X-Shift-Name':  shift.name,
         'X-Shift-Icon':  shift.icon,
-      }, extra);
+      };
+      if (token) h['Authorization'] = 'Bearer ' + token;
+      return Object.assign(h, extra);
     },
 
     _url(path, params) {
@@ -192,20 +244,20 @@
     },
 
     postForm(path, formData) {
+      const h = { 'X-CSRFToken': NEXUS.csrf };
+      const t = localStorage.getItem('access_token');
+      if (t) h['Authorization'] = 'Bearer ' + t;
       return fetch(this._url(path), {
-        method: 'POST',
-        headers: { 'X-CSRFToken': NEXUS.csrf },
-        body: formData,
-        credentials: 'same-origin',
+        method: 'POST', headers: h, body: formData, credentials: 'same-origin',
       });
     },
 
     patchForm(path, formData) {
+      const h = { 'X-CSRFToken': NEXUS.csrf };
+      const t = localStorage.getItem('access_token');
+      if (t) h['Authorization'] = 'Bearer ' + t;
       return fetch(this._url(path), {
-        method: 'PATCH',
-        headers: { 'X-CSRFToken': NEXUS.csrf },
-        body: formData,
-        credentials: 'same-origin',
+        method: 'PATCH', headers: h, body: formData, credentials: 'same-origin',
       });
     },
 
@@ -570,6 +622,7 @@
     initLogout();
     initShortcuts();
     InactivityEngine.init();
+    TokenRefreshEngine.init();
   });
 
   /* ─── Export ─────────────────────────────────────────────── */
@@ -580,6 +633,7 @@
     ShiftEngine,
     ThemeEngine,
     InactivityEngine,
+    TokenRefreshEngine,
     fmt,
   });
 

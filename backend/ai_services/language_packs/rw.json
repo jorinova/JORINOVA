@@ -1,0 +1,105 @@
+{
+  "code": "rw",
+  "name": "Kinyarwanda",
+  "name_local": "Ikinyarwanda",
+  "flag": "🇷🇼",
+  "rtl": false,
+  "note": "TTS uses multilingual fallback (fr-FR closest). STT via Whisper multilingual model.",
+
+  "tts": {
+    "default_rate": 0.80,
+    "slow_rate": 0.58,
+    "accessibility_rate": 0.45,
+    "default_pitch": 1.0,
+    "slow_pitch": 0.95,
+    "default_volume": 0.95,
+    "pause_between_sentences_ms": 420,
+    "accessibility_pause_ms": 800,
+    "voice_preference": ["rw-RW", "fr-FR", "en-US"],
+    "voice_name_hints": [],
+    "tts_fallback": "fr-FR",
+    "note": "Native Kinyarwanda TTS not yet available in Web Speech API. Uses French voice with Kinyarwanda text or transliteration."
+  },
+
+  "stt": {
+    "whisper_code": "rw",
+    "browser_lang": "rw",
+    "alt_langs": ["fr-FR", "en-US"],
+    "confidence_threshold": 0.55,
+    "note": "Whisper supports Kinyarwanda in the multilingual model. Use whisper-medium or larger for best accuracy."
+  },
+
+  "wake_phrases": [
+    "muraho jorinova", "jorinova", "hejuru jorinova",
+    "witeguye jorinova", "nexus", "alis x"
+  ],
+
+  "voice_commands": {
+    "confirm":      ["yego", "emeza", "sobanura", "nibyo", "vuga ngo yego"],
+    "cancel":       ["oya", "hagarara", "siko", "ntabwo", "reka"],
+    "repeat":       ["subiramo", "powtórz", "subiramo ibyo wabivuze", "bundi bushya"],
+    "slow_down":    ["buhoro", "vuga buhoro", "byihuse cyane", "vuga nko buhoro"],
+    "speed_up":     ["neza", "byihuse", "vuga neza"],
+    "help":         ["nfasha", "ingabo", "ushobora gukora iki", "fasha"],
+    "goodbye":      ["reka", "ndagukunda", "seza", "reka utorwe"]
+  },
+
+  "ui": {
+    "welcome":           "Jorinova yarafunguwe. Nigute nshobora kukufasha?",
+    "welcome_slow":      "Jorinova … yarafunguwe. … Nigute nshobora … kukufasha?",
+    "listening":         "Nkumva.",
+    "processing":        "Nsesengura ibyo wasabye. Tegereza gato.",
+    "understood":        "Byaranezeje.",
+    "not_understood":    "Sinumvise neza. Wakongera uvuge?",
+    "confirm_action":    "Emeza ibi: ",
+    "confirm_critical":  "Iyi ni igikorwa cy'ingenzi mu gikino cy'ubuvuzi. Uremeza ko ushaka gukomeza? Vuga yego cyangwa oya.",
+    "confirm_dangerous": "Iburyo: Iri gikorwa rishobora kugira ingaruka nkuru. Tafadhali fikiria kabla ya kuendelea. Vuga yego guemeza.",
+    "escalating":        "Nohesheje iri bwiye ku Mutware w'ishami kugira ngo yemeze. Azamenyeshwa nonaha.",
+    "escalated":         "Icyifuzo cyoheshejwe ku Mutware w'ishami. Tegereza igisubizo cye mbere yo gukomeza.",
+    "escalation_blocked":"Iri gikorwa ryarahagaritswe. Umuyobozi w'ishami yaramenyeshejwe.",
+    "danger_warning":    "Ndagutangaza. ",
+    "persist_warning":   "Ukomeje kugira iri gikorwa. Ngombwa ngo ndamenyeshe umuyobozi w'ishami wawe.",
+    "offline_mode":      "Sisitemu ikorana mu buryo bw'offline. Serivisi za mbere ziraboneka.",
+    "repeat_prompt":     "Urashaka ko nsubiramo?",
+    "last_repeated":     "Nsubiramo igisubizo cyanjye cya nyuma.",
+    "error":             "Habaye ikosa. Ongera ugerageze cyangwa utumanahana na superivizeri wawe.",
+    "goodbye":           "Jorinova yafunzwe. Ugende neza.",
+    "unauthorized":      "Ntufite uburenganzira bwo gukora iyi mirimo.",
+    "serial_prompt":     "Vuga kode yawe ya Nexus.",
+    "serial_verified":   "Umwirondoro wemejwe. Ubu ushobora kuvuga itegeko ryawe.",
+    "serial_failed":     "Kode ntibyemewe. Kwinjira birazimwe.",
+    "slow_mode_on":      "Uburyo bwo kuvuga bugufi burakoze. Nzavuga buhoro.",
+    "slow_mode_off":     "Ngaruka ku cyubatsi gisanzwe.",
+    "accessibility_on":  "Uburyo bw'ibumoso burakora. Nzavuga buhoro cyane n'ibikorwa.",
+    "volume_up":         "Ijwi ryiyongereye.",
+    "volume_down":       "Ijwi ryagabanutse.",
+    "language_changed":  "Ururimi rwahinduwe: Ikinyarwanda."
+  },
+
+  "medical_terms": {
+    "critical":     "nkuru cyane",
+    "urgent":       "byihutirwa",
+    "routine":      "bisanzwe",
+    "stat":         "stat",
+    "validate":     "emeza",
+    "release":      "sohorera ingenga",
+    "archive":      "zachika mu gitabo cy'ingenga nkuru",
+    "panel":        "ibipimo",
+    "result":       "ingenga",
+    "sample":       "inzuki",
+    "patient":      "umurwayi",
+    "report":       "raporo",
+    "inventory":    "inventeri",
+    "blood_bank":   "ububiko bw'amaraso",
+    "transfusion":  "gusubiramo amaraso"
+  },
+
+  "danger_phrases": {
+    "delete_result":     "gusiba ingenga y'isuzuma",
+    "modify_validated":  "guhindura ingenga yemejwe",
+    "bypass_validation": "kurenza kwemeza",
+    "release_without_validation": "gusohorera ingenga itaremejwe",
+    "bulk_export":       "kohereza amakuru menshi y'abarwayi",
+    "override_critical": "kurengaho icyitegererezo cy'agaciro gakomeye"
+  }
+}

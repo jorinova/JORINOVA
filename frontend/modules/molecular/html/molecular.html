@@ -1,0 +1,721 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}🧬 Molecular Biology — NEXUS ALIS-X{% endblock %}
+{% block module_id %}molecular{% endblock %}
+{% block nav_active_molecular %}active{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{% static 'modules/molecular/css/molecular.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="mol-app">
+
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <div class="module-header">
+    <div class="mh-left">
+      <h1 class="page-title">🧬 Molecular Biology</h1>
+      <span class="mh-subtitle">GeneXpert · PCR · Viral Load · Genetic Analysis · TB Surveillance</span>
+    </div>
+    <div class="mh-right">
+      <div class="stat-chip" id="hdr-pcr-pending">⏳ <span id="stat-pcr-pending">—</span> PCR Pending</div>
+      <div class="stat-chip danger" id="hdr-mdr-tb">🦠 <span id="stat-mdr">—</span> MDR-TB</div>
+      <div class="stat-chip xdr" id="hdr-xdr-tb">☣️ <span id="stat-xdr">—</span> XDR-TB</div>
+    </div>
+  </div>
+
+  <!-- ── Tabs ───────────────────────────────────────────────────────── -->
+  <nav class="tab-nav" id="mol-tabs">
+    <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+    <button class="tab-btn" data-tab="genexpert">🦠 GeneXpert / TB PCR</button>
+    <button class="tab-btn" data-tab="viral-pcr">🔬 Viral &amp; STI PCR</button>
+    <button class="tab-btn" data-tab="viral-load">💉 Viral Load</button>
+    <button class="tab-btn" data-tab="genetic">🧫 Genetic Analysis</button>
+    <button class="tab-btn" data-tab="validation">✅ Validation</button>
+    <button class="tab-btn" data-tab="book">📖 TB Critical Book</button>
+  </nav>
+
+  <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
+  <div class="tab-pane active" id="tab-dashboard">
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="kpi-val" id="kpi-pcr-pending">—</div><div class="kpi-lbl">PCR Pending</div></div>
+      <div class="kpi-card success"><div class="kpi-val" id="kpi-pcr-today">—</div><div class="kpi-lbl">PCR Today</div></div>
+      <div class="kpi-card warning"><div class="kpi-val" id="kpi-tb-detected">—</div><div class="kpi-lbl">TB Detected Today</div></div>
+      <div class="kpi-card danger"><div class="kpi-val" id="kpi-mdr-tb">—</div><div class="kpi-lbl">MDR-TB Total</div></div>
+      <div class="kpi-card xdr-card"><div class="kpi-val" id="kpi-xdr-tb">—</div><div class="kpi-lbl">XDR-TB Total</div></div>
+    </div>
+    <div class="kpi-row" style="margin-top:.75rem">
+      <div class="kpi-card info"><div class="kpi-val" id="kpi-vl-pending">—</div><div class="kpi-lbl">VL Pending</div></div>
+      <div class="kpi-card hiv-card"><div class="kpi-val" id="kpi-hiv-high">—</div><div class="kpi-lbl">HIV High VL Today</div></div>
+      <div class="kpi-card dark"><div class="kpi-val" id="kpi-book">—</div><div class="kpi-lbl">Critical Book Entries</div></div>
+    </div>
+
+    <!-- Section queues -->
+    <div class="section-queues">
+      <div class="sq-card genexpert">
+        <div class="sq-icon">🦠</div>
+        <div class="sq-body">
+          <div class="sq-name">GeneXpert MTB/RIF</div>
+          <div class="sq-tests">MTB PCR · RR-TB · MDR-TB · XDR-TB escalation</div>
+          <div class="sq-count" id="sq-tb">— pending</div>
+        </div>
+        <button class="sq-btn" onclick="switchTab('genexpert')">View →</button>
+      </div>
+      <div class="sq-card viral">
+        <div class="sq-icon">🔬</div>
+        <div class="sq-body">
+          <div class="sq-name">Viral &amp; STI PCR</div>
+          <div class="sq-tests">HIV RNA · HBV · HCV · Chlamydia · GeneXpert STI · Respiratory</div>
+          <div class="sq-count" id="sq-viral">— pending</div>
+        </div>
+        <button class="sq-btn" onclick="switchTab('viral-pcr')">View →</button>
+      </div>
+      <div class="sq-card vl-sq">
+        <div class="sq-icon">💉</div>
+        <div class="sq-body">
+          <div class="sq-name">Viral Load</div>
+          <div class="sq-tests">HIV VL · HBV VL · HCV VL · ART monitoring</div>
+          <div class="sq-count" id="sq-vl">— pending</div>
+        </div>
+        <button class="sq-btn" onclick="switchTab('viral-load')">View →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ GENEXPERT / TB PCR ════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-genexpert">
+    <!-- TB Alert strip for MDR/XDR -->
+    <div class="tb-alert-strip" id="tb-alert-strip" style="display:none">
+      <div class="tb-alert-hdr">🚨 MDR/XDR-TB Cases — Immediate Public Health Action Required</div>
+      <div id="tb-alert-list" class="tb-alert-list"></div>
+    </div>
+
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="gx-filter-result" onchange="loadGeneXpert()">
+          <option value="">All Results</option>
+          <option value="DETECTED">MTB Detected</option>
+          <option value="NOT_DETECTED">Not Detected</option>
+          <option value="INVALID">Invalid / Error</option>
+        </select>
+        <select id="gx-filter-rif" onchange="loadGeneXpert()">
+          <option value="">All Rif Status</option>
+          <option value="DETECTED">Rif Resistance Detected</option>
+          <option value="NOT_DETECTED">Rif Sensitive</option>
+          <option value="INDETERMINATE">Indeterminate</option>
+        </select>
+        <select id="gx-filter-class" onchange="loadGeneXpert()">
+          <option value="">All TB Class</option>
+          <option value="SENSITIVE_TB">Sensitive TB</option>
+          <option value="RR_TB">RR-TB</option>
+          <option value="MDR_TB">MDR-TB</option>
+          <option value="XDR_TB">XDR-TB</option>
+          <option value="PRE_XDR_TB">Pre-XDR-TB</option>
+        </select>
+        <input type="date" id="gx-filter-date" onchange="loadGeneXpert()">
+      </div>
+      <button class="btn-primary" onclick="openPCRModal('TB')">+ New GeneXpert</button>
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="gx-table">
+        <thead>
+          <tr>
+            <th>PCR ID</th><th>Patient</th><th>Test</th><th>Instrument</th>
+            <th>MTB Result</th><th>Semi-Quant</th><th>Rif Resistance</th>
+            <th>TB Class</th><th>Ct Value</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="gx-tbody">
+          <tr><td colspan="11" class="empty-state">Loading GeneXpert results…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ VIRAL & STI PCR ══════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-viral-pcr">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="vpcr-filter-cat" onchange="loadViralPCR()">
+          <option value="">All Categories</option>
+          <option value="VIRAL">Viral PCR</option>
+          <option value="STI">STI PCR</option>
+          <option value="RESPIRATORY">Respiratory Panel</option>
+          <option value="FUNGAL">Fungal</option>
+        </select>
+        <select id="vpcr-filter-result" onchange="loadViralPCR()">
+          <option value="">All Results</option>
+          <option value="DETECTED">Detected</option>
+          <option value="NOT_DETECTED">Not Detected</option>
+        </select>
+        <input type="date" id="vpcr-filter-date" onchange="loadViralPCR()">
+      </div>
+      <button class="btn-primary" onclick="openPCRModal('VIRAL')">+ New Viral PCR</button>
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="vpcr-table">
+        <thead>
+          <tr>
+            <th>PCR ID</th><th>Patient</th><th>Category</th><th>Test</th>
+            <th>Target</th><th>Result</th><th>Ct Value</th>
+            <th>Instrument</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="vpcr-tbody">
+          <tr><td colspan="10" class="empty-state">Loading viral PCR results…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ VIRAL LOAD ════════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-viral-load">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="vl-filter-virus" onchange="loadViralLoad()">
+          <option value="">All Viruses</option>
+          <option value="HIV">HIV</option>
+          <option value="HBV">HBV</option>
+          <option value="HCV">HCV</option>
+          <option value="CMV">CMV</option>
+          <option value="EBV">EBV</option>
+        </select>
+        <select id="vl-filter-val" onchange="loadViralLoad()">
+          <option value="">All Status</option>
+          <option value="false">Not Validated</option>
+          <option value="true">Validated</option>
+        </select>
+        <input type="date" id="vl-filter-date" onchange="loadViralLoad()">
+      </div>
+      <button class="btn-primary" onclick="openVLModal()">+ New Viral Load</button>
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="vl-table">
+        <thead>
+          <tr>
+            <th>VL ID</th><th>Patient</th><th>Virus</th><th>Assay</th>
+            <th>Copies/mL</th><th>Log₁₀</th><th>Category</th>
+            <th>ART</th><th>Trend</th><th>Specimen</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="vl-tbody">
+          <tr><td colspan="12" class="empty-state">Loading viral load results…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ GENETIC ANALYSIS ══════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-genetic">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="ga-filter-type" onchange="loadGenetic()">
+          <option value="">All Types</option>
+          <option value="CANCER_MUTATION">Cancer Mutation</option>
+          <option value="HEREDITARY">Hereditary Disease</option>
+          <option value="PHARMACOGENOMICS">Pharmacogenomics</option>
+          <option value="MICROBIAL_RESISTANCE">Microbial Resistance</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openGAModal()">+ New Genetic Analysis</button>
+    </div>
+
+    <div class="results-table-wrap">
+      <table class="data-table" id="ga-table">
+        <thead>
+          <tr>
+            <th>GA ID</th><th>Patient</th><th>Analysis Type</th><th>Gene Target</th>
+            <th>Mutation</th><th>Pathogenicity</th><th>Method</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="ga-tbody">
+          <tr><td colspan="9" class="empty-state">Loading genetic analyses…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ VALIDATION ═══════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-validation">
+    <div class="validation-header">
+      <h3>Pending Validation Queue</h3>
+      <div class="val-filters">
+        <select id="molval-filter-type" onchange="loadMolValidation()">
+          <option value="pcr">PCR / GeneXpert</option>
+          <option value="viral-load">Viral Load</option>
+        </select>
+      </div>
+      <span class="val-count" id="molval-count">Loading…</span>
+    </div>
+    <div id="molval-list" class="validation-list">
+      <div class="empty-state">Loading validation queue…</div>
+    </div>
+  </div>
+
+  <!-- ══ TB CRITICAL BOOK ══════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-book">
+    <div class="pane-toolbar">
+      <div class="filter-group">
+        <select id="molbook-filter-reason" onchange="loadMolBook()">
+          <option value="">All Critical Reasons</option>
+          <option value="MDR_TB">MDR-TB</option>
+          <option value="XDR_TB">XDR-TB</option>
+          <option value="HIV_DETECTED">HIV Detected (first time)</option>
+          <option value="HIGH_VL">High Viral Load</option>
+          <option value="DRUG_RESISTANCE">Drug Resistance Detected</option>
+          <option value="PATHOGENIC_MUTATION">Pathogenic Mutation</option>
+        </select>
+      </div>
+      <span class="pqc-badge">🔐 PQC-Signed · Public Health Archive</span>
+    </div>
+    <div class="results-table-wrap">
+      <table class="data-table" id="molbook-table">
+        <thead>
+          <tr>
+            <th>Entry #</th><th>Patient</th><th>Test</th><th>Critical Reason</th>
+            <th>Severity</th><th>Clinician Notified</th><th>Read-back</th>
+            <th>Public Health</th><th>Archived</th><th>PQC Hash</th>
+          </tr>
+        </thead>
+        <tbody id="molbook-tbody">
+          <tr><td colspan="10" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /#mol-app -->
+
+<!-- ═══ MODALS ═══════════════════════════════════════════════════════════════ -->
+
+<!-- PCR / GeneXpert Modal -->
+<div class="modal-overlay" id="pcr-modal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3 id="pcr-modal-title">🧬 New PCR Result</h3>
+      <button class="modal-close" onclick="closeModal('pcr-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Lab Request ID</label>
+          <input type="number" id="pcr-labreq" placeholder="Lab request ID">
+        </div>
+        <div class="form-row">
+          <label>Patient ID</label>
+          <input type="number" id="pcr-patient" placeholder="Patient ID">
+        </div>
+        <div class="form-row">
+          <label>PID</label>
+          <input type="text" id="pcr-pid" placeholder="PID-XXXX">
+        </div>
+        <div class="form-row">
+          <label>LID</label>
+          <input type="text" id="pcr-lid" placeholder="RW-XXXXXXX">
+        </div>
+        <div class="form-row">
+          <label>Category</label>
+          <select id="pcr-category" onchange="pcrCategoryChanged()">
+            <option value="TB">TB (GeneXpert MTB/RIF)</option>
+            <option value="VIRAL">Viral PCR</option>
+            <option value="STI">STI PCR</option>
+            <option value="RESPIRATORY">Respiratory Panel</option>
+            <option value="FUNGAL">Fungal</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Test Name</label>
+          <select id="pcr-test-select" onchange="fillPCRTestName()">
+            <option value="">Select test…</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Test Name (free text)</label>
+          <input type="text" id="pcr-test-name" placeholder="e.g. GeneXpert MTB/RIF Ultra">
+        </div>
+        <div class="form-row">
+          <label>Target Organism</label>
+          <input type="text" id="pcr-target" placeholder="e.g. Mycobacterium tuberculosis">
+        </div>
+        <div class="form-row">
+          <label>Instrument</label>
+          <select id="pcr-instrument">
+            <option value="">Select…</option>
+            <option value="GeneXpert MTB/RIF Ultra">GeneXpert MTB/RIF Ultra</option>
+            <option value="GeneXpert MTB/RIF">GeneXpert MTB/RIF</option>
+            <option value="Cobas 6800/8800">Cobas 6800/8800</option>
+            <option value="Abbott m2000">Abbott m2000</option>
+            <option value="BioFire FilmArray">BioFire FilmArray</option>
+            <option value="Cepheid Xpert">Cepheid Xpert</option>
+            <option value="Manual PCR">Manual PCR</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Specimen Type</label>
+          <select id="pcr-specimen">
+            <option value="sputum">Sputum</option>
+            <option value="plasma">Plasma</option>
+            <option value="serum">Serum</option>
+            <option value="blood">Whole blood</option>
+            <option value="csf">CSF</option>
+            <option value="urine">Urine</option>
+            <option value="swab">Swab</option>
+            <option value="biopsy">Biopsy</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Specimen Quality</label>
+          <select id="pcr-spec-quality">
+            <option value="ADEQUATE">Adequate</option>
+            <option value="INADEQUATE">Inadequate</option>
+            <option value="SALIVA_REJECTED">Saliva (rejected)</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Result</label>
+          <select id="pcr-result" onchange="pcrResultChanged()">
+            <option value="PENDING">Pending</option>
+            <option value="DETECTED">Detected / Positive</option>
+            <option value="NOT_DETECTED">Not Detected</option>
+            <option value="INVALID">Invalid</option>
+            <option value="ERROR">Error</option>
+            <option value="INDETERMINATE">Indeterminate</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Ct Value</label>
+          <input type="number" id="pcr-ct" step="0.01" min="0" max="45" placeholder="e.g. 28.5">
+        </div>
+        <div class="form-row" id="pcr-semi-row">
+          <label>Semi-Quantification (GeneXpert)</label>
+          <select id="pcr-semi">
+            <option value="">Not applicable</option>
+            <option value="VERY_LOW">Very Low (&lt;10 copies)</option>
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+          </select>
+        </div>
+        <div class="form-row" id="pcr-rif-row">
+          <label>Rifampicin Resistance</label>
+          <select id="pcr-rif" onchange="rifChanged()">
+            <option value="">Not tested</option>
+            <option value="NOT_DETECTED">Not Detected (Sensitive)</option>
+            <option value="DETECTED">Detected (Resistant)</option>
+            <option value="INDETERMINATE">Indeterminate</option>
+          </select>
+        </div>
+        <div class="form-row" id="pcr-tb-class-row">
+          <label>TB Classification</label>
+          <select id="pcr-tb-class">
+            <option value="">Not classified</option>
+            <option value="SENSITIVE_TB">Sensitive TB</option>
+            <option value="RR_TB">RR-TB (Rifampicin-Resistant)</option>
+            <option value="MDR_TB">MDR-TB</option>
+            <option value="PRE_XDR_TB">Pre-XDR-TB</option>
+            <option value="XDR_TB">XDR-TB</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="pcr-critical"> Mark as Critical
+          </label>
+        </div>
+        <div class="form-row full-width">
+          <label>Notes</label>
+          <textarea id="pcr-notes" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('pcr-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitPCR()">Save PCR Result</button>
+    </div>
+  </div>
+</div>
+
+<!-- Viral Load Modal -->
+<div class="modal-overlay" id="vl-modal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>💉 New Viral Load</h3>
+      <button class="modal-close" onclick="closeModal('vl-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Lab Request ID</label>
+          <input type="number" id="vl-labreq">
+        </div>
+        <div class="form-row">
+          <label>Patient ID</label>
+          <input type="number" id="vl-patient">
+        </div>
+        <div class="form-row">
+          <label>PID</label>
+          <input type="text" id="vl-pid" placeholder="PID-XXXX">
+        </div>
+        <div class="form-row">
+          <label>LID</label>
+          <input type="text" id="vl-lid" placeholder="RW-XXXXXXX">
+        </div>
+        <div class="form-row">
+          <label>Virus</label>
+          <select id="vl-virus">
+            <option value="HIV">HIV-1</option>
+            <option value="HBV">HBV (Hepatitis B)</option>
+            <option value="HCV">HCV (Hepatitis C)</option>
+            <option value="CMV">CMV</option>
+            <option value="EBV">EBV</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Assay Name</label>
+          <input type="text" id="vl-assay" placeholder="e.g. Abbott RealTime HIV-1">
+        </div>
+        <div class="form-row">
+          <label>Instrument</label>
+          <input type="text" id="vl-instrument" placeholder="e.g. Abbott m2000">
+        </div>
+        <div class="form-row">
+          <label>Specimen</label>
+          <select id="vl-specimen">
+            <option value="PLASMA">Plasma</option>
+            <option value="SERUM">Serum</option>
+            <option value="DBS">DBS (Dried Blood Spot)</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Copies / mL</label>
+          <input type="number" id="vl-copies" min="0" placeholder="e.g. 12500">
+        </div>
+        <div class="form-row">
+          <label>IU / mL</label>
+          <input type="number" id="vl-iu" min="0" placeholder="Optional">
+        </div>
+        <div class="form-row">
+          <label>Log₁₀ Value</label>
+          <input type="number" id="vl-log" step="0.01" placeholder="Auto-calculated if blank">
+        </div>
+        <div class="form-row">
+          <label>LLD (Lower Limit of Detection)</label>
+          <input type="number" id="vl-lld" placeholder="e.g. 40 copies/mL">
+        </div>
+        <div class="form-row">
+          <label>VL Category</label>
+          <select id="vl-category">
+            <option value="">Auto classify…</option>
+            <option value="UNDETECTABLE">Undetectable (&lt;LLD)</option>
+            <option value="SUPPRESSED">Suppressed (&lt;1000)</option>
+            <option value="VIREMIC">Viremic (1000–9999)</option>
+            <option value="HIGH_VIREMIA">High Viremia (10k–99k)</option>
+            <option value="VERY_HIGH">Very High (&gt;100k)</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="checkbox-label"><input type="checkbox" id="vl-on-art"> Patient on ART</label>
+        </div>
+        <div class="form-row">
+          <label>ART Regimen</label>
+          <input type="text" id="vl-regimen" placeholder="e.g. TDF/3TC/DTG">
+        </div>
+        <div class="form-row">
+          <label>Months on ART</label>
+          <input type="number" id="vl-art-months" min="0" placeholder="Months">
+        </div>
+        <div class="form-row">
+          <label>Previous VL (copies/mL)</label>
+          <input type="number" id="vl-prev" min="0" placeholder="Last result">
+        </div>
+        <div class="form-row">
+          <label>VL Trend</label>
+          <select id="vl-trend">
+            <option value="">Unknown</option>
+            <option value="DECLINING">📉 Declining</option>
+            <option value="STABLE">➡️ Stable</option>
+            <option value="RISING">📈 Rising</option>
+            <option value="REBOUNDING">🔴 Rebounding</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="checkbox-label"><input type="checkbox" id="vl-critical"> Mark as Critical</label>
+        </div>
+        <div class="form-row full-width">
+          <label>Notes</label>
+          <textarea id="vl-notes" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('vl-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitVL()">Save Viral Load</button>
+    </div>
+  </div>
+</div>
+
+<!-- Genetic Analysis Modal -->
+<div class="modal-overlay" id="ga-modal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>🧫 New Genetic Analysis</h3>
+      <button class="modal-close" onclick="closeModal('ga-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Lab Request ID</label>
+          <input type="number" id="ga-labreq">
+        </div>
+        <div class="form-row">
+          <label>Patient ID</label>
+          <input type="number" id="ga-patient">
+        </div>
+        <div class="form-row">
+          <label>PID</label>
+          <input type="text" id="ga-pid" placeholder="PID-XXXX">
+        </div>
+        <div class="form-row">
+          <label>LID</label>
+          <input type="text" id="ga-lid" placeholder="RW-XXXXXXX">
+        </div>
+        <div class="form-row">
+          <label>Analysis Type</label>
+          <select id="ga-type">
+            <option value="CANCER_MUTATION">Cancer Mutation</option>
+            <option value="HEREDITARY">Hereditary Disease</option>
+            <option value="PHARMACOGENOMICS">Pharmacogenomics</option>
+            <option value="MICROBIAL_RESISTANCE">Microbial Resistance</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Method</label>
+          <select id="ga-method">
+            <option value="NGS">NGS (Next Gen Sequencing)</option>
+            <option value="Sanger">Sanger Sequencing</option>
+            <option value="PCR-RFLP">PCR-RFLP</option>
+            <option value="Array">Microarray</option>
+            <option value="MLPA">MLPA</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Gene Target</label>
+          <input type="text" id="ga-gene" placeholder="e.g. BRCA1, EGFR, KRAS">
+        </div>
+        <div class="form-row">
+          <label>Mutation Detected</label>
+          <input type="text" id="ga-mutation" placeholder="e.g. c.5266dupC (p.Gln1756Profs*74)">
+        </div>
+        <div class="form-row">
+          <label>Mutation Type</label>
+          <select id="ga-mut-type">
+            <option value="">Not specified</option>
+            <option value="SNP">SNP</option>
+            <option value="INDEL">Insertion/Deletion</option>
+            <option value="CNV">Copy Number Variation</option>
+            <option value="FUSION">Gene Fusion</option>
+            <option value="TRANSLOCATION">Translocation</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Pathogenicity</label>
+          <select id="ga-path">
+            <option value="">Not classified</option>
+            <option value="PATHOGENIC">Pathogenic</option>
+            <option value="LIKELY_PATHOGENIC">Likely Pathogenic</option>
+            <option value="VUS">VUS (Variant of Uncertain Significance)</option>
+            <option value="LIKELY_BENIGN">Likely Benign</option>
+            <option value="BENIGN">Benign</option>
+          </select>
+        </div>
+        <div class="form-row full-width">
+          <label>Clinical Significance</label>
+          <textarea id="ga-significance" rows="2" placeholder="Clinical interpretation…"></textarea>
+        </div>
+        <div class="form-row full-width">
+          <label>Result Summary</label>
+          <textarea id="ga-summary" rows="3" placeholder="Full result summary…"></textarea>
+        </div>
+        <div class="form-row full-width">
+          <label>Notes</label>
+          <textarea id="ga-notes" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('ga-modal')">Cancel</button>
+      <button class="btn-primary" onclick="submitGA()">Save Analysis</button>
+    </div>
+  </div>
+</div>
+
+<!-- Validate Modal -->
+<div class="modal-overlay" id="validate-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>✅ Validate Result</h3>
+      <button class="modal-close" onclick="closeModal('validate-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="validate-summary" id="mol-validate-summary"></div>
+      <div class="form-row"><label>Validation Note (optional)</label><textarea id="mol-val-note" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('validate-modal')">Cancel</button>
+      <button class="btn-primary" onclick="confirmMolValidate()">Validate & Approve</button>
+    </div>
+  </div>
+</div>
+
+<!-- Archive Critical Modal -->
+<div class="modal-overlay" id="archive-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>📖 Archive to TB Critical Book</h3>
+      <button class="modal-close" onclick="closeModal('archive-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="archive-info">Creates an <strong>immutable</strong> PQC-signed record with public health notification flag.</p>
+      <div class="form-row">
+        <label>Critical Reason</label>
+        <select id="molarch-reason">
+          <option value="MDR_TB">MDR-TB</option>
+          <option value="XDR_TB">XDR-TB</option>
+          <option value="HIV_DETECTED">HIV Detected</option>
+          <option value="HIGH_VL">High Viral Load</option>
+          <option value="DRUG_RESISTANCE">Drug Resistance</option>
+          <option value="PATHOGENIC_MUTATION">Pathogenic Mutation</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Clinician Notified</label>
+        <input type="text" id="molarch-clinician" placeholder="Dr. / Nurse name">
+      </div>
+      <div class="form-row">
+        <label>Notification Method</label>
+        <select id="molarch-method">
+          <option value="phone">📞 Phone</option>
+          <option value="sms">📱 SMS</option>
+          <option value="in_person">🏥 In Person</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="checkbox-label"><input type="checkbox" id="molarch-readback"> Read-back confirmed</label>
+      </div>
+      <div class="form-row">
+        <label class="checkbox-label"><input type="checkbox" id="molarch-pubhealth"> Public health notified (RBC / Ministry of Health)</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('archive-modal')">Cancel</button>
+      <button class="btn-danger" onclick="confirmMolArchive()">Archive (Immutable)</button>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'modules/molecular/js/molecular.js' %}" defer></script>
+{% endblock %}

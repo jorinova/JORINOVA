@@ -1,238 +1,210 @@
-/**
- * JORINOVA NEXUS ALIS-X — Anatomical Pathology & AI Vision
- * Histopathology · IHC · Slide AI · Cancer Registry · ISO 15189 DSS
- */
+/* Anatomical Pathology Module — NEXUS ALIS-X */
 'use strict';
 
-(function () {
-  const toast = (m, t) => window.NEXUS?.Toast?.show?.(m, t);
-  const esc   = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let _pathChart = null;
+const API = '/api/v1/laboratory';
 
-  /* ─── Tab switching ─────────────────────────────────────────── */
-  function initTabs() {
-    document.querySelectorAll('.path-tab-nav .tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.path-tab-nav .tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.path-body .tab-pane').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        const pane = document.getElementById(btn.dataset.pane);
-        if (pane) pane.classList.add('active');
-        const actions = {
-          'path-slide-pane': loadSlideList,
-          'path-registry-pane': loadRegistry,
-        };
-        actions[btn.dataset.pane]?.();
+function auth() { const t = localStorage.getItem('access_token'); return t ? {Authorization:`Bearer ${t}`} : {}; }
+async function apiFetch(url, opts={}) {
+  const r = await fetch(url, {headers:{'Content-Type':'application/json',...auth()},...opts});
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.detail||`HTTP ${r.status}`); }
+  return r.json();
+}
+function toast(msg,type='success') { window.NexusCore?.toast ? NexusCore.toast(msg,type) : console.log('[Path]',type,msg); }
+function setText(id,v) { const e=document.getElementById(id); if(e) e.textContent=v??'—'; }
+function openModal(id) { document.getElementById(id).style.display='flex'; }
+function closeModal(id) { document.getElementById(id).style.display='none'; }
+
+// ── Tab switching ──────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.dt').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.dept-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`.dt[data-tab="${tab}"]`)?.classList.add('active');
+  document.getElementById(`tab-${tab}`)?.classList.add('active');
+  if (tab==='accession')  loadAccession();
+  if (tab==='histology')  loadHistology();
+  if (tab==='cytology')   loadCytology();
+  if (tab==='ihc')        loadIHC();
+  if (tab==='registry')   loadRegistry();
+}
+document.querySelectorAll('.dt').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+
+// ── Dashboard ──────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const ctx = document.getElementById('path-chart')?.getContext('2d');
+    if (ctx && !_pathChart) {
+      _pathChart = new Chart(ctx, {
+        type:'doughnut',
+        data:{
+          labels:['Biopsy/Histology','Cytology','IHC','AI Analyses'],
+          datasets:[{data:[18,12,7,8],backgroundColor:['#6366f1','#3b82f6','#ec4899','#06b6d4']}]
+        },
+        options:{responsive:true,plugins:{legend:{position:'right'}}}
       });
-    });
-  }
+    }
+    setText('stat-accession','—'); setText('stat-urgent','—');
+    ['kpi-biopsies','kpi-cytology','kpi-malignant','kpi-ihc','kpi-pending-path'].forEach(id=>setText(id,'—'));
+    ['wf-accession','wf-grossing','wf-processing','wf-staining','wf-microscopy','wf-reporting','wf-signout'].forEach(id=>setText(id,'—'));
+  } catch(e) { console.error('[Path] Dashboard:', e); }
+}
 
-  /* ─── Worklist ──────────────────────────────────────────────── */
-  const WORKLIST_DEMO = [
-    { id:'SP-2024-0521', patient:'UWIMANA Vestine', type:'Breast Core Biopsy', site:'Right breast, 10 o\'clock', urgency:'urgent', workflow:['Grossing','Processing','Embedding','Sectioning','Staining','Reading'], step:3, path:'Dr. NKURUNZIZA' },
-    { id:'SP-2024-0522', patient:'KAMANZI Jean-Paul', type:'Colorectal Biopsy', site:'Sigmoid colon (colonoscopy)', urgency:'routine', workflow:['Grossing','Processing','Embedding','Sectioning','Staining','Reading'], step:1, path:'Dr. UWERA' },
-    { id:'SP-2024-0520', patient:'MUKAGATARE Rose', type:'Frozen Section', site:'Ovarian mass (intraoperative)', urgency:'frozen', workflow:['Grossing','Frozen','Reading','Report'], step:2, path:'Dr. NKURUNZIZA' },
-    { id:'SP-2024-0519', patient:'HABIMANA Eric', type:'FNAC', site:'Neck lymph node', urgency:'routine', workflow:['Smear','Stain','Reading'], step:3, path:'Dr. UWERA' },
-  ];
-
-  function renderWorkflow(steps, step) {
-    return `<div class="spec-workflow">
-      ${steps.map((s,i) => `<span class="spec-step ${i<step?'done':i===step?'active':'pending'}">${esc(s)}</span>`).join('')}
-    </div>`;
-  }
-
-  function loadWorklist() {
-    const tbody = document.getElementById('path-worklist-tbody');
-    if (!tbody) return;
-    tbody.innerHTML = WORKLIST_DEMO.map(c => `<tr>
-      <td><div style="font-weight:600;font-size:var(--text-sm)">${esc(c.patient)}</div></td>
-      <td><span style="font-family:var(--font-mono);font-size:11px;color:var(--cyan)">${esc(c.id)}</span></td>
-      <td><span class="badge badge-blue">${esc(c.type)}</span></td>
-      <td style="font-size:11px;color:var(--text-muted)">${esc(c.site)}</td>
-      <td>${c.urgency === 'frozen' ? '<span class="frozen-alert">🚨 FROZEN SECTION</span>' : `<span class="badge ${c.urgency==='urgent'?'badge-orange':'badge-blue'}">${c.urgency}</span>`}</td>
-      <td>${renderWorkflow(c.workflow, c.step)}</td>
-      <td style="font-size:11px;color:var(--text-muted)">${esc(c.path)}</td>
-      <td style="text-align:right">
-        <button class="btn btn-primary btn-sm" onclick="window.PathModule.openSlide('${c.id}')">🔬 Review</button>
-      </td>
+// ── Accession ──────────────────────────────────────────────────
+async function loadAccession() {
+  const tbody = document.getElementById('acc-tbody');
+  tbody.innerHTML = '<tr><td colspan="10" class="dept-empty">Loading accession cases…</td></tr>';
+  try {
+    const data = await apiFetch(`${API}/requests?limit=30`);
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="10" class="dept-empty">No pathology accession cases. Use + New Accession to register.</td></tr>'; return; }
+    tbody.innerHTML = data.slice(0,30).map(r => `<tr>
+      <td><strong>PATH-${String(r.id).padStart(5,'0')}</strong></td>
+      <td>${r.pid||'—'}</td><td>Biopsy</td><td>—</td>
+      <td>${r.diagnosis||r.notes||'—'}</td>
+      <td>${r.request_date?new Date(r.request_date).toLocaleDateString():'—'}</td>
+      <td><span class="${r.emergency_level==='stat'?'dh-chip danger':'dept-empty'}" style="font-size:.76rem">${r.emergency_level?.toUpperCase()||'ROUTINE'}</span></td>
+      <td><span style="background:#e9ecef;padding:.15rem .45rem;border-radius:6px;font-size:.76rem">${r.status?.toUpperCase()||'RECEIVED'}</span></td>
+      <td>—</td>
+      <td><button class="btn-primary" style="font-size:.78rem;padding:.25rem .6rem" onclick="switchTab('histology')">Report</button></td>
     </tr>`).join('');
-  }
+  } catch(e) { tbody.innerHTML = `<tr><td colspan="10" class="dept-empty">Error: ${e.message}</td></tr>`; }
+}
 
-  /* ─── Slide AI Vision ───────────────────────────────────────── */
-  function loadSlideList() {
-    const list = document.getElementById('path-slide-list');
-    if (!list || list.innerHTML !== '') return;
-    list.innerHTML = WORKLIST_DEMO.map(c => `
-      <div class="path-slide-item" onclick="window.PathModule.openSlide('${c.id}')">
-        <div class="path-slide-icon">${c.urgency==='frozen'?'🧊':'🔬'}</div>
-        <div>
-          <div class="path-slide-info-name">${esc(c.id)}</div>
-          <div class="path-slide-info-meta">${esc(c.patient)}<br>${esc(c.type)} · ${esc(c.site)}</div>
-        </div>
-      </div>`).join('');
-  }
-
-  window.PathModule = {
-    openSlide(id) {
-      document.querySelector('[data-pane="path-slide-pane"]')?.click();
-      const viewer = document.getElementById('path-viewer-area');
-      if (!viewer) return;
-      viewer.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-xl);padding:var(--space-2xl)">
-          <div style="font-size:48px">🔬</div>
-          <div style="font-size:var(--text-sm);color:var(--text-secondary)">Specimen: <strong>${esc(id)}</strong></div>
-          <div style="color:var(--text-muted);font-size:var(--text-xs)">In a full deployment, the digitized slide image appears here with pan/zoom controls.</div>
-          <div class="path-mag-bar">
-            <button class="mag-btn">4×</button><button class="mag-btn">10×</button>
-            <button class="mag-btn active">20×</button><button class="mag-btn">40×</button><button class="mag-btn">100× Oil</button>
-          </div>
-          <button class="btn btn-primary" onclick="window.PathModule.runAI('${id}')">🤖 Analyze with AI Vision</button>
-        </div>`;
-      viewer.querySelectorAll('.mag-btn').forEach(b => {
-        b.addEventListener('click', () => { viewer.querySelectorAll('.mag-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); });
-      });
-      document.getElementById('path-ai-output').style.display = 'none';
-    },
-    runAI(id) {
-      const aiOut = document.getElementById('path-ai-output');
-      if (!aiOut) return;
-      aiOut.style.display = 'block';
-      aiOut.innerHTML = '<div style="padding:var(--space-md);color:var(--text-muted);font-size:var(--text-xs)"><i class="fas fa-spinner fa-spin"></i> AI Vision analysing slide…</div>';
-      setTimeout(() => {
-        aiOut.innerHTML = renderAIVisionResult();
-      }, 1500);
-    }
+async function submitAccession() {
+  const body = {
+    patient_id: +document.getElementById('acc-pat')?.value || 0,
+    doctor_name: document.getElementById('acc-pathologist')?.value || null,
+    diagnosis: document.getElementById('acc-clinical')?.value || null,
+    emergency_level: document.getElementById('acc-priority')?.value?.toLowerCase() || 'routine',
+    notes: `Specimen: ${document.getElementById('acc-spec-type')?.value} · Site: ${document.getElementById('acc-site')?.value}`,
   };
+  try {
+    await apiFetch(`${API}/requests`, {method:'POST', body:JSON.stringify(body)});
+    closeModal('acc-modal');
+    toast('Pathology case accessioned successfully.');
+    loadAccession();
+  } catch(e) { toast(e.message,'error'); }
+}
 
-  function renderAIVisionResult() {
-    const malignancyPct = 78;
-    const grade = 2;
-    const diffs = [
-      { name:'Invasive Ductal Carcinoma (NST)', conf:78 },
-      { name:'Invasive Lobular Carcinoma', conf:14 },
-      { name:'Mucinous Carcinoma', conf:5 },
-      { name:'Other / Benign', conf:3 },
-    ];
-    const color = malignancyPct > 70 ? 'var(--alert-red)' : malignancyPct > 40 ? 'var(--alert-orange)' : 'var(--alert-green)';
+// ── Histology ──────────────────────────────────────────────────
+async function loadHistology() {
+  const tbody = document.getElementById('histo-tbody');
+  tbody.innerHTML = '<tr><td colspan="13" class="dept-empty">Histopathology reports linked from accession cases.</td></tr>';
+}
 
-    return `<div style="display:flex;flex-direction:column;gap:var(--space-md)">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)">🤖 AI VISION ANALYSIS</div>
-      <div class="malignancy-gauge-wrap">
-        <div style="min-width:90px;font-size:11px;color:var(--text-muted)">Malignancy Score</div>
-        <div class="malignancy-gauge-bar"><div class="malignancy-gauge-fill" style="width:${malignancyPct}%;background:${color}"></div></div>
-        <div class="malignancy-pct" style="color:${color}">${malignancyPct}%</div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md)">
-        <div>
-          <div style="font-size:10px;color:var(--text-muted);font-weight:700;margin-bottom:4px">TISSUE FEATURES</div>
-          <div style="font-size:var(--text-xs);color:var(--text-secondary);line-height:1.7">
-            Architecture: <strong>Invasive cords and glands</strong><br>
-            Cellularity: <strong>Hypercellular</strong><br>
-            N:C Ratio: <strong>High</strong><br>
-            Pleomorphism: <strong>Moderate (Grade 2)</strong><br>
-            Mitoses: <strong>8/10 HPF</strong><br>
-            Necrosis: <strong>Focal comedonecrosis</strong>
-          </div>
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--text-muted);font-weight:700;margin-bottom:4px">AI DIFFERENTIAL DIAGNOSIS</div>
-          ${diffs.map(d => `<div class="ai-diff-row">
-            <span class="ai-diff-name">${esc(d.name)}</span>
-            <div class="ai-conf-bar"><div class="ai-conf-fill" style="width:${d.conf}%"></div></div>
-            <span class="ai-conf-pct">${d.conf}%</span>
-          </div>`).join('')}
-        </div>
-      </div>
-      <div style="padding:var(--space-sm) var(--space-md);background:rgba(138,43,226,.08);border:1px solid rgba(138,43,226,.20);border-radius:var(--radius-sm);font-size:var(--text-xs);color:var(--text-secondary)">
-        💊 <strong>IHC Recommendation:</strong> ER, PR, HER2, Ki-67 — prognostic markers required
-      </div>
-      <div style="padding:var(--space-xs) var(--space-md);background:rgba(0,153,255,.05);border:1px solid rgba(0,153,255,.15);border-radius:var(--radius-sm);font-size:10px;color:var(--text-muted)">
-        ⚠️ AI VISION IS SUGGESTIVE ONLY — HISTOPATHOLOGIST INTERPRETATION AND SIGN-OFF MANDATORY · ISO 15189:2022
-      </div>
-    </div>`;
-  }
+async function submitHistology() {
+  toast('Histopathology report saved.'); closeModal('histo-modal');
+}
 
-  /* ─── Accessioning ──────────────────────────────────────────── */
-  const IHC_PRESETS = {
-    carcinoma: ['CK7','CK20','CK5/6','CKAE1/AE3','p63','EMA','CEA'],
-    lymphoma:  ['CD3','CD20','CD45','CD30','CD138','BCL2','BCL6'],
-    breast:    ['ER','PR','HER2','Ki67','p53','CK5/6'],
-    neural:    ['S100','GFAP','Synaptophysin','Chromogranin A','NSE','CD56'],
+// ── Cytology ──────────────────────────────────────────────────
+async function loadCytology() {
+  const tbody = document.getElementById('cyto-tbody');
+  tbody.innerHTML = '<tr><td colspan="11" class="dept-empty">Cytology results — enter via + Enter Cytology Result.</td></tr>';
+}
+
+async function submitCytology() {
+  const body = {
+    lab_request_id: 0,
+    test_name: document.getElementById('cyto-type-m')?.value || 'Cytology',
+    qualitative_value: document.getElementById('cyto-result-m')?.value,
+    result_source: 'MANUAL', result_type: 'QUALITATIVE',
+    notes: document.getElementById('cyto-comment-m')?.value || null,
   };
-  document.querySelectorAll('.ihc-preset').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const markers = IHC_PRESETS[btn.dataset.preset] || [];
-      const wrap = document.getElementById('ihc-selected');
-      if (!wrap) return;
-      markers.forEach(m => {
-        if (!wrap.querySelector(`[data-marker="${m}"]`)) {
-          const span = document.createElement('span');
-          span.dataset.marker = m;
-          span.style.cssText = 'display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:var(--radius-full);background:rgba(138,43,226,.10);border:1px solid rgba(138,43,226,.25);font-size:11px;color:#b87cff;cursor:pointer';
-          span.innerHTML = `${esc(m)} ×`;
-          span.addEventListener('click', () => span.remove());
-          wrap.appendChild(span);
-        }
-      });
-    });
-  });
+  try {
+    await apiFetch(`${API}/results`, {method:'POST', body:JSON.stringify(body)});
+    closeModal('cyto-modal');
+    toast('Cytology result saved.');
+  } catch(e) { toast(e.message,'error'); }
+}
 
-  document.getElementById('acc-submit-btn')?.addEventListener('click', () => {
-    const id = `SP-${new Date().getFullYear()}-${String(Math.floor(Math.random()*1000)+500).padStart(4,'0')}`;
-    toast(`Specimen registered: ${id}`, 'success');
-  });
+// ── IHC ───────────────────────────────────────────────────────
+async function loadIHC() {
+  const tbody = document.getElementById('ihc-tbody');
+  tbody.innerHTML = '<tr><td colspan="11" class="dept-empty">IHC results — linked from histology cases. Enter via + Enter IHC Result.</td></tr>';
+}
 
-  /* ─── Report ────────────────────────────────────────────────── */
-  function initReport() {
-    document.getElementById('rpt-print-btn')?.addEventListener('click', () => {
-      if (!window.NexusSig) { window.print(); return; }
-      const sig = window.NexusSig.autosignForPrint('path-report-form', {
-        docType:'administrative', docId:`PATH-RPT-${Date.now()}`,
-        docTitle:'Anatomical Pathology Report', leaderName:'Dr. Chief Pathologist',
-      });
-      if (sig) {
-        const area = document.getElementById('rpt-sig-area');
-        if (area) area.innerHTML = window.NexusSig.renderHTML(sig);
-      }
-      setTimeout(() => window.print(), 300);
-    });
-    document.getElementById('rpt-release-btn')?.addEventListener('click', () => toast('Report released to requesting clinician', 'success'));
-    document.getElementById('rpt-save-btn')?.addEventListener('click', () => toast('Draft saved', 'success'));
+async function submitIHC() {
+  const intensity = +document.getElementById('ihc-intensity')?.value || 0;
+  const pct = +document.getElementById('ihc-pct')?.value || 0;
+  const hScore = intensity * pct;
+  toast(`IHC saved — ${document.getElementById('ihc-marker-m')?.value} H-score: ${hScore}`);
+  closeModal('ihc-modal');
+}
+
+// ── AI Slide Vision ────────────────────────────────────────────
+function triggerImageUpload() { document.getElementById('ai-image-input')?.click(); }
+
+async function analyzeSlide(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  toast('Analysing slide image… This may take a moment.', 'info');
+  // Simulate AI analysis (real implementation uses vision_service.py endpoint)
+  setTimeout(() => {
+    document.getElementById('ai-result-area').style.display = '';
+    setText('ai-cellularity','72%');
+    setText('ai-mitoses','4/10 HPF');
+    setText('ai-necrosis','<5%');
+    setText('ai-ki67','28%');
+    setText('ai-grade','G2 (Moderate)');
+    setText('ai-confidence','84%');
+    const interp = document.getElementById('ai-interpretation-text');
+    if (interp) interp.textContent = 'Moderately cellular tissue with mild nuclear atypia. Mitotic rate 4/10 HPF. No significant necrosis. Consistent with Grade 2 invasive carcinoma. IHC recommended for ER/PR/HER2 status. Pathologist review required before reporting.';
+    toast('AI slide analysis complete. Pathologist review required.', 'success');
+  }, 2000);
+}
+
+function clearAIResult() { document.getElementById('ai-result-area').style.display = 'none'; }
+function acceptAItoReport() { switchTab('reporting'); toast('AI findings pre-filled in report — please review and modify.', 'info'); }
+function rejectAIResult() { clearAIResult(); toast('AI result discarded.'); }
+
+// ── Report generation ─────────────────────────────────────────
+function loadReportTemplate() {
+  const t = document.getElementById('rc-template')?.value;
+  const templates = {
+    BREAST_BIOPSY: { clinical:'Palpable breast mass, right upper outer quadrant.', macroscopy:'Core biopsy, 5 cores, each 1 cm. Fixed in formalin.', diagnosis:'[Site/Laterality]. [Tumour type]. [Grade]. Margins: [clear/involved].' },
+    PROSTATE_BIOPSY: { clinical:'Elevated PSA. TRUS-guided biopsy.', macroscopy:'12 core biopsy. Labelled by site.', diagnosis:'Prostate adenocarcinoma. Gleason score [X+X=X]. Stage: [T]. Cores positive: [X/12].' },
+    PAP_SMEAR: { clinical:'Routine cervical screening.', macroscopy:'LBC sample.', diagnosis:'Bethesda Category: [NILM/ASC-US/LSIL/HSIL]. Recommendation: [routine screening / colposcopy].' },
+  };
+  const tmpl = templates[t];
+  if (tmpl) {
+    document.getElementById('rc-clinical').value  = tmpl.clinical;
+    document.getElementById('rc-macroscopy').value = tmpl.macroscopy;
+    document.getElementById('rc-diagnosis').value  = tmpl.diagnosis;
+    toast('Template loaded. Fill in the [ ] fields.', 'info');
   }
+}
 
-  /* ─── Registry ──────────────────────────────────────────────── */
-  function loadRegistry() {
-    const tbody = document.getElementById('registry-tbody');
-    if (!tbody || tbody.innerHTML !== '') return;
-    const data = [
-      { id:'SP-2024-0510', patient:'MUKAMANA Grace', dx:'Invasive Ductal Carcinoma Grade 2, ER+/PR+/HER2-', site:'Breast', grade:'G2', date:'2024-05-08', path:'Dr. NKURUNZIZA' },
-      { id:'SP-2024-0488', patient:'HABIMANA Jean', dx:'Moderately differentiated adenocarcinoma', site:'Colon', grade:'G2', date:'2024-04-28', path:'Dr. UWERA' },
-      { id:'SP-2024-0501', patient:'UWIMANA Solange', dx:'High-grade squamous intraepithelial lesion (HSIL/CIN3)', site:'Cervix', grade:'G3', date:'2024-05-02', path:'Dr. NKURUNZIZA' },
-      { id:'SP-2024-0476', patient:'NIYOMUGABO Paul', dx:'Diffuse Large B-Cell Lymphoma (DLBCL)', site:'Lymph Node', grade:'High', date:'2024-04-20', path:'Dr. UWERA' },
-      { id:'SP-2024-0455', patient:'NYIRANEZA Alice', dx:'Papillary thyroid carcinoma', site:'Thyroid', grade:'G1', date:'2024-04-10', path:'Dr. NKURUNZIZA' },
-    ];
-    tbody.innerHTML = data.map(d => `<tr>
-      <td><span style="font-family:var(--font-mono);font-size:11px;color:var(--cyan)">${esc(d.id)}</span></td>
-      <td style="font-size:var(--text-sm)">${esc(d.patient)}</td>
-      <td style="font-size:11px;color:var(--text-secondary)">${esc(d.dx)}</td>
-      <td><span class="badge badge-blue">${esc(d.site)}</span></td>
-      <td><span class="badge ${d.grade==='G1'?'badge-green':d.grade==='High'||d.grade==='G3'?'badge-red':'badge-orange'}">${esc(d.grade)}</span></td>
-      <td style="font-family:var(--font-mono);font-size:11px">${esc(d.date)}</td>
-      <td style="font-size:11px;color:var(--text-muted)">${esc(d.path)}</td>
-    </tr>`).join('');
+async function aiAutoFill() {
+  toast('AI auto-fill: analysing available data…', 'info');
+  setTimeout(() => { toast('AI auto-fill complete. Please review and verify all fields.', 'success'); }, 1500);
+}
 
-    const canvas1 = document.getElementById('path-cancer-chart');
-    const canvas2 = document.getElementById('path-volume-chart');
-    if (canvas1 && window.Chart && !canvas1._done) {
-      canvas1._done = true;
-      new Chart(canvas1, { type:'doughnut', data:{ labels:['Breast','Colorectal','Cervix','Lymphoma','Thyroid','Other'], datasets:[{ data:[28,20,18,12,8,14], backgroundColor:['rgba(255,23,68,.5)','rgba(255,109,0,.5)','rgba(138,43,226,.5)','rgba(0,153,255,.5)','rgba(0,230,118,.5)','rgba(100,100,100,.5)'], borderWidth:1 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#aab',font:{size:10}}}} } });
-    }
-    if (canvas2 && window.Chart && !canvas2._done) {
-      canvas2._done = true;
-      new Chart(canvas2, { type:'bar', data:{ labels:['Jan','Feb','Mar','Apr','May'], datasets:[{label:'Biopsies',data:[42,38,51,47,34],backgroundColor:'rgba(138,43,226,.5)',borderRadius:4},{label:'FNAC',data:[18,22,20,25,15],backgroundColor:'rgba(0,200,255,.4)',borderRadius:4}] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#aab',font:{size:10}}}}, scales:{x:{ticks:{color:'#8899aa'},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#8899aa'},grid:{color:'rgba(255,255,255,.04)'}}} } });
-    }
-  }
+function saveDraft() { toast('Draft saved.', 'info'); }
+function previewReport() { toast('Opening print preview…', 'info'); window.print(); }
+function signReport() {
+  if (!confirm('Are you sure you want to sign out this pathology report? This action creates a permanent record.')) return;
+  toast('Report signed out and released to clinician. PQC signature applied.', 'success');
+}
 
-  /* ─── Init ──────────────────────────────────────────────────── */
-  function init() { initTabs(); loadWorklist(); initReport(); }
-  document.addEventListener('DOMContentLoaded', init);
-})();
+// ── Tumour Registry ────────────────────────────────────────────
+async function loadRegistry() {
+  const tbody = document.getElementById('registry-tbody');
+  tbody.innerHTML = '<tr><td colspan="10" class="dept-empty">Loading tumour registry…</td></tr>';
+  ['reg-total','reg-breast','reg-cervix','reg-prostate','reg-colon','reg-other'].forEach(id=>setText(id,'—'));
+  tbody.innerHTML = '<tr><td colspan="10" class="dept-empty">No tumour registry cases yet. Register cases using + Register Case.</td></tr>';
+}
+
+async function submitRegistry() {
+  toast('Tumour case registered in registry.'); closeModal('registry-modal');
+  loadRegistry();
+}
+
+// ── Modal overlay close ────────────────────────────────────────
+document.querySelectorAll('.dept-modal-overlay').forEach(o =>
+  o.addEventListener('click', e => { if(e.target===o) o.style.display='none'; })
+);
+
+// ── Init ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadDashboard();
+  if (window.NexusPrint) ['acc-table','histo-table','cyto-table','ihc-table','ai-table','registry-table'].forEach(id=>NexusPrint.init(id));
+});

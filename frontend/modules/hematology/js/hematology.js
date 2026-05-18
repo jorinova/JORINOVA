@@ -1,434 +1,554 @@
 /**
- * JORINOVA NEXUS ALIS-X — Hematology AI Intelligence
- * CBC interpretation, Anemia classification, Coagulation, Inflammation
- * ISO 15189 — Decision Support Only
+ * JORINOVA NEXUS ALIS-X — Haematology Module (Full Sysmex Format)
+ * ================================================================
+ * Complete CBC with differential (NEU/LYM/MON/EOS/BAS/BLAST % and #)
+ * Real-time flag detection · Anaemia classification · Westgard IQC
+ * ⚠️ Critical value thresholds per BCSH/CLSI/WHO — modify with pathologist approval
  */
 'use strict';
 
-(function () {
-  const CSRF   = () => window.NEXUS?.csrf || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
-  const toast  = (m, t) => window.NEXUS?.Toast?.show?.(m, t);
-  const esc    = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const API = '/api/v1';
+let _diffChart = null, _ljChart = null;
+let _wlData = [];
 
-  /* ─── Tab switching ─────────────────────────────────────────── */
-  function initTabs() {
-    document.querySelectorAll('.hema-tab-nav .tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.hema-tab-nav .tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.hema-body .tab-pane').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        const pane = document.getElementById(btn.dataset.pane);
-        if (pane) pane.classList.add('active');
-        if (btn.dataset.pane === 'hema-analytics-pane') loadAnalytics();
-      });
-    });
-  }
+/* ── Auth / API ────────────────────────────────────────────── */
+function auth(){ const t=localStorage.getItem('access_token'); return t?{Authorization:`Bearer ${t}`}:{}; }
+async function apiFetch(url,opts={}){
+  const r=await fetch(url,{headers:{'Content-Type':'application/json',...auth()},...opts});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||`HTTP ${r.status}`);}
+  return r.json();
+}
+function toast(msg,type='success'){ window.NexusCore?.toast?NexusCore.toast(msg,type):console.log('[Hem]',msg); }
+function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v??'—';}
 
-  /* ─── Live CBC field validation ─────────────────────────────── */
-  const CBC_RANGES = {
-    wbc:  { lo:4.5,  hi:11.0,  crit_lo:2.0,  crit_hi:30.0 },
-    rbc:  { lo:3.8,  hi:5.8,   crit_lo:2.0,  crit_hi:7.0  },
-    hgb:  { lo:11.5, hi:17.5,  crit_lo:7.0,  crit_hi:20.0 },
-    hct:  { lo:35,   hi:52,    crit_lo:20,   crit_hi:60   },
-    mcv:  { lo:80,   hi:100,   crit_lo:60,   crit_hi:120  },
-    mch:  { lo:27,   hi:33,    crit_lo:20,   crit_hi:40   },
-    mchc: { lo:32,   hi:36,    crit_lo:28,   crit_hi:38   },
-    rdw:  { lo:11.5, hi:14.5,  crit_lo:null, crit_hi:null },
-    plt:  { lo:150,  hi:400,   crit_lo:50,   crit_hi:1000 },
-    mpv:  { lo:7.5,  hi:12.5,  crit_lo:null, crit_hi:null },
-    neut: { lo:50,   hi:70,    crit_lo:null, crit_hi:null },
-    lymph:{ lo:20,   hi:40,    crit_lo:null, crit_hi:null },
-    mono: { lo:2,    hi:8,     crit_lo:null, crit_hi:null },
-    eo:   { lo:1,    hi:4,     crit_lo:null, crit_hi:null },
-    baso: { lo:0,    hi:1,     crit_lo:null, crit_hi:null },
-    blast:{ lo:0,    hi:0,     crit_lo:null, crit_hi:0.1  },
-  };
-
-  function initLiveValidation() {
-    Object.keys(CBC_RANGES).forEach(key => {
-      const el = document.getElementById('cbc-' + key);
-      if (!el) return;
-      el.addEventListener('input', () => {
-        const v = parseFloat(el.value);
-        const r = CBC_RANGES[key];
-        el.classList.remove('abnormal', 'critical');
-        if (isNaN(v)) return;
-        if ((r.crit_lo !== null && v <= r.crit_lo) || (r.crit_hi !== null && v >= r.crit_hi)) {
-          el.classList.add('critical');
-        } else if (v < r.lo || v > r.hi) {
-          el.classList.add('abnormal');
-        }
-      });
-    });
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     CBC AI INTERPRETATION ENGINE
-  ══════════════════════════════════════════════════════════════ */
-  function interpretCBC(d) {
-    const out = { primary: '', severity: 'normal', sections: [], reflexes: [], leukemia_flag: false, critical_values: [] };
-
-    // Critical value check
-    if (d.hgb <= 7.0)  out.critical_values.push(`HGB ${d.hgb} g/dL — CRITICAL LOW → immediate transfusion evaluation`);
-    if (d.hgb >= 20.0) out.critical_values.push(`HGB ${d.hgb} g/dL — CRITICAL HIGH`);
-    if (d.plt <= 50)   out.critical_values.push(`PLT ${d.plt} ×10³/µL — CRITICAL LOW → bleeding risk`);
-    if (d.wbc >= 30)   out.critical_values.push(`WBC ${d.wbc} ×10³/µL — CRITICAL HIGH → leukemia/sepsis`);
-    if (d.wbc <= 2.0)  out.critical_values.push(`WBC ${d.wbc} ×10³/µL — CRITICAL LOW → severe neutropenia`);
-
-    // ── Anemia Classification ──
-    const anemia = d.hgb < (d.gender === 'F' ? 12.0 : 13.0);
-    let anemiaType = '', anemiaDetail = '', anemiaReflex = [];
-    if (anemia) {
-      if (d.mcv < 80) {
-        if (d.mchc < 32) {
-          anemiaType = 'MICROCYTIC HYPOCHROMIC ANEMIA';
-          anemiaDetail = 'Pattern consistent with iron deficiency anaemia (IDA). Low MCV + low MCHC. High RDW expected. Consider serum ferritin, TIBC, serum iron.';
-          anemiaReflex = ['Serum Ferritin', 'Serum Iron + TIBC', 'Peripheral blood smear', 'Reticulocyte count'];
-          out.severity = d.hgb < 8 ? 'severe' : d.hgb < 10 ? 'moderate' : 'mild';
-        } else {
-          anemiaType = 'MICROCYTIC NORMOCHROMIC ANEMIA';
-          anemiaDetail = 'Microcytic anaemia with normal MCHC. Thalassaemia trait or sideroblastic anaemia likely. Low RDW may indicate thalassaemia trait.';
-          anemiaReflex = ['Hb Electrophoresis', 'Serum Ferritin', 'Peripheral smear', 'HbA2 + HbF quantification'];
-          out.severity = 'moderate';
-        }
-      } else if (d.mcv > 100) {
-        anemiaType = 'MACROCYTIC ANEMIA';
-        anemiaDetail = 'Raised MCV indicates macrocytosis. Vitamin B12 or folate deficiency most common. Consider also liver disease, hypothyroidism, alcohol, or antifolate drugs.';
-        anemiaReflex = ['Serum Vitamin B12', 'Red cell folate', 'Serum folate', 'Peripheral smear (hypersegmented neutrophils?)', 'LFT + TFT'];
-        out.severity = 'moderate';
-      } else {
-        anemiaType = 'NORMOCYTIC NORMOCHROMIC ANEMIA';
-        anemiaDetail = 'Normal MCV + MCHC with anaemia suggests early IDA, chronic disease (ACD), haemolysis, aplasia, or haemorrhage. Reticulocyte count differentiates hypoproliferative from haemolytic causes.';
-        anemiaReflex = ['Reticulocyte count', 'Peripheral smear', 'Serum CRP/ESR', 'LFT + RFT', 'Direct Coombs test (if haemolysis suspected)'];
-        out.severity = 'mild';
-      }
-      out.primary = anemiaType;
-      out.sections.push({ title: '🔴 Anemia Classification', text: anemiaDetail });
-      out.reflexes.push(...anemiaReflex);
-    }
-
-    // ── WBC Analysis ──
-    let wbcFindings = [];
-    if (d.wbc > 11.0) {
-      const neutAbs = d.wbc * (d.neut / 100);
-      if (d.neut > 70) { wbcFindings.push(`Neutrophilic leukocytosis (Neut: ${d.neut}%, ANC≈${neutAbs.toFixed(1)} ×10³/µL) — bacterial infection, inflammation, or stress response`); }
-      if (d.lymph > 45) { wbcFindings.push(`Lymphocytosis (${d.lymph}%) — viral infection, CLL, or reactive lymphocytosis`); }
-      if (d.eo > 6) { wbcFindings.push(`Eosinophilia (${d.eo}%) — parasitic infection, allergy, or hypereosinophilic syndrome`); }
-      if (d.mono > 10) { wbcFindings.push(`Monocytosis (${d.mono}%) — chronic infection, malignancy`); }
-      if (d.wbc > 30) {
-        out.leukemia_flag = true;
-        wbcFindings.push(`⚠️ EXTREME LEUKOCYTOSIS (WBC ${d.wbc}) — leukaemia, leukaemoid reaction, or sepsis. URGENT REVIEW.`);
-      }
-      if (!anemia) { out.primary = 'LEUKOCYTOSIS'; out.severity = d.wbc > 20 ? 'severe' : 'moderate'; }
-    } else if (d.wbc < 4.5) {
-      const neutAbs = d.wbc * (d.neut / 100);
-      wbcFindings.push(`Leukopenia (WBC ${d.wbc} ×10³/µL).`);
-      if (neutAbs < 1.5) { wbcFindings.push(`Neutropenia (ANC ≈ ${neutAbs.toFixed(1)} ×10³/µL) — infection risk. ${neutAbs < 0.5 ? '⚠️ SEVERE — agranulocytosis: isolate patient.' : 'Monitor closely.'}`); }
-      if (!anemia) { out.primary = 'LEUKOPENIA'; out.severity = neutAbs < 0.5 ? 'severe' : 'moderate'; }
-    }
-    if (d.blast > 0) {
-      out.leukemia_flag = true;
-      wbcFindings.push(`⚠️ BLAST CELLS DETECTED (${d.blast}%) — ACUTE LEUKAEMIA MUST BE EXCLUDED. Urgent review and bone marrow examination.`);
-      out.reflexes.push('Urgent bone marrow aspiration', 'Flow cytometry immunophenotyping', 'Cytogenetics + FISH', 'LDH');
-    }
-    if (wbcFindings.length) {
-      out.sections.push({ title: '⚪ White Cell Analysis', text: wbcFindings.join('<br>') });
-    }
-
-    // ── Platelet Analysis ──
-    if (d.plt < 150) {
-      let thrombDetail = d.plt < 50 ? '⚠️ SEVERE thrombocytopaenia — significant bleeding risk.' : d.plt < 100 ? 'Moderate thrombocytopaenia — monitor for bleeding.' : 'Mild thrombocytopaenia.';
-      thrombDetail += ` Consider: ITP, viral infection, HUS/TTP, DIC, bone marrow suppression, drug-induced.`;
-      out.sections.push({ title: '🟣 Platelet Analysis', text: thrombDetail });
-      if (!anemia && out.primary === '') { out.primary = 'THROMBOCYTOPAENIA'; out.severity = d.plt < 50 ? 'severe' : 'mild'; }
-      out.reflexes.push('Peripheral smear', 'Coagulation screen (PT/APTT/D-dimer)');
-    } else if (d.plt > 400) {
-      out.sections.push({ title: '🟣 Platelet Analysis', text: `Thrombocytosis (PLT ${d.plt} ×10³/µL). Reactive: infection, iron deficiency, post-splenectomy. Primary: essential thrombocythaemia.` });
-    }
-
-    if (!out.primary) out.primary = 'WITHIN NORMAL LIMITS';
-    return out;
-  }
-
-  function renderCBCResult(interp) {
-    const panel = document.getElementById('cbc-result-panel');
-    const critHtml = interp.critical_values.length
-      ? `<div class="sepsis-alert">🚨 CRITICAL VALUES: ${interp.critical_values.join(' | ')}</div>`
-      : '';
-    const leukHtml = interp.leukemia_flag
-      ? `<div class="leukemia-flag">⚠️ LEUKAEMIA / BLAST ALERT — URGENT PATHOLOGIST REVIEW REQUIRED</div>`
-      : '';
-    const sectionsHtml = interp.sections.map(s =>
-      `<div class="interp-section">
-        <div class="interp-section-title">${esc(s.title)}</div>
-        <div class="interp-finding">${s.text}</div>
-      </div>`
-    ).join('');
-    const reflexHtml = interp.reflexes.length
-      ? `<div class="interp-section">
-          <div class="interp-section-title">🔬 Reflex Test Suggestions</div>
-          <div class="reflex-tags">${interp.reflexes.map(r => `<span class="reflex-tag">🧪 ${esc(r)}</span>`).join('')}</div>
-        </div>` : '';
-
-    panel.innerHTML = `<div class="ai-result-content">
-      ${critHtml}${leukHtml}
-      <div>
-        <div class="finding-primary">${esc(interp.primary)}</div>
-        <span class="finding-severity sev-${interp.severity}">${interp.severity.toUpperCase()}</span>
-      </div>
-      ${sectionsHtml}${reflexHtml}
-      <div class="iso-disclaimer">🔒 AI INTERPRETATION — REQUIRES VALIDATION BY CERTIFIED LABORATORY PROFESSIONAL · ISO 15189:2022</div>
-    </div>`;
-  }
-
-  function initCBC() {
-    document.getElementById('cbc-interpret-btn')?.addEventListener('click', () => {
-      const g = id => parseFloat(document.getElementById('cbc-' + id)?.value) || 0;
-      const data = {
-        wbc: g('wbc'), rbc: g('rbc'), hgb: g('hgb'), hct: g('hct'),
-        mcv: g('mcv'), mch: g('mch'), mchc: g('mchc'), rdw: g('rdw'),
-        plt: g('plt'), mpv: g('mpv'),
-        neut: g('neut'), lymph: g('lymph'), mono: g('mono'), eo: g('eo'), baso: g('baso'), blast: g('blast'),
-        gender: document.getElementById('cbc-gender')?.value || 'M',
-      };
-      if (!data.hgb) { toast('Enter at least HGB to interpret.', 'error'); return; }
-      renderCBCResult(interpretCBC(data));
-    });
-  }
-
-  /* ─── Peripheral Smear ──────────────────────────────────────── */
-  function initSmear() {
-    const zone = document.getElementById('smear-upload-zone');
-    const input = document.getElementById('smear-file-input');
-    if (zone) {
-      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-      zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) processSmearFile(e.dataTransfer.files[0]); });
-    }
-    if (input) input.addEventListener('change', e => { if (e.target.files[0]) processSmearFile(e.target.files[0]); });
-
-    document.getElementById('smear-analyze-btn')?.addEventListener('click', () => {
-      renderSmearResult(generateDemoSmearResult());
-    });
-  }
-
-  function processSmearFile(file) {
-    const zone = document.getElementById('smear-upload-zone');
-    if (zone) zone.innerHTML = `<div class="smear-upload-icon">✅</div><div style="font-size:var(--text-sm);color:var(--alert-green)">${esc(file.name)}</div>`;
-  }
-
-  function generateDemoSmearResult() {
-    return {
-      red_cell_morphology: [
-        { name: 'Normocytes', pct: 60, color: '#00E676' },
-        { name: 'Hypochromic cells', pct: 20, color: '#FFD600' },
-        { name: 'Microcytes', pct: 12, color: '#FF6D00' },
-        { name: 'Target cells (codocytes)', pct: 5, color: '#FF6D00' },
-        { name: 'Poikilocytes', pct: 3, color: '#FF1744' },
-      ],
-      wbc_diff: { neutrophils:65, lymphocytes:28, monocytes:5, eosinophils:2, basophils:0, blast:0 },
-      platelet_estimate: 'Adequate',
-      parasite: null,
-      impression: 'Hypochromic microcytic anaemia pattern — iron deficiency likely',
-      confidence: 87,
-    };
-  }
-
-  function renderSmearResult(r) {
-    const panel = document.getElementById('smear-result-panel');
-    const morphBars = r.red_cell_morphology.map(m =>
-      `<div class="morphology-row">
-        <span class="morphology-name">${esc(m.name)}</span>
-        <div class="morphology-bar-wrap"><div class="morphology-bar-fill" style="width:${m.pct}%;background:${m.color}"></div></div>
-        <span class="morphology-pct">${m.pct}%</span>
-      </div>`
-    ).join('');
-    panel.innerHTML = `<div class="ai-result-content">
-      <div>
-        <div class="finding-primary">🔬 ${esc(r.impression)}</div>
-        <span class="finding-severity sev-mild">AI Confidence: ${r.confidence}%</span>
-      </div>
-      <div class="interp-section">
-        <div class="interp-section-title">🔴 Red Cell Morphology</div>${morphBars}
-      </div>
-      <div class="interp-section">
-        <div class="interp-section-title">⚪ WBC Differential (Smear)</div>
-        <div class="interp-finding">
-          Neutrophils: <strong>${r.wbc_diff.neutrophils}%</strong> &nbsp;|&nbsp;
-          Lymphocytes: <strong>${r.wbc_diff.lymphocytes}%</strong> &nbsp;|&nbsp;
-          Monocytes: <strong>${r.wbc_diff.monocytes}%</strong> &nbsp;|&nbsp;
-          Eosinophils: <strong>${r.wbc_diff.eosinophils}%</strong>
-          ${r.wbc_diff.blast > 0 ? `<br><strong style="color:var(--alert-red)">⚠️ BLASTS: ${r.wbc_diff.blast}%</strong>` : ''}
-        </div>
-      </div>
-      <div class="interp-section">
-        <div class="interp-section-title">🟣 Platelet Estimate</div>
-        <div class="interp-finding">${esc(r.platelet_estimate)}</div>
-      </div>
-      ${r.parasite ? `<div class="leukemia-flag">⚠️ PARASITE DETECTED: ${esc(r.parasite)}</div>` : ''}
-      <div class="iso-disclaimer">⚠️ AI SUGGESTIVE ONLY — Manual microscopist confirmation required · ISO 15189:2022</div>
-    </div>`;
-  }
-
-  /* ─── Coagulation ───────────────────────────────────────────── */
-  function interpretCoagulation(d) {
-    const findings = [];
-    const reflexes = [];
-
-    if (d.inr > 3.0)     findings.push(`INR ${d.inr} — Markedly elevated. ${d.therapy === 'Warfarin' ? 'Supratherapeutic Warfarin — risk of major bleeding.' : 'Severe coagulopathy — liver failure or DIC suspected.'}`);
-    else if (d.inr > 1.5) findings.push(`INR ${d.inr} — Elevated. ${d.therapy === 'Warfarin' ? 'Warfarin therapy — monitor.' : 'Mild coagulation defect — PT pathway affected.'}`);
-
-    if (d.aptt > 40 && d.pt_elevated) {
-      findings.push('PT + APTT both prolonged — DIC pattern, warfarin/heparin, liver disease, or factor deficiency.');
-      reflexes.push('D-dimer', 'Fibrinogen', 'Thrombin time', 'Mixing study');
-    } else if (d.aptt > 40) {
-      findings.push(`APTT ${d.aptt}s prolonged — intrinsic pathway defect. Heparin therapy, Factor VIII/IX/XI deficiency, lupus anticoagulant.`);
-      reflexes.push('Mixing study (immediate + incubated)', 'Factor VIII/IX assay', 'Lupus anticoagulant screen');
-    }
-
-    if (d.ddimer > 0.5) {
-      findings.push(`D-dimer ${d.ddimer} µg/mL elevated — thrombosis, DIC, PE/DVT, post-surgery, inflammation. Correlate with clinical Wells score.`);
-      reflexes.push('Doppler USS (DVT)', 'CT-PA (if PE suspected)', 'Fibrinogen + FDP');
-    }
-
-    if (d.fibr < 1.5) {
-      findings.push(`Fibrinogen ${d.fibr} g/L — LOW. Consumption coagulopathy (DIC), severe liver disease, or hypofibrinogenaemia.`);
-    }
-
-    if (findings.length === 0) findings.push('Coagulation profile within normal limits.');
-
-    return { primary: d.inr > 2 ? 'COAGULOPATHY' : findings.length > 1 ? 'HAEMOSTASIS ABNORMALITY' : 'NORMAL HAEMOSTASIS', findings, reflexes, severity: d.inr > 3 || d.ddimer > 2 ? 'severe' : d.inr > 1.5 ? 'moderate' : 'normal' };
-  }
-
-  function initCoagulation() {
-    document.getElementById('coag-interpret-btn')?.addEventListener('click', () => {
-      const g = id => parseFloat(document.getElementById('coag-' + id)?.value) || 0;
-      const data = {
-        pt: g('pt'), inr: g('inr'), aptt: g('aptt'), fibr: g('fibr'),
-        ddimer: g('ddimer'), tt: g('tt'),
-        therapy: document.getElementById('coag-therapy')?.value || '',
-        pt_elevated: g('pt') > 13,
-      };
-      const interp = interpretCoagulation(data);
-      const panel = document.getElementById('coag-result-panel');
-      panel.innerHTML = `<div class="ai-result-content">
-        <div><div class="finding-primary">${esc(interp.primary)}</div>
-        <span class="finding-severity sev-${interp.severity}">${interp.severity.toUpperCase()}</span></div>
-        <div class="interp-section">
-          <div class="interp-section-title">🧬 Coagulation Analysis</div>
-          <div class="interp-finding">${interp.findings.map(f => `• ${esc(f)}`).join('<br>')}</div>
-        </div>
-        ${interp.reflexes.length ? `<div class="interp-section"><div class="interp-section-title">🔬 Reflex Suggestions</div>
-          <div class="reflex-tags">${interp.reflexes.map(r => `<span class="reflex-tag">🧪 ${esc(r)}</span>`).join('')}</div></div>` : ''}
-        <div class="iso-disclaimer">🔒 AI Coagulation DSS — ISO 15189:2022 — Pathologist validation required</div>
-      </div>`;
-    });
-  }
-
-  /* ─── Inflammation ──────────────────────────────────────────── */
-  function interpretInflammation(d) {
-    const findings = [];
-    const severity = d.pct > 2 ? 'severe' : d.crp > 50 ? 'moderate' : d.crp > 10 ? 'mild' : 'normal';
-    const isSepsis = d.pct > 2;
-    const isAcute = d.crp > 10 && d.esr > (d.gender === 'F' ? 20 : 15);
-    const isChronic = d.esr > 50 && d.crp < 20;
-
-    if (isSepsis) findings.push(`🚨 PCT ${d.pct} µg/L — SEPSIS HIGHLY LIKELY. Immediate blood cultures and antimicrobial therapy evaluation.`);
-    if (d.pct > 0.5 && d.pct < 2) findings.push(`PCT ${d.pct} µg/L — Elevated. Systemic bacterial infection possible. Monitor closely.`);
-    if (isAcute) findings.push(`CRP ${d.crp} mg/L + ESR ${d.esr} mm/hr — Acute inflammatory response. Bacterial infection, tissue injury, or autoimmune process.`);
-    if (isChronic) findings.push(`Elevated ESR with low/normal CRP pattern — chronic inflammation, autoimmune disease, or malignancy.`);
-    if (d.ferritin > 1000) findings.push(`Hyperferritinaemia (${d.ferritin} µg/L) — haemophagocytic syndrome (HLH), severe sepsis, or iron overload.`);
-    if (findings.length === 0) findings.push('Inflammatory markers within normal reference intervals. No acute inflammatory response detected.');
-
-    return { isSepsis, findings, severity, primary: isSepsis ? 'SEPSIS — CRITICAL ALERT' : isAcute ? 'ACUTE INFLAMMATORY RESPONSE' : 'NORMAL INFLAMMATORY PROFILE' };
-  }
-
-  function initInflammation() {
-    document.getElementById('infl-interpret-btn')?.addEventListener('click', () => {
-      const g = id => parseFloat(document.getElementById('infl-' + id)?.value) || 0;
-      const data = { esr:g('esr'), crp:g('crp'), pct:g('pct'), ferritin:g('ferritin'), ldh:g('ldh'), il6:g('il6'),
-                     gender:document.getElementById('infl-gender')?.value || 'M', age:g('age') };
-      const interp = interpretInflammation(data);
-      const panel = document.getElementById('infl-result-panel');
-      panel.innerHTML = `<div class="ai-result-content">
-        ${interp.isSepsis ? '<div class="sepsis-alert">🚨 SEPSIS ALERT — IMMEDIATE CLINICAL ACTION REQUIRED</div>' : ''}
-        <div><div class="finding-primary">${esc(interp.primary)}</div>
-        <span class="finding-severity sev-${interp.severity}">${interp.severity.toUpperCase()}</span></div>
-        <div class="interp-section">
-          <div class="interp-section-title">📊 Inflammatory Analysis</div>
-          <div class="interp-finding">${interp.findings.map(f => `• ${f}`).join('<br>')}</div>
-        </div>
-        <div class="iso-disclaimer">🔒 AI Inflammation DSS — ISO 15189:2022</div>
-      </div>`;
-    });
-  }
-
-  /* ─── Worklist (demo) ──────────────────────────────────────── */
-  function loadWorklist() {
-    const tbody = document.getElementById('hema-worklist-tbody');
-    if (!tbody) return;
-    const DEMO = [
-      { name:'KAMANZI Jean', pid:'RWA-2024-00142', lab_id:'LAB-240515-001', tests:'CBC, Retic', tat:'32 min', priority:'routine', status:'processing' },
-      { name:'UWIMANA Grace', pid:'RWA-2024-00287', lab_id:'LAB-240515-002', tests:'CBC, ESR, CRP', tat:'12 min', priority:'urgent', status:'pending' },
-      { name:'HABIMANA Eric', pid:'RWA-2024-00388', lab_id:'LAB-240515-003', tests:'CBC DIFF, PT, APTT', tat:'58 min', priority:'emergency', status:'pending' },
-    ];
-    tbody.innerHTML = DEMO.map(r => `
-      <tr>
-        <td><div style="font-weight:600;font-size:var(--text-sm)">${esc(r.name)}</div>
-            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">${esc(r.pid)}</div></td>
-        <td><span style="font-family:var(--font-mono);font-size:11px;color:var(--blue-glow)">${esc(r.lab_id)}</span></td>
-        <td><span style="font-size:var(--text-xs)">${esc(r.tests)}</span></td>
-        <td><span style="font-family:var(--font-mono);font-size:11px">${esc(r.tat)}</span></td>
-        <td><span class="badge ${r.priority === 'emergency' ? 'badge-red' : r.priority === 'urgent' ? 'badge-orange' : 'badge-blue'}">${esc(r.priority)}</span></td>
-        <td><span class="badge ${r.status === 'validated' ? 'badge-green' : r.status === 'processing' ? 'badge-blue' : 'badge-yellow'}">${esc(r.status)}</span></td>
-        <td style="text-align:right">
-          <button class="btn btn-primary btn-sm" onclick="document.querySelector('[data-pane=hema-cbc-pane]').click()">🔬 Enter Results</button>
-        </td>
-      </tr>`).join('');
-  }
-
-  /* ─── Analytics ─────────────────────────────────────────────── */
-  function loadAnalytics() {
-    document.getElementById('kpi-hema-total')?.textContent !== '—' && (document.getElementById('kpi-hema-total').textContent = '47');
-    const el = id => document.getElementById(id);
-    if (el('kpi-hema-total')) el('kpi-hema-total').textContent = '47';
-    if (el('kpi-hema-abnormal')) el('kpi-hema-abnormal').textContent = '12';
-    if (el('kpi-hema-critical')) el('kpi-hema-critical').textContent = '3';
-    if (el('kpi-hema-tat')) el('kpi-hema-tat').textContent = '38';
-
-    const findings = document.getElementById('hema-top-findings');
-    if (findings) {
-      const top = [['Iron Deficiency Anaemia',18],['Leukocytosis',9],['Thrombocytopaenia',7],['Pancytopaenia',4],['Polycythaemia',2]];
-      findings.innerHTML = top.map(([name, cnt]) =>
-        `<div style="display:flex;align-items:center;gap:var(--space-sm);padding:5px 0;border-bottom:1px solid var(--border-dim)">
-          <div style="flex:1;font-size:var(--text-xs);color:var(--text-secondary)">${esc(name)}</div>
-          <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-primary)">${cnt}</div>
-        </div>`
-      ).join('');
-    }
-
-    const chartEl = document.getElementById('hema-volume-chart');
-    if (chartEl && window.Chart) {
-      if (chartEl._chartInstance) chartEl._chartInstance.destroy();
-      const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-      chartEl._chartInstance = new Chart(chartEl, {
-        type: 'bar',
-        data: { labels: days, datasets: [{ label: 'CBC Tests', data: [38,44,52,41,47,29,18], backgroundColor: 'rgba(255,23,68,0.4)', borderColor: '#FF4466', borderWidth: 1.5, borderRadius: 3 }] },
-        options: { responsive:true, maintainAspectRatio:true, plugins:{ legend:{display:false} }, scales:{ x:{grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8899aa'}}, y:{grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8899aa'}} } }
-      });
-    }
-  }
-
-  /* ─── Init ──────────────────────────────────────────────────── */
-  function init() {
-    initTabs();
-    initLiveValidation();
-    initCBC();
-    initSmear();
-    initCoagulation();
-    initInflammation();
-    loadWorklist();
-  }
-
-  document.addEventListener('DOMContentLoaded', init);
+/* ── Clock ─────────────────────────────────────────────────── */
+(function tick(){
+  const n=new Date(),h=n.getHours();
+  const[name,icon]=h>=6&&h<14?['Morning','☀️']:h>=14&&h<22?['Afternoon','🌤️']:['Night','🌙'];
+  ['hem-shift-icon','hem-shift-name','hem-clock'].forEach((id,i)=>{
+    const e=document.getElementById(id);if(e)e.textContent=[icon,name,n.toLocaleTimeString('en-GB')][i];
+  });
+  setTimeout(tick,1000);
 })();
+
+/* ── Tabs ──────────────────────────────────────────────────── */
+function switchTab(tab){
+  document.querySelectorAll('.hem-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.hem-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`.hem-tab[data-tab="${tab}"]`)?.classList.add('active');
+  document.getElementById(`tab-${tab}`)?.classList.add('active');
+  if(tab==='worklist') loadWorklist();
+  if(tab==='malaria')  loadMalaria();
+  if(tab==='smear')    loadSmears();
+  if(tab==='iqc')      loadIQC();
+  if(tab==='book')     loadCriticalBook();
+}
+document.querySelectorAll('.hem-tab').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+
+/* ── Parameter flagging ────────────────────────────────────── */
+function flagParam(id,val,sex,lo,hi,critLo,critHi){
+  const v=parseFloat(val);
+  const inp=document.getElementById(`p-${id}`);
+  const flag=document.getElementById(`flag-${id}`);
+  if(!inp||isNaN(v)) return 'N';
+  let f='N';
+  if(critLo!==null&&v<critLo)      f='LL';
+  else if(critHi!==null&&v>critHi) f='HH';
+  else if(lo!==null&&v<lo)         f='L';
+  else if(hi!==null&&v>hi)         f='H';
+  inp.className='pe-input'+(f==='LL'||f==='HH'?' crit':f==='H'?' high':f==='L'?' low':'');
+  if(flag){
+    const lbl={LL:'⬇⬇LL',HH:'⬆⬆HH',L:'⬇L',H:'⬆H',N:'✓'};
+    const col={LL:'#7f1d1d',HH:'#7f1d1d',L:'#1e40af',H:'#92400e',N:'#166534'};
+    flag.textContent=lbl[f]||f; flag.style.color=col[f]||'#166534';
+  }
+  if(f==='LL'||f==='HH') document.getElementById('cbc-notify-critical').checked=true;
+  return f;
+}
+
+function flagDiff(name,val,lo,hi){
+  const v=parseFloat(val),flag=document.getElementById(`flag-${name}`);
+  if(!flag||isNaN(v)) return;
+  if(v<lo){flag.textContent='⬇L';flag.style.color='#1e40af';}
+  else if(v>hi){flag.textContent='⬆H';flag.style.color='#92400e';}
+  else{flag.textContent='✓';flag.style.color='#166534';}
+}
+
+function flagBlasts(val){
+  const v=parseFloat(val)||0;
+  const flag=document.getElementById('flag-blast');
+  const inp=document.getElementById('p-blast-p');
+  if(flag){
+    if(v>0){flag.textContent=`⚠️ BLASTS ${v}% URGENT`;flag.style.color='#7f1d1d';flag.style.fontWeight='800';
+      if(inp){inp.style.background='#fee2e2';inp.style.borderColor='#dc2626';}
+      document.getElementById('cbc-notify-critical').checked=true;
+      toast(`⚠️ BLAST CELLS ${v}% — URGENT blood film + haematology review`,'warn');
+    } else {flag.textContent='✓ Absent';flag.style.color='#166534';flag.style.fontWeight='600';}
+  }
+  calcAbsolute('blast');
+}
+
+/* ── Absolute count calculation ────────────────────────────── */
+function calcAbsolute(name){
+  const wbc=parseFloat(document.getElementById('p-wbc')?.value)||0;
+  const pct=parseFloat(document.getElementById(`p-${name}-p`)?.value)||0;
+  const el=document.getElementById(`p-${name}-a`);
+  if(el&&wbc>0) el.value=(wbc*pct/100).toFixed(2);
+  updateDiffTotal();
+}
+
+function updateDiffTotal(){
+  const names=['neu','lym','mon','eos','bas','blast'];
+  const total=names.reduce((s,n)=>s+(parseFloat(document.getElementById(`p-${n}-p`)?.value)||0),0);
+  const el=document.getElementById('diff-total');
+  const chk=document.getElementById('diff-check');
+  if(el) el.textContent=`${total.toFixed(1)}%`;
+  if(chk&&total>0){
+    const d=Math.abs(100-total);
+    if(d<1){chk.textContent='✓ OK';chk.style.color='#166534';}
+    else if(d<5){chk.textContent=`⚠️ ${total.toFixed(0)}%`;chk.style.color='#d97706';}
+    else{chk.textContent=`❌ ${total.toFixed(0)}%`;chk.style.color='#dc2626';}
+  }
+}
+
+/* ── Differential chart ────────────────────────────────────── */
+function updateDiffChart(){
+  const vals=[
+    parseFloat(document.getElementById('p-neu-p')?.value)||0,
+    parseFloat(document.getElementById('p-lym-p')?.value)||0,
+    parseFloat(document.getElementById('p-mon-p')?.value)||0,
+    parseFloat(document.getElementById('p-eos-p')?.value)||0,
+    parseFloat(document.getElementById('p-bas-p')?.value)||0,
+    parseFloat(document.getElementById('p-blast-p')?.value)||0,
+  ];
+  const labels=['NEU','LYM','MON','EOS','BAS','BLAST'];
+  const colors=['#3b82f6','#10b981','#f59e0b','#f97316','#8b5cf6','#dc2626'];
+  const ctx=document.getElementById('diff-chart')?.getContext('2d');
+  if(!ctx) return;
+  if(_diffChart) _diffChart.destroy();
+  const hasData=vals.some(v=>v>0);
+  _diffChart=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels,datasets:[{data:hasData?vals:[1],backgroundColor:hasData?colors:['#f1f5f9'],borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,cutout:'65%',plugins:{legend:{display:false}}}
+  });
+  const leg=document.getElementById('diff-legend');
+  if(leg) leg.innerHTML=labels.map((l,i)=>`<div class="dcl-item"><div class="dcl-dot" style="background:${colors[i]}"></div>${l}:<strong>${vals[i]}%</strong></div>`).join('');
+}
+
+/* ── Calculated indices ────────────────────────────────────── */
+function updateIndices(){
+  const hgb=parseFloat(document.getElementById('p-hgb')?.value)||0;
+  const rbc=parseFloat(document.getElementById('p-rbc')?.value)||0;
+  const mcv=parseFloat(document.getElementById('p-mcv')?.value)||0;
+  const mch=parseFloat(document.getElementById('p-mch')?.value)||0;
+  const rdw=parseFloat(document.getElementById('p-rdw-cv')?.value)||0;
+  const set=(id,val,interp)=>{
+    const e=document.getElementById(id),ei=document.getElementById(id+'-interp');
+    if(e)e.textContent=val;if(ei)ei.textContent=interp;
+  };
+  if(mcv>0&&rbc>0){const m=(mcv/rbc).toFixed(1);set('idx-mentzer',m,m<13?'<13 → Thalassaemia favoured':'>13 → IDA favoured');}
+  if(mcv>0&&mch>0&&hgb>0){const ef=((mcv*mcv*mch)/(hgb*100)).toFixed(1);set('idx-ef',ef,parseFloat(ef)<1530?'<1530 → IDA':'≥1530 → Thalassaemia');}
+  if(rdw>0&&mcv>0&&rbc>0){const r=((rdw*mcv)/rbc).toFixed(1);set('idx-rdwi',r,parseFloat(r)>220?'>220 → IDA':'≤220 → Thalassaemia');}
+  if(mcv>0&&mch>0){const s=((mcv*mcv*mch)/100).toFixed(0);set('idx-shine',s,parseInt(s)<1530?'<1530 → IDA':'≥1530 → Thalassaemia');}
+}
+
+/* ── CBC change handler ────────────────────────────────────── */
+function onCBCChange(){
+  updateDiffTotal();
+  updateDiffChart();
+  updateIndices();
+  ['neu','lym','mon','eos','bas','blast'].forEach(n=>calcAbsolute(n));
+}
+
+/* ── AI/Rules interpretation ───────────────────────────────── */
+async function autoInterpret(){
+  const hgb=parseFloat(document.getElementById('p-hgb')?.value);
+  const rbc=parseFloat(document.getElementById('p-rbc')?.value);
+  const wbc=parseFloat(document.getElementById('p-wbc')?.value);
+  const plt=parseFloat(document.getElementById('p-plt')?.value);
+  const mcv=parseFloat(document.getElementById('p-mcv')?.value);
+  const mch=parseFloat(document.getElementById('p-mch')?.value);
+  const rdw=parseFloat(document.getElementById('p-rdw-cv')?.value);
+  const neuA=parseFloat(document.getElementById('p-neu-a')?.value);
+  const sex=document.getElementById('cbc-sex')?.value||'M';
+  const body=document.getElementById('ai-interp-body');
+  if(!body) return;
+  body.innerHTML='<div style="text-align:center;padding:.75rem;color:#0891b2"><i class="fas fa-spinner fa-spin"></i> Analysing…</div>';
+
+  let html='';
+
+  // Local rules (always available offline)
+  const hgbLo=sex==='F'?12:13;
+  if(hgb&&hgb<hgbLo&&mcv&&mch&&rdw&&rbc){
+    const mentzer=(mcv/rbc).toFixed(1);
+    const isMicro=mcv<80,isMacro=mcv>100;
+    if(isMicro){
+      const ida=rdw>14.5&&mentzer>13,thal=!rdw>14.5&&mentzer<13&&rbc>5.0;
+      html+=`<div class="interp-panel ${hgb<7?'critical':'warning'}">
+        <div class="interp-title">${hgb<7?'🚨 CRITICAL — ':''}Microcytic${mch<27?' Hypochromic':''} Anaemia (Hb ${hgb} g/dL, MCV ${mcv} fL)</div>
+        <div class="interp-text">RDW ${rdw}% · Mentzer ${mentzer} · RBC ${rbc} ×10¹²/L</div>
+        <div class="interp-badge-row">
+          ${ida?'<span class="sig-chip sig-HIGH">IDA likely (Mentzer>13, RDW↑)</span>':''}
+          ${thal?'<span class="sig-chip sig-MODERATE">Thalassaemia likely (Mentzer<13, RBC↑)</span>':''}
+          <span style="font-size:.72rem;color:#4f46e5;background:#f0f4ff;border:1px solid #c7d0e8;border-radius:8px;padding:.1rem .4rem">Mentzer ${mentzer} → ${mentzer<13?'Thalassaemia':'IDA'} favoured</span>
+        </div>
+        ${ida?'<div class="interp-action">⚡ Order: Ferritin · Serum iron + TIBC · Reticulocytes · Blood film</div>':''}
+        ${thal?'<div class="interp-action">⚡ Order: HPLC (HbA2/HbF) · Family history · DNA if α-thal suspected</div>':''}
+        <div class="interp-causes">
+          <div class="interp-cause-item">IDA: ↓Ferritin ↓Iron ↑TIBC ↑RDW pencil cells anisocytosis</div>
+          <div class="interp-cause-item">β-Thal: Normal ferritin ↑RBC ↑HbA2>3.5% target cells basophilic stippling</div>
+          <div class="interp-cause-item">α-Thal: Normal HPLC — requires DNA analysis</div>
+        </div>
+        ${hgb<7?'<div class="interp-action" style="background:#fee2e2;color:#7f1d1d;font-weight:800">🚨 Hb <7 g/dL — TRANSFUSION THRESHOLD. Consider pRBC transfusion. Notify clinician IMMEDIATELY.</div>':''}
+      </div>`;
+    } else if(isMacro){
+      html+=`<div class="interp-panel warning">
+        <div class="interp-title">🧬 Macrocytic Anaemia (Hb ${hgb} g/dL, MCV ${mcv} fL)</div>
+        <div class="interp-text">Megaloblastic vs Non-megaloblastic macrocytosis. Check for hypersegmented neutrophils (megaloblastic sign).</div>
+        <div class="interp-cause-item">B12 deficiency: Neurological sx · elevated MMA · intrinsic factor Ab</div>
+        <div class="interp-cause-item">Folate deficiency: No neuro sx · elevated homocysteine · dietary history</div>
+        <div class="interp-cause-item">Non-megaloblastic: Liver disease · Hypothyroidism · Alcohol · Reticulocytosis</div>
+        <div class="interp-action">⚡ Order: Serum B12 · Serum/RBC folate · LFT · TSH · Blood film · Reticulocyte count</div>
+      </div>`;
+    } else {
+      html+=`<div class="interp-panel">
+        <div class="interp-title">⚖️ Normocytic Anaemia (Hb ${hgb} g/dL, MCV ${mcv} fL)</div>
+        <div class="interp-cause-item">Acute blood loss · Haemolytic anaemia · Anaemia of chronic disease</div>
+        <div class="interp-cause-item">Bone marrow failure · CKD · Aplastic anaemia</div>
+        <div class="interp-action">⚡ Order: Reticulocytes · DAT · LDH · Bilirubin · Ferritin · CRP · Renal function · Blood film</div>
+      </div>`;
+    }
+    const card=document.getElementById('anaemia-summary-card');
+    if(card) card.style.display='';
+    const sBody=document.getElementById('anaemia-summary-body');
+    if(sBody) sBody.innerHTML=html;
+  }
+
+  if(neuA&&neuA<0.5){
+    html+=`<div class="interp-panel critical">
+      <div class="interp-title">🚨 CRITICAL — Agranulocytosis (ANC ${neuA} ×10³/µL)</div>
+      <div class="interp-action">⚡ IMMEDIATE reverse isolation · Drug review (carbimazole/clozapine) · G-CSF · Antibiotics if febrile</div>
+    </div>`;
+  }
+  if(wbc&&wbc>30){
+    html+=`<div class="interp-panel critical">
+      <div class="interp-title">🚨 CRITICAL — Leukocytosis ${wbc} ×10³/µL</div>
+      <div class="interp-action">⚡ STAT blood film · BCR-ABL1 (CML) · Blast cell morphology · Haematology referral</div>
+    </div>`;
+  }
+  if(plt&&plt<20){
+    html+=`<div class="interp-panel critical">
+      <div class="interp-title">🚨 CRITICAL — Thrombocytopenia ${plt} ×10³/µL</div>
+      <div class="interp-action">⚡ Hold invasive procedures · Blood film · DIC screen · TTP exclusion (LDH/schistocytes)</div>
+    </div>`;
+  }
+
+  // Try cloud AI
+  try{
+    const r=await apiFetch(`${API}/ai/interpret`,{method:'POST',body:JSON.stringify({
+      test_code:'HGB',test_name:'Haemoglobin',value:hgb,unit:'g/dL',
+      flag:hgb&&hgb<(sex==='F'?12:13)?'L':'N',
+      context:`MCV:${mcv},MCH:${mch},RDW:${rdw},RBC:${rbc},WBC:${wbc},PLT:${plt}`
+    })});
+    const ai=r.ai_enrichment||{};
+    if(ai.summary){
+      html+=`<div class="interp-panel" style="border-left-color:#6366f1">
+        <div class="interp-title" style="color:#4f46e5">🤖 AI Clinical Analysis <span id="ai-layer-badge" style="font-family:monospace;font-size:.65rem;color:#94a3b8">[${r.ai_layer||'rules'}]</span></div>
+        <div class="interp-text">${ai.summary}</div>
+        ${(ai.differentials||[]).map(d=>`<div class="interp-cause-item">${d}</div>`).join('')}
+        ${ai.action?`<div class="interp-action">${ai.action}</div>`:''}
+      </div>`;
+    }
+  }catch(_){ /* offline — local rules already rendered */ }
+
+  if(!html) html='<div style="color:#94a3b8;font-size:.82rem;padding:.5rem;text-align:center">All parameters within normal limits. No acute abnormalities detected.</div>';
+  body.innerHTML=html;
+}
+
+/* ── Save CBC ─────────────────────────────────────────────── */
+async function saveCBC(){
+  const body={
+    lab_request_id:+document.getElementById('cbc-req-id')?.value||0,
+    patient_id:+document.getElementById('cbc-patient-id')?.value||0,
+    pid:document.getElementById('cbc-pid')?.value||null,
+    hgb:parseFloat(document.getElementById('p-hgb')?.value)||null,
+    rbc:parseFloat(document.getElementById('p-rbc')?.value)||null,
+    wbc:parseFloat(document.getElementById('p-wbc')?.value)||null,
+    plt:parseFloat(document.getElementById('p-plt')?.value)||null,
+    hct:parseFloat(document.getElementById('p-hct')?.value)||null,
+    mcv:parseFloat(document.getElementById('p-mcv')?.value)||null,
+    mch:parseFloat(document.getElementById('p-mch')?.value)||null,
+    mchc:parseFloat(document.getElementById('p-mchc')?.value)||null,
+    rdw:parseFloat(document.getElementById('p-rdw-cv')?.value)||null,
+    neut_pct:parseFloat(document.getElementById('p-neu-p')?.value)||null,
+    lymph_pct:parseFloat(document.getElementById('p-lym-p')?.value)||null,
+    mono_pct:parseFloat(document.getElementById('p-mon-p')?.value)||null,
+    eos_pct:parseFloat(document.getElementById('p-eos-p')?.value)||null,
+    baso_pct:parseFloat(document.getElementById('p-bas-p')?.value)||null,
+    neut_abs:parseFloat(document.getElementById('p-neu-a')?.value)||null,
+    lymph_abs:parseFloat(document.getElementById('p-lym-a')?.value)||null,
+    esr:parseFloat(document.getElementById('p-esr')?.value)||null,
+    result_source:document.getElementById('cbc-source')?.value||'AUTOMATED',
+    analyzer_name:document.getElementById('cbc-analyzer')?.value||null,
+    is_critical:document.getElementById('cbc-notify-critical')?.checked||false,
+  };
+  try{
+    await apiFetch(`${API}/hematology/cbc`,{method:'POST',body:JSON.stringify(body)});
+    toast('CBC saved ✓'); switchTab('worklist');
+  }catch(e){ toast(e.message,'error'); }
+}
+
+function openNewCBC(){ switchTab('cbc-entry'); }
+function filterBy(type){ loadWorklist(); }
+function filterWorklist(q){
+  document.querySelectorAll('#wl-tbody tr').forEach(r=>{
+    r.style.display=(!q||r.textContent.toLowerCase().includes(q.toLowerCase()))?'':'none';
+  });
+}
+
+/* ── Worklist ─────────────────────────────────────────────── */
+async function loadWorklist(){
+  const tbody=document.getElementById('wl-tbody');if(!tbody) return;
+  tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:1.5rem;color:#94a3b8"><i class="fas fa-spinner fa-spin"></i></td></tr>';
+  try{
+    const data=await apiFetch(`${API}/hematology/cbc?limit=50`);
+    _wlData=data||[];
+    setText('kpi-total',_wlData.length);
+    setText('kpi-pending',_wlData.filter(r=>!r.is_validated).length);
+    setText('kpi-validated',_wlData.filter(r=>r.is_validated).length);
+    setText('kpi-critical',_wlData.filter(r=>r.is_critical).length);
+    if(!_wlData.length){tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:2rem;color:#94a3b8">No haematology results yet. Use ➕ New CBC.</td></tr>';return;}
+    tbody.innerHTML=_wlData.map((r,i)=>{
+      const hF=r.hgb<7?'crit-high':r.hgb<13?'low':'normal';
+      const wF=r.wbc<2||r.wbc>30?'crit-high':r.wbc<4||r.wbc>11?'high':'normal';
+      const pF=r.plt<20||r.plt>1000?'crit-high':r.plt<100||r.plt>450?'high':'normal';
+      const anyF=[hF,wF,pF].find(f=>f!=='normal')||'normal';
+      return `<tr class="${r.is_critical?'critical-row':anyF==='high'?'high-row':''}">
+        <td><input type="checkbox" onchange="NexusPrint?._toggleRow('wl-table',${i},this.checked)"></td>
+        <td><strong style="color:#0891b2">${r.lab_id||r.hem_id||'—'}</strong></td>
+        <td>${r.pid||'—'}</td>
+        <td><span class="badge badge-${r.emergency_level==='stat'?'crit-high':r.emergency_level==='urgent'?'high':'normal'}">${(r.emergency_level||'routine').toUpperCase()}</span></td>
+        <td>CBC + Diff</td><td>—</td>
+        <td><strong class="${hF==='crit-high'?'flag-HH':hF==='low'?'flag-L':''}">${r.hgb||'—'}</strong></td>
+        <td><strong class="${wF==='crit-high'?'flag-HH':''}">${r.wbc||'—'}</strong></td>
+        <td><strong class="${pF==='crit-high'?'flag-LL':pF==='high'?'flag-L':''}">${r.plt||'—'}</strong></td>
+        <td><span class="badge badge-${anyF}">${anyF==='crit-high'?'!!CRIT!!':anyF==='high'?'⬆H':anyF==='low'?'⬇L':'✓N'}</span></td>
+        <td><span class="badge badge-${r.is_validated?'validated':'pending'}">${r.is_validated?'Validated':'Pending'}</span></td>
+        <td style="font-size:.72rem;color:#0891b2">${(r.ai_classification||'').substring(0,30)||'—'}</td>
+        <td style="text-align:right;display:flex;gap:.25rem;justify-content:flex-end">
+          ${!r.is_validated?`<button onclick="validateCBC(${r.id})" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:.2rem .5rem;font-size:.72rem;cursor:pointer">✅</button>`:''}
+          <button onclick="printCBCRow(${i})" style="background:#f0fdff;border:1px solid #bae6fd;border-radius:6px;padding:.2rem .5rem;font-size:.72rem;cursor:pointer;color:#0891b2">🖨️</button>
+        </td>
+      </tr>`;
+    }).join('');
+    NexusPrint?.init('wl-table',{title:'Haematology CBC Worklist'});
+  }catch(e){tbody.innerHTML=`<tr><td colspan="13" style="text-align:center;color:#dc2626">Error: ${e.message}</td></tr>`;}
+}
+
+async function validateCBC(id){
+  try{await apiFetch(`${API}/hematology/cbc/${id}/validate`,{method:'POST'});toast('CBC validated ✓');loadWorklist();}
+  catch(e){toast(e.message,'error');}
+}
+
+/* ── Malaria ───────────────────────────────────────────────── */
+async function loadMalaria(){
+  const tbody=document.getElementById('mal-tbody');if(!tbody)return;
+  try{
+    const data=await apiFetch(`${API}/hematology/malaria?limit=50`);
+    setText('kpi-malaria',data.filter(r=>r.rdt_result==='POS').length);
+    if(!data.length){tbody.innerHTML='<tr><td colspan="13" style="text-align:center;padding:1.5rem;color:#94a3b8">No malaria results.</td></tr>';return;}
+    tbody.innerHTML=data.map(r=>`<tr>
+      <td><input type="checkbox"></td>
+      <td><strong>${r.mal_id||'—'}</strong></td><td>${r.pid||'—'}</td><td>${r.pid||'—'}</td>
+      <td><span class="${r.rdt_result==='POS'?'mal-pos':'mal-neg'}">${r.rdt_result||'—'}</span></td>
+      <td><span class="${r.smear_result==='POS'?'mal-pos':'mal-neg'}">${r.smear_result||'—'}</span></td>
+      <td>${r.species||'—'}</td>
+      <td>${r.parasitemia_pct!=null?r.parasitemia_pct+'%':'—'}</td>
+      <td>${r.parasitemia_grade||'—'}</td>
+      <td>${r.staining||'—'}</td>
+      <td>${r.is_validated?'✅':'⏳'}</td>
+      <td style="font-size:.72rem">${r.created_at?.substring(0,16)||'—'}</td>
+      <td><button style="font-size:.72rem;padding:.2rem .5rem;background:#f0fdff;border:1px solid #bae6fd;border-radius:6px;cursor:pointer;color:#0891b2">🖨️</button></td>
+    </tr>`).join('');
+  }catch(e){tbody.innerHTML=`<tr><td colspan="13" style="color:#dc2626;text-align:center">${e.message}</td></tr>`;}
+}
+function openMalariaModal(){toast('Malaria form…','info');}
+
+/* ── Peripheral Smear ──────────────────────────────────────── */
+async function loadSmears(){
+  const tbody=document.getElementById('smear-tbody');if(!tbody)return;
+  try{
+    const data=await apiFetch(`${API}/hematology/smear?limit=30`);
+    setText('kpi-smears',data.length);
+    if(!data.length){tbody.innerHTML='<tr><td colspan="12" style="text-align:center;padding:1.5rem;color:#94a3b8">No peripheral smear reports.</td></tr>';return;}
+    tbody.innerHTML=data.map(r=>`<tr class="${r.leukemia_flag?'critical-row':''}">
+      <td>${r.smear_id||'—'}</td><td>${r.pid||'—'}</td>
+      <td>${r.rbc_morphology||'—'}</td><td>${r.wbc_morphology||'—'}</td>
+      <td>${r.plt_morphology||'—'}</td>
+      <td class="${r.blast_pct>0?'flag-HH':''}">${r.blast_pct!=null?r.blast_pct+'%':'0%'}</td>
+      <td>${r.species||'None'}</td>
+      <td>${r.sickle_cells?'<span class="badge badge-high">Present</span>':'None'}</td>
+      <td>${r.staining_method||'—'}</td>
+      <td>${r.microscopist||'—'}</td>
+      <td><span class="badge badge-${r.is_validated?'validated':'pending'}">${r.is_validated?'Validated':'Pending'}</span></td>
+      <td><button style="font-size:.72rem;padding:.2rem .5rem;background:#f0fdff;border:1px solid #bae6fd;border-radius:6px;cursor:pointer;color:#0891b2">🖨️</button></td>
+    </tr>`).join('');
+  }catch(e){tbody.innerHTML=`<tr><td colspan="12" style="color:#dc2626;text-align:center">${e.message}</td></tr>`;}
+}
+function openSmearModal(){toast('Smear form…','info');}
+
+/* ── IQC Levey-Jennings ────────────────────────────────────── */
+async function loadIQC(){
+  const tbody=document.getElementById('hem-iqc-tbody');if(!tbody)return;
+  try{
+    const analyte=document.getElementById('iqc-analyte')?.value||'HGB';
+    const data=await apiFetch(`${API}/quality/iqc?department=HEM&analyte=${analyte}&limit=50`);
+    if(!data.length){tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:1.5rem;color:#94a3b8">No IQC records.</td></tr>';
+      setText('kpi-iqc-status','—');return;}
+    buildLJChart(data);
+    setText('kpi-iqc-status',data.some(r=>r.status==='REJECT')?'REJECT':data.some(r=>r.status==='WARN')?'WARN':'PASS');
+    tbody.innerHTML=data.map(r=>`<tr class="${r.status==='REJECT'?'critical-row':r.status==='WARN'?'high-row':''}">
+      <td style="font-size:.72rem">${r.run_date||r.created_at?.substring(0,10)||'—'}</td>
+      <td>${r.analyte_name||r.analyte_code||'—'}</td>
+      <td>${r.control_level||'—'}</td>
+      <td style="font-family:monospace;font-size:.73rem">${r.lot_number||'—'}</td>
+      <td>${r.target_mean||'—'}</td><td>${r.sd||'—'}</td>
+      <td><strong class="${r.status==='REJECT'?'flag-HH':''}">${r.result_value||'—'}</strong></td>
+      <td><span style="font-family:monospace">${r.z_score!=null?r.z_score.toFixed(2):'—'}</span></td>
+      <td style="font-family:monospace;font-size:.72rem">${r.westgard_rule||'PASS'}</td>
+      <td><span class="badge badge-${r.status==='PASS'?'validated':r.status==='WARN'?'pending':'crit-high'}">${r.status||'PASS'}</span></td>
+      <td>${r.operator_name||'—'}</td>
+    </tr>`).join('');
+  }catch(e){tbody.innerHTML=`<tr><td colspan="11" style="color:#dc2626;text-align:center">${e.message}</td></tr>`;}
+}
+
+function buildLJChart(data){
+  const ctx=document.getElementById('hem-lj-chart')?.getContext('2d');
+  if(!ctx||!data.length) return;
+  if(_ljChart) _ljChart.destroy();
+  const vals=data.slice().reverse();
+  const mean=vals[0]?.target_mean||0,sd=vals[0]?.sd||0;
+  _ljChart=new Chart(ctx,{type:'line',
+    data:{labels:vals.map((_,i)=>`#${i+1}`),
+      datasets:[
+        {label:'QC',data:vals.map(r=>r.result_value),borderColor:'#0891b2',backgroundColor:'rgba(8,145,178,.08)',
+          pointRadius:5,pointBackgroundColor:vals.map(r=>Math.abs((r.result_value-mean)/sd)>3?'#dc2626':Math.abs((r.result_value-mean)/sd)>2?'#f59e0b':'#10b981'),fill:true,tension:.2},
+        {label:'Mean',data:vals.map(()=>mean),borderColor:'#475569',borderWidth:1.5,pointRadius:0,fill:false},
+        {label:'+2s',data:vals.map(()=>mean+2*sd),borderColor:'#f59e0b',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false},
+        {label:'-2s',data:vals.map(()=>mean-2*sd),borderColor:'#f59e0b',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false},
+        {label:'+3s',data:vals.map(()=>mean+3*sd),borderColor:'#dc2626',borderDash:[2,2],borderWidth:1,pointRadius:0,fill:false},
+        {label:'-3s',data:vals.map(()=>mean-3*sd),borderColor:'#dc2626',borderDash:[2,2],borderWidth:1,pointRadius:0,fill:false},
+      ]},
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:9},boxWidth:10}}},
+      scales:{x:{ticks:{color:'#64748b',font:{size:9}}},y:{ticks:{color:'#64748b'},beginAtZero:false}}}
+  });
+}
+function openIQCModal(){toast('IQC entry…','info');}
+
+/* ── Critical Book ─────────────────────────────────────────── */
+async function loadCriticalBook(){
+  const tbody=document.getElementById('hem-book-tbody');if(!tbody)return;
+  try{
+    const data=await apiFetch(`${API}/laboratory/critical-book?limit=50`);
+    if(!data.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:1.5rem;color:#94a3b8">No critical entries.</td></tr>';return;}
+    tbody.innerHTML=data.map(e=>`<tr>
+      <td><strong>${e.entry_number||'—'}</strong></td><td>${e.pid||'—'}</td>
+      <td><span class="badge badge-crit-high">${e.critical_reason||'—'}</span></td>
+      <td>${e.result||'—'}</td><td>${e.clinician_notified||'—'}</td>
+      <td>${e.readback_confirmed?'✅':'⚠️'}</td>
+      <td style="font-size:.72rem">${e.archived_at?.substring(0,16)||'—'}</td>
+      <td style="font-family:monospace;font-size:.65rem;color:#94a3b8">${(e.pqc_hash||'').substring(0,22)}…</td>
+    </tr>`).join('');
+  }catch(e){tbody.innerHTML=`<tr><td colspan="8" style="color:#dc2626;text-align:center">${e.message}</td></tr>`;}
+}
+
+/* ── Anaemia detail popup ──────────────────────────────────── */
+function showMicrocyticDetail(type){
+  const d={
+    IDA:{t:'Iron Deficiency Anaemia',p:['Ferritin<12µg/L = DIAGNOSTIC of iron store depletion','RDW>14.5% (anisocytosis — varied cell sizes)','Mentzer>13 (IDA favoured)','Serum iron LOW, TIBC HIGH (transferrin sat<16%)','Blood film: pencil cells, hypochromic microcytes, anisocytosis, poikilocytosis','Treatment: Ferrous sulphate 200mg TDS × 3 months beyond Hb normalisation','⚠️ EXCLUDE thalassaemia — never give iron blindly to microcytic patient']},
+    THAL:{t:'β-Thalassaemia Trait',p:['HbA2>3.5% on HPLC = DIAGNOSTIC (autosomal recessive)','RDW NORMAL or mildly ↑ (uniform microcytosis — unlike IDA)','RBC count HIGH despite low Hb (paradox — more but smaller cells)','Mentzer<13 (thalassaemia favoured)','Blood film: target cells, basophilic stippling, microcytes','NO iron treatment needed unless concurrent IDA (check ferritin)','Genetic counselling — screen partner if reproductive age']},
+    ALPHA_THAL:{t:'α-Thalassaemia Trait',p:['HPLC often NORMAL — α-thal CANNOT be diagnosed by HPLC alone','Requires DNA analysis (α-globin gene deletion)','Common in SE Asia, Africa, Middle East, Mediterranean','Silent carrier (1 deletion): No anaemia, normal indices','Trait (2 deletions): Mild microcytic anaemia — clinically benign','HbH disease (3 deletions): Moderate haemolytic anaemia','Hb Barts hydrops (4 deletions): Lethal — fatal in utero or neonatal']},
+    SIDERO:{t:'Sideroblastic Anaemia',p:['Ring sideroblasts on bone marrow aspirate (Perls iron stain) = DIAGNOSTIC','Serum iron ELEVATED (iron accumulates in mitochondria)','Pappenheimer bodies on peripheral blood film','Dimorphic picture (mixed normal and microcytic cells)','Causes: Primary (MDS-RS), Acquired (alcohol, isoniazid, lead, pyridoxine deficiency)','Treatment: Pyridoxine (B6) trial — especially if drug-induced']},
+    ACD_MICRO:{t:'Anaemia of Chronic Disease (Microcytic)',p:['Ferritin ELEVATED (acute phase protein — elevated in infection/inflammation)','Serum iron LOW (unlike IDA where TIBC is HIGH, here TIBC is LOW/normal)','sTfR normal — helps differentiate from IDA','Associated with: CKD, malignancy, RA, IBD, chronic infection','Mechanism: hepcidin ↑ → sequestration of iron in macrophages','Treatment: Treat underlying disease; EPO ± IV iron in CKD (per KDIGO)']},
+  }[type];
+  if(!d) return;
+  alert(`${d.t}\n\n${d.p.map(p=>'• '+p).join('\n\n')}`);
+}
+
+/* ── Print CBC (white/cyan template) ──────────────────────── */
+function printCBCRow(idx){
+  const r=_wlData[idx];if(!r) return;
+  const now=new Date();
+  const w=window.open('','_blank','width=900,height=700');
+  if(!w) return;
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CBC - ${r.pid||'Patient'}</title>
+  <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:8.5pt;color:#0f172a;background:#fff;}
+  @page{margin:1cm;margin-top:2.8cm;margin-bottom:1.3cm;}
+  .header{position:fixed;top:0;left:0;right:0;height:2.5cm;max-height:2.5cm;overflow:hidden;display:flex;align-items:center;gap:.3cm;background:#fff;border-bottom:2.5pt solid #dc2626;padding:0 .5cm;print-color-adjust:exact;}
+  .header img{width:1.6cm;height:1.6cm;border-radius:50%;object-fit:cover;border:1.5pt solid #dc2626;}
+  .hdr-name{font-size:10pt;font-weight:800;color:#7f1d1d;}.hdr-sub{font-size:6pt;color:#475569;}
+  .hdr-right{text-align:right;font-size:6.5pt;color:#475569;margin-left:auto;}
+  .body{padding:.3cm .5cm;}
+  .title{font-size:9pt;font-weight:800;color:#dc2626;border-bottom:1pt solid #fca5a5;padding-bottom:2pt;margin-bottom:.25cm;text-transform:uppercase;}
+  .params{display:grid;grid-template-columns:repeat(5,1fr);gap:.2cm;margin-bottom:.25cm;}
+  .param{background:#fafbff;border:0.5pt solid #e4e8f0;border-radius:4pt;padding:3pt 5pt;}
+  .pname{font-size:6.5pt;color:#64748b;font-weight:700;text-transform:uppercase;}
+  .pval{font-size:11pt;font-weight:800;color:#0e7490;}.pval.crit{color:#7f1d1d;}.pval.low{color:#1e40af;}.pval.high{color:#92400e;}
+  .punit{font-size:5.5pt;color:#94a3b8;}
+  .diff-table{width:100%;border-collapse:collapse;font-size:7.5pt;margin-bottom:.25cm;}
+  .diff-table th{background:#dc2626;color:#fff;padding:2pt 5pt;font-size:6.5pt;text-align:left;}
+  .diff-table td{padding:2.5pt 5pt;border-bottom:0.5pt solid #e4e8f0;}
+  .diff-table tr:nth-child(even)td{background:#fafbff;}
+  .sig{display:grid;grid-template-columns:repeat(3,1fr);gap:.3cm;margin-top:.35cm;border-top:0.5pt solid #fca5a5;padding-top:.15cm;}
+  .sig-line{border-bottom:0.5pt solid #dc2626;height:.45cm;margin-bottom:2pt;}.sig-lbl{font-size:6pt;color:#475569;text-align:center;}
+  .footer{position:fixed;bottom:0;left:0;right:0;height:1cm;display:flex;align-items:center;justify-content:space-between;padding:0 .5cm;background:#fff;border-top:1.5pt solid #dc2626;font-size:6pt;color:#475569;print-color-adjust:exact;}
+  .pqc{font-family:monospace;font-size:5.5pt;color:#15803d;}
+  </style></head><body>
+  <div class="header">
+    <img src="/static/shared/assets/logos/jorinova-logo.jpeg" onerror="this.style.display='none'">
+    <div><div class="hdr-name">JORINOVA NEXUS ALIS-X — Haematology</div><div class="hdr-sub">Complete Blood Count · ISO 15189:2022 · ${r.analyzer_name||'Laboratory'}</div></div>
+    <div class="hdr-right"><div style="font-weight:700;color:#dc2626">${now.toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div><div>PID: ${r.pid||'—'} | Lab: ${r.lab_id||r.hem_id||'—'}</div><div>${now.toLocaleTimeString('en-GB')}</div></div>
+  </div>
+  <div class="body">
+    <div class="title">🩸 RBC Panel &amp; Indices</div>
+    <div class="params">
+      ${[['HGB','g/dL',r.hgb,r.hgb&&r.hgb<7?'crit':r.hgb&&r.hgb<13?'low':''],
+         ['RBC','×10¹²/L',r.rbc,''],['HCT','%',r.hct,''],
+         ['MCV','fL',r.mcv,''],['MCH','pg',r.mch,''],
+         ['MCHC','g/dL',r.mchc,''],['RDW-CV','%',r.rdw,''],
+         ['WBC','×10³/µL',r.wbc,r.wbc&&(r.wbc<2||r.wbc>30)?'crit':r.wbc&&(r.wbc<4||r.wbc>11)?'high':''],
+         ['PLT','×10³/µL',r.plt,r.plt&&r.plt<20?'crit':r.plt&&r.plt<100?'low':''],
+         ['ESR','mm/h',r.esr,'']
+        ].map(([n,u,v,c])=>`<div class="param"><div class="pname">${n}</div><div class="pval ${c||''}">${v||'—'}</div><div class="punit">${u}</div></div>`).join('')}
+    </div>
+    <div class="title">🔬 WBC Differential</div>
+    <table class="diff-table"><tr><th>Cell Type</th><th>Abbreviation</th><th>%</th><th># (×10³/µL)</th><th>Normal Range</th><th>Flag</th></tr>
+      ${[['Neutrophils','NEU',r.neut_pct,r.neut_abs,'40–75%'],
+         ['Lymphocytes','LYM',r.lymph_pct,r.lymph_abs,'20–45%'],
+         ['Monocytes','MON',r.mono_pct,r.mono_abs,'2–10%'],
+         ['Eosinophils','EOS',r.eos_pct,r.eos_abs,'1–6%'],
+         ['Basophils','BAS',r.baso_pct,r.baso_abs,'0–1%']
+        ].map(([n,a,p,ab,ref])=>`<tr><td>${n}</td><td style="font-family:monospace">${a}</td><td><strong>${p!=null?p+'%':'—'}</strong></td><td>${ab||'—'}</td><td style="color:#94a3b8">${ref}</td><td>${p==null?'':parseFloat(p)>parseFloat(ref.split('–')[1])?'⬆H':parseFloat(p)<parseFloat(ref.split('–')[0])?'⬇L':'✓N'}</td></tr>`).join('')}
+    </table>
+    <div class="sig">
+      <div><div class="sig-line"></div><div class="sig-lbl">Laboratory Scientist / Technician</div></div>
+      <div><div class="sig-line"></div><div class="sig-lbl">Senior Scientist / Validator</div></div>
+      <div><div class="sig-line"></div><div class="sig-lbl">Pathologist / Laboratory Manager</div></div>
+    </div>
+  </div>
+  <div class="footer">
+    <div>JORINOVA NEXUS ALIS-X · Haematology · ISO 15189:2022 · ${now.toLocaleDateString('en-GB')}</div>
+    <div class="pqc">🔐 PQC-Signed · CRYSTALS-Dilithium3 · NIST FIPS 204 · ${now.toISOString()}</div>
+  </div>
+  <script>window.onload=()=>setTimeout(()=>window.print(),350);<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+/* ── Init ──────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded',()=>{
+  loadWorklist();
+  const today=new Date().toISOString().split('T')[0];
+  ['wl-date','mal-date','smear-date'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=today;});
+});

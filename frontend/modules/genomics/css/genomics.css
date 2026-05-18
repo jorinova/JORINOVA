@@ -1,41 +1,85 @@
-/* JORINOVA NEXUS — MedGenome */
-.genome-main{display:flex;flex-direction:column;flex:1;overflow:hidden;background:var(--bg-void);}
-.genome-header{background:rgba(4,6,16,0.95);border-bottom:1px solid rgba(130,80,240,0.18);}
-.genome-live-badge{display:flex;align-items:center;gap:8px;padding:5px 14px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.25);border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:600;color:#A78BFA;}
-.genome-live-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#00E5FF;box-shadow:0 0 8px rgba(0,229,255,0.8);animation:pulse-normal 2s infinite;flex-shrink:0;}
-.genome-kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;background:rgba(4,6,16,0.95);border-bottom:1px solid rgba(130,80,240,0.15);flex-shrink:0;}
-.gkpi{padding:var(--space-md) var(--space-lg);border-right:1px solid rgba(130,80,240,0.1);display:flex;flex-direction:column;gap:4px;}
-.gkpi:last-child{border-right:none;}
-.gkpi-emoji{font-size:18px;line-height:1;}
-.gkpi-val{font-family:var(--font-display);font-size:24px;font-weight:700;color:#DDE4FF;line-height:1;}
-.gkpi-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#4A5288;}
-.genome-tabs .tab-btn.active{color:#A78BFA;border-bottom-color:#A78BFA;}
-.genome-tabs .tab-btn:hover{color:#DDE4FF;}
-.genome-body{flex:1;overflow-y:auto;padding:var(--space-xl);display:flex;flex-direction:column;gap:var(--space-lg);}
-.genome-queue-layout{display:grid;grid-template-columns:1fr 260px;gap:var(--space-lg);min-height:400px;}
-.genome-table-wrap{display:flex;flex-direction:column;border:1px solid rgba(130,80,240,0.15);border-radius:var(--radius-lg);}
-.coverage-bar{width:80px;height:6px;background:rgba(130,80,240,0.15);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px;}
-.coverage-fill{height:100%;border-radius:3px;transition:width 0.6s var(--ease-out);}
-.genome-progress-wrap{display:flex;align-items:center;gap:6px;}
-.genome-progress-bar{height:6px;width:100px;background:rgba(130,80,240,0.15);border-radius:3px;overflow:hidden;flex-shrink:0;background:linear-gradient(90deg,#8B5CF6 0%,#A78BFA calc(var(--pct,50%)));background-size:var(--pct,50%) 100%;background-repeat:no-repeat;}
-/* Side panel */
-.genome-side-panel{padding:var(--space-md);border:1px solid rgba(130,80,240,0.15);border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:var(--space-sm);}
-.genome-side-title{font-family:var(--font-display);font-size:var(--text-sm);font-weight:600;color:#DDE4FF;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
-.genome-qc-metric{display:flex;align-items:center;gap:var(--space-sm);}
-.gqc-label{font-size:11px;color:#4A5288;width:110px;flex-shrink:0;}
-.gqc-bar{flex:1;height:5px;background:rgba(130,80,240,0.12);border-radius:3px;overflow:hidden;}
-.gqc-fill{height:100%;border-radius:3px;background:rgba(139,92,246,0.7);}
-.gqc-val{font-family:var(--font-mono);font-size:11px;color:#A78BFA;width:80px;text-align:right;flex-shrink:0;}
-.genome-variant-legend{display:flex;flex-direction:column;gap:5px;}
-.gv-row{display:flex;align-items:center;gap:8px;font-size:var(--text-xs);color:#7A88CC;}
-.gv-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.gv-count{margin-left:auto;font-family:var(--font-mono);font-size:11px;}
-/* Feature badges */
-.genome-feature-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:600;color:#7A88CC;}
-/* QC grid */
-.genome-qc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-md);}
-.genome-qc-card{padding:var(--space-lg);border:1px solid rgba(130,80,240,0.15);border-radius:var(--radius-lg);text-align:center;}
-.gqc-card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#4A5288;margin-bottom:var(--space-sm);}
-.gqc-card-val{font-family:var(--font-display);font-size:32px;font-weight:700;line-height:1;}
-.gqc-card-sub{font-size:11px;color:#4A5288;margin-top:4px;}
-@media(max-width:1100px){.genome-queue-layout{grid-template-columns:1fr;}.genome-kpi-strip{grid-template-columns:repeat(3,1fr);}.genome-qc-grid{grid-template-columns:repeat(2,1fr);}}
+/* ── Genomics / MedGenome CSS ────────────────────────────────── */
+#genome-app{padding:0 0 2rem;}
+.dept-header{display:flex;justify-content:space-between;align-items:flex-start;padding:1.25rem 1.5rem;border-radius:12px;margin-bottom:1.25rem;gap:1rem;}
+.genome-hdr{background:linear-gradient(135deg,#0a001f 0%,#2d0060 50%,#4c00a0 100%);color:#fff;}
+.dh-left{display:flex;align-items:flex-start;gap:.85rem;}.dh-icon{font-size:2rem;}.dh-title{margin:0;font-size:1.6rem;font-weight:700;}.dh-sub{font-size:.81rem;opacity:.75;margin-top:.2rem;}
+.dh-right{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;}
+.dh-chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:.3rem .8rem;font-size:.82rem;}
+.dh-chip.danger{background:rgba(220,53,69,.35);border-color:#dc3545;}
+.dh-badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:.3rem .9rem;font-size:.78rem;}
+.dept-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:1.25rem;}
+.kpi{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:1.1rem;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.kpi.kpi-ngs{border-left:4px solid #4c00a0;}.kpi.kpi-pathogenic{border-left:4px solid #dc3545;}.kpi.kpi-novel{border-left:4px solid #f97316;}.kpi.kpi-vus{border-left:4px solid #eab308;}.kpi.kpi-pharma{border-left:4px solid #22c55e;}
+.kpi-val{font-size:2rem;font-weight:700;color:#0a001f;line-height:1;}.kpi-lbl{font-size:.78rem;color:#6c757d;margin-top:.4rem;}
+.dept-tabs{display:flex;gap:.5rem;border-bottom:2px solid #e9ecef;margin-bottom:1.25rem;flex-wrap:wrap;}
+.dt{background:none;border:none;padding:.5rem 1rem;border-radius:8px 8px 0 0;font-size:.87rem;font-weight:500;color:#6c757d;cursor:pointer;transition:.2s;}
+.dt:hover{background:#f3eeff;color:#4c00a0;}.dt.active{background:#4c00a0;color:#fff;}
+.dept-pane{display:none;}.dept-pane.active{display:block;}
+.genome-sq-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.25rem;}
+.sq-card{display:flex;flex-direction:column;gap:.5rem;background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:1rem;box-shadow:0 2px 6px rgba(0,0,0,.05);}
+.sq-card.ngs-sq{border-left:4px solid #4c00a0;}.sq-card.variant-sq{border-left:4px solid #dc3545;}.sq-card.novel-sq{border-left:4px solid #f97316;}.sq-card.db-sq{border-left:4px solid #22c55e;}
+.sq-icon{font-size:1.75rem;}.sq-name{font-weight:700;font-size:.95rem;color:#0a001f;}.sq-tests{font-size:.73rem;color:#6c757d;line-height:1.4;}.sq-cnt{font-size:1.1rem;font-weight:700;}
+.sq-card button{align-self:flex-end;background:none;border:1px solid #4c00a0;border-radius:6px;padding:.25rem .7rem;font-size:.79rem;cursor:pointer;}
+.genome-dash-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;}
+.genome-chart-box,.genome-db-status{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:1rem;box-shadow:0 2px 6px rgba(0,0,0,.05);}
+.box-title{font-weight:700;font-size:.92rem;color:#4c00a0;margin-bottom:.75rem;}
+.db-status-list{display:flex;flex-direction:column;gap:.4rem;}
+.db-status-item{display:flex;align-items:center;gap:.5rem;font-size:.82rem;}
+.db-name{font-weight:600;flex:1;color:#0a001f;}.db-sync{font-size:.76rem;}.db-sync.ok{color:#155724;}.db-sync.warn{color:#856404;}
+.db-version{font-size:.72rem;color:#6c757d;font-family:monospace;}
+/* ACMG classification bar */
+.acmg-ref-bar{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;padding:.5rem .75rem;background:#f3eeff;border-radius:8px;margin-bottom:.75rem;font-size:.79rem;}
+.acmg-class{padding:.15rem .5rem;border-radius:6px;font-size:.74rem;font-weight:600;}
+.acmg-class.pathogenic{background:#dc3545;color:#fff;}.acmg-class.likely-path{background:#f97316;color:#fff;}.acmg-class.vus{background:#eab308;color:#000;}.acmg-class.likely-benign{background:#d1ecf1;color:#0c5460;}.acmg-class.benign{background:#d4edda;color:#155724;}
+/* Novel alert */
+.novel-alert-box{background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:.7rem 1rem;font-size:.82rem;color:#c2410c;margin-bottom:1rem;}
+/* Cancer gene panels */
+.cancer-panels-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:.6rem;margin-bottom:1rem;}
+.cp-card{background:#fff;border:1px solid #e9ecef;border-radius:8px;padding:.65rem;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.cp-card.brca{border-top:3px solid #ec4899;}.cp-card.lynch{border-top:3px solid #f97316;}.cp-card.egfr{border-top:3px solid #3b82f6;}.cp-card.her2{border-top:3px solid #dc3545;}.cp-card.braf{border-top:3px solid #6366f1;}.cp-card.msi{border-top:3px solid #22c55e;}
+.cp-name{font-weight:700;font-size:.85rem;color:#0a001f;}.cp-desc{font-size:.71rem;color:#6c757d;margin-top:.15rem;line-height:1.3;}
+/* Pharmacogenomics */
+.pharma-intro{background:rgba(76,0,160,.08);border:1px solid rgba(76,0,160,.2);border-radius:8px;padding:.7rem 1rem;font-size:.82rem;color:#3730a3;margin-bottom:1rem;}
+.pharma-gene-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1rem;}
+.pg-card{background:#fff;border:1px solid #e9ecef;border-radius:8px;padding:.75rem;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.pg-gene{font-weight:700;font-size:.92rem;color:#4c00a0;margin-bottom:.2rem;}.pg-drugs{font-size:.78rem;color:#374151;margin-bottom:.2rem;}.pg-pheno{font-size:.74rem;color:#6c757d;}
+/* DB integration grid */
+.db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;}
+.db-card{background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:.85rem;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:.35rem;}
+.db-card.clinvar{border-top:3px solid #4c00a0;}.db-card.dbsnp{border-top:3px solid #6366f1;}.db-card.cosmic{border-top:3px solid #dc3545;}.db-card.ensembl{border-top:3px solid #22c55e;}.db-card.genbank{border-top:3px solid #3b82f6;}.db-card.who-tb{border-top:3px solid #f97316;}.db-card.local{border-top:3px solid #64748b;}
+.db-logo{font-size:1.5rem;}.db-name{font-weight:700;font-size:.88rem;color:#0a001f;}.db-desc{font-size:.76rem;color:#6c757d;line-height:1.3;flex:1;}.db-stat{font-size:.72rem;color:#4c00a0;font-family:monospace;}
+/* Report composer */
+.genome-report-composer{background:#fff;border:1px solid #e9ecef;border-radius:12px;overflow:hidden;}
+.rc-header{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid #e9ecef;flex-wrap:wrap;gap:.5rem;}
+.rc-header h3{margin:0;font-size:1rem;}.rc-tools{display:flex;gap:.5rem;}
+.rc-tools select{padding:.35rem .6rem;border:1px solid #ced4da;border-radius:6px;font-size:.83rem;}
+.rc-body{padding:1rem 1.25rem;display:flex;flex-direction:column;gap:.75rem;}
+.rc-field{display:flex;flex-direction:column;gap:.3rem;}
+.rc-field label{font-size:.82rem;font-weight:600;color:#495057;}
+.rc-field input,.rc-field textarea{padding:.4rem .65rem;border:1px solid #ced4da;border-radius:6px;font-size:.85rem;resize:vertical;}
+.rc-footer{display:flex;justify-content:flex-end;gap:.5rem;padding:.85rem 1.25rem;border-top:1px solid #e9ecef;}
+/* Shared */
+.dept-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;}
+.dept-filters{display:flex;gap:.5rem;flex-wrap:wrap;}
+.dept-filters select,.dept-filters input,.dept-search{padding:.35rem .6rem;border:1px solid #ced4da;border-radius:6px;font-size:.83rem;background:#fff;}
+.dept-toolbar-right{display:flex;gap:.4rem;}
+.dept-print-btn,.dept-filter-btn{background:none;border:1px solid #ced4da;border-radius:8px;padding:.35rem .65rem;cursor:pointer;}
+.tox-table-wrap{overflow-x:auto;overflow-y:auto;max-height:56vh;border:1px solid #e9ecef;border-radius:8px;}
+.dept-table{width:100%;border-collapse:collapse;font-size:.83rem;min-width:900px;}
+.dept-table thead th{background:#4c00a0;color:#fff;padding:.6rem .75rem;text-align:left;white-space:nowrap;position:sticky;top:0;z-index:2;}
+.dept-table tbody td{padding:.55rem .75rem;border-bottom:1px solid #f0f0f0;vertical-align:middle;}
+.dept-table tbody tr:hover td{background:#f8f4ff;}
+.dept-empty{text-align:center;color:#6c757d;padding:2rem;}
+.btn-primary{background:#4c00a0;color:#fff;border:none;padding:.5rem 1rem;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;}
+.btn-primary:hover{background:#2d0060;}.btn-secondary{background:#f8f9fa;color:#4c00a0;border:1px solid #ced4da;padding:.5rem 1rem;border-radius:8px;font-size:.85rem;cursor:pointer;}
+.dept-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:9000;backdrop-filter:blur(3px);}
+.dept-modal{background:#fff;border-radius:14px;width:90%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.dept-modal-wide{max-width:780px;}
+.dept-modal-hdr{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid #e9ecef;position:sticky;top:0;background:#fff;z-index:1;}
+.dept-modal-hdr h3{margin:0;font-size:1.05rem;}.dept-modal-hdr button{background:none;border:none;font-size:1.2rem;cursor:pointer;color:#6c757d;}
+.dept-modal-body{padding:1rem 1.25rem;}.dept-modal-ftr{display:flex;justify-content:flex-end;gap:.75rem;padding:1rem 1.25rem;border-top:1px solid #e9ecef;position:sticky;bottom:0;background:#fff;}
+.dept-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+.dept-form-row{display:flex;flex-direction:column;gap:.3rem;}.dept-form-row.full-col{grid-column:span 2;}
+.dept-form-row label{font-size:.82rem;font-weight:600;color:#495057;}
+.dept-form-row input,.dept-form-row select,.dept-form-row textarea{padding:.4rem .65rem;border:1px solid #ced4da;border-radius:6px;font-size:.85rem;}
+.dept-form-row textarea{resize:vertical;}

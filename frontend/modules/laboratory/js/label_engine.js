@@ -287,16 +287,28 @@
     try {
       JsBarcode(svgEl, lbl.barcode, {
         format:       'CODE128',
-        displayValue: true,
-        fontSize:     10,
-        height:       40,
+        displayValue: false,   // hide built-in text; we render our own below for full control
+        fontSize:     11,
+        height:       44,
         margin:       4,
         background:   '#ffffff',
         lineColor:    '#000000',
-        width:        1.5,
+        width:        1.6,
         textAlign:    'center',
-        font:         'monospace',
+        font:         'JetBrains Mono, monospace',
       });
+      // Inject human-readable barcode number below the bars (larger, formatted)
+      const barcodeWrap = svgEl.closest('.lc-barcode-wrap') || svgEl.parentElement;
+      if (barcodeWrap && !barcodeWrap.querySelector('.human-barcode-text')) {
+        const htxt = document.createElement('div');
+        htxt.className = 'human-barcode-text label-human-text';
+        // Format: groups of 4 chars separated by spaces for readability
+        const raw = lbl.barcode || '';
+        const formatted = raw.replace(/(.{4})/g, '$1 ').trim();
+        htxt.textContent = formatted;
+        htxt.title = `Barcode: ${raw}`;
+        barcodeWrap.appendChild(htxt);
+      }
     } catch (e) {
       console.warn('Barcode render failed:', e);
     }

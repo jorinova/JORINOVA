@@ -600,3 +600,74 @@
   .module-tiles { grid-template-columns: 1fr 1fr; }
   .quick-actions-grid { gap: var(--space-xs); }
 }
+
+/* ══ White/Cyan Dashboard Overrides ══════════════════════════ */
+.lc-page .dashboard-header { display: none; } /* Replaced by lc-header */
+.lc-page .stat-card {
+  background: #ffffff;
+  border: 1px solid #e0f2fe;
+  box-shadow: 0 1px 4px rgba(8,145,178,.08), 0 2px 8px rgba(0,0,0,.04);
+  color: #0f172a;
+}
+.lc-page .stat-card.stat-blue   { border-left: 4px solid #0891b2; }
+.lc-page .stat-card.stat-yellow { border-left: 4px solid #d97706; }
+.lc-page .stat-card.stat-green  { border-left: 4px solid #16a34a; }
+.lc-page .stat-card.stat-red    { border-left: 4px solid #dc2626; }
+.lc-page .stat-card .stat-card-glow { display: none; }
+.lc-page .stat-value { color: #0e7490; }
+.lc-page .stat-label { color: #475569; }
+.lc-page .stat-trend { color: #94a3b8; }
+
+/* Module tiles */
+.lc-page .module-tile {
+  background: #ffffff;
+  border: 1px solid #e0f2fe;
+  box-shadow: 0 1px 4px rgba(8,145,178,.06);
+  color: #0f172a;
+}
+.lc-page .module-tile:hover {
+  border-color: #bae6fd;
+  box-shadow: 0 4px 16px rgba(8,145,178,.12);
+}
+.lc-page .module-tile .mt-name { color: #0e7490; }
+.lc-page .module-tile .mt-desc { color: #64748b; }
+
+/* Activity feed */
+.lc-page .activity-feed,
+.lc-page .critical-results-panel,
+.lc-page .tat-panel {
+  background: #ffffff;
+  border: 1px solid #e0f2fe;
+  box-shadow: 0 1px 4px rgba(8,145,178,.06);
+}
+
+/* Quick actions */
+.lc-page .quick-action-btn {
+  background: #f0fdff;
+  border: 1px solid #bae6fd;
+  color: #0e7490;
+}
+.lc-page .quick-action-btn:hover {
+  background: #cffafe;
+  border-color: #0891b2;
+}
+
+/* Chart containers */
+.lc-page .chart-card {
+  background: #ffffff;
+  border: 1px solid #e0f2fe;
+}
+
+/* User chip */
+.dash-user-chip {
+  display: flex; align-items: center; gap: .4rem;
+  background: #f0fdff; border: 1px solid #bae6fd;
+  border-radius: 20px; padding: .2rem .65rem;
+}
+.dash-user-avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #0891b2; color: #fff;
+  font-size: .72rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}

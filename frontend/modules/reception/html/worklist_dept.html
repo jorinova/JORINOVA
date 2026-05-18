@@ -1,0 +1,157 @@
+{% extends "shared/html/base.html" %}
+{% load static %}
+
+{% block title %}{{ department|title }} Worklist — NEXUS ALIS-X{% endblock %}
+{% block module_id %}reception{% endblock %}
+{% block nav_active_reception %}active{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'modules/reception/css/worklist.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="wl-main" id="dept-wl-main" data-department="{{ department }}">
+
+  <!-- ── Header ── -->
+  <div class="lc-header">
+    <div class="lc-header-left">
+      <i class="fas fa-flask lc-header-icon dept-color"></i>
+      <div>
+        <div class="lc-header-title" id="dept-title">Worklist</div>
+        <div class="lc-header-sub" id="dept-sub">Loading…</div>
+      </div>
+    </div>
+    <div class="lc-header-right">
+      <span class="badge badge-cyan" id="dept-badge">—</span>
+      <select id="shift-filter" class="field-select-sm" onchange="loadDeptWorklist()">
+        <option value="">All Shifts</option>
+        <option value="Morning">Morning</option>
+        <option value="Afternoon">Afternoon</option>
+        <option value="Night">Night</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="printLabels()">
+        <i class="fas fa-print"></i> Print Labels
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="location.href='/worklist/'">
+        <i class="fas fa-arrow-left"></i> All Depts
+      </button>
+    </div>
+  </div>
+
+  <!-- ── KPI strip ── -->
+  <div class="kpi-strip">
+    <div class="kpi-chip kpi-cyan">
+      <span class="kpi-val" id="kpi-total">—</span>
+      <span class="kpi-lbl">Total</span>
+    </div>
+    <div class="kpi-chip kpi-orange">
+      <span class="kpi-val" id="kpi-stat">—</span>
+      <span class="kpi-lbl">STAT</span>
+    </div>
+    <div class="kpi-chip kpi-blue">
+      <span class="kpi-val" id="kpi-pending">—</span>
+      <span class="kpi-lbl">Pending</span>
+    </div>
+    <div class="kpi-chip kpi-purple">
+      <span class="kpi-val" id="kpi-progress">—</span>
+      <span class="kpi-lbl">In Progress</span>
+    </div>
+    <div class="kpi-chip kpi-green">
+      <span class="kpi-val" id="kpi-done">—</span>
+      <span class="kpi-lbl">Completed</span>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ── -->
+  <div class="wl-table-toolbar">
+    <input type="text" id="wl-search" class="wl-search"
+           placeholder="Search SID, patient, test…" oninput="filterRows()">
+    <select id="status-filter" class="field-select-sm" onchange="filterRows()">
+      <option value="">All Statuses</option>
+      <option value="RECEIVED">Received</option>
+      <option value="IN_PROGRESS">In Progress</option>
+      <option value="COMPLETED">Completed</option>
+      <option value="REJECTED">Rejected</option>
+    </select>
+    <button class="btn btn-ghost btn-sm" onclick="loadDeptWorklist()">
+      <i class="fas fa-sync-alt"></i> Refresh
+    </button>
+    <button class="btn btn-ghost btn-sm" onclick="printPage()">
+      <i class="fas fa-print"></i> Print List
+    </button>
+  </div>
+
+  <!-- ── Table ── -->
+  <div class="wl-table-wrap">
+    <table class="wl-table" id="dept-table">
+      <thead>
+        <tr>
+          <th class="col-rack">Rack #<br><small>Analyzer</small></th>
+          <th class="col-sid">SID<br><small>Specimen ID</small></th>
+          <th class="col-cid">CID<br><small>Culture ID</small></th>
+          <th class="col-patient">Patient</th>
+          <th class="col-specimen">Specimen<br><small>Tube</small></th>
+          <th class="col-tests">Tests Ordered</th>
+          <th class="col-priority">Priority</th>
+          <th class="col-status">Status</th>
+          <th class="col-time">TAT</th>
+          <th class="col-label">Label</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="dept-tbody">
+        <tr><td colspan="11" class="empty-row">
+          <i class="fas fa-spinner fa-spin"></i> Loading…
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /wl-main -->
+
+<!-- ── Reject Modal ── -->
+<div class="modal-overlay" id="reject-modal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h3 class="modal-title"><i class="fas fa-circle-xmark" style="color:#dc2626"></i> Reject Sample</h3>
+      <button class="btn-icon" onclick="closeRejectModal()"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="color:#64748b;font-size:.85rem;margin-bottom:1rem">
+        Rejecting <strong id="reject-sid"></strong>.
+        A replacement with the next SID will be created automatically (same barcode — billing protected).
+      </p>
+      <div class="field-group">
+        <label class="field-label">Rejection Reason (CLSI EP23)</label>
+        <select id="reject-reason-select" class="field-input" onchange="syncRejectReason()">
+          <option value="">— Select reason —</option>
+          <option value="Hemolyzed specimen">Hemolyzed specimen</option>
+          <option value="Clotted specimen">Clotted specimen</option>
+          <option value="Insufficient volume (QNS)">Insufficient volume (QNS)</option>
+          <option value="Wrong tube type">Wrong tube type</option>
+          <option value="Unlabelled specimen">Unlabelled / mislabelled specimen</option>
+          <option value="Lipemic specimen">Lipemic specimen</option>
+          <option value="Expired tube">Expired tube</option>
+          <option value="Leaked / contaminated">Leaked or contaminated container</option>
+          <option value="Excessive transport time">Excessive transport time / temperature</option>
+          <option value="Improper fixation">Improper fixation (pathology)</option>
+          <option value="Other">Other (specify below)</option>
+        </select>
+        <input type="text" id="reject-reason-text" class="field-input"
+               style="margin-top:.5rem" placeholder="Reason text">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeRejectModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmReject()">
+        <i class="fas fa-circle-xmark"></i> Reject &amp; Create Replacement
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="{% static 'shared/js/nexus-core.js' %}"></script>
+<script src="{% static 'modules/reception/js/worklist_dept.js' %}"></script>
+{% endblock %}
