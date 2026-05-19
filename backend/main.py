@@ -267,6 +267,11 @@ async def _seed_default_data():
 
         db.commit()
 
+        # Seed inventory if empty
+        from models.inventory import InventoryItem
+        if db.query(InventoryItem).count() == 0:
+            _seed_inventory(db, hospital)
+
         # Load test rules if empty
         if db.query(TestCatalog).count() == 0:
             logger.info('Loading test catalog and rules…')
@@ -278,6 +283,36 @@ async def _seed_default_data():
         db.rollback()
     finally:
         db.close()
+
+
+def _seed_inventory(db, hospital):
+    """Seed essential lab inventory items into PostgreSQL."""
+    from models.inventory import InventoryItem
+    from datetime import date
+    items = [
+        InventoryItem(item_code='EDTA-4ML',   name='EDTA 4mL Lavender Tubes',          category='consumable', unit='box/100', quantity=12, min_stock=5,  unit_cost=8500,  lot_number='L2026A', expiry_date=date(2027,3,1),  location='Store A',   hospital_id=hospital.id),
+        InventoryItem(item_code='SST-5ML',    name='SST Gold Top 5mL Tubes',           category='consumable', unit='box/100', quantity=8,  min_stock=10, unit_cost=12000, lot_number='L2026B', expiry_date=date(2027,6,1),  location='Store A',   hospital_id=hospital.id),
+        InventoryItem(item_code='CITRATE-3ML',name='Citrate 3mL Blue Tubes',           category='consumable', unit='box/100', quantity=6,  min_stock=5,  unit_cost=9000,  lot_number='L2026C', expiry_date=date(2027,4,1),  location='Store A',   hospital_id=hospital.id),
+        InventoryItem(item_code='FLUOR-2ML',  name='Fluoride/Oxalate 2mL Grey Tubes',  category='consumable', unit='box/100', quantity=10, min_stock=5,  unit_cost=7500,  expiry_date=date(2027,6,1),  location='Store A',   hospital_id=hospital.id),
+        InventoryItem(item_code='CHEM-GLUC',  name='Glucose Reagent (Cobas)',          category='reagent',    unit='cassette',quantity=4,  min_stock=3,  unit_cost=45000, lot_number='RG2026',  expiry_date=date(2026,8,15), location='Cold Room', hospital_id=hospital.id),
+        InventoryItem(item_code='CHEM-CREAT', name='Creatinine Reagent',               category='reagent',    unit='cartridge',quantity=6, min_stock=3,  unit_cost=38000, expiry_date=date(2026,9,1),  location='Cold Room', hospital_id=hospital.id),
+        InventoryItem(item_code='CHEM-LFT',   name='Liver Function Test Pack',         category='reagent',    unit='pack',    quantity=3,  min_stock=2,  unit_cost=95000, expiry_date=date(2026,10,1), location='Cold Room', hospital_id=hospital.id),
+        InventoryItem(item_code='MAL-RDT',    name='Malaria RDT (HRP2/pLDH)',          category='reagent',    unit='box/25',  quantity=15, min_stock=5,  unit_cost=18000, lot_number='MAL2026', expiry_date=date(2026,12,1), location='Store B',   hospital_id=hospital.id),
+        InventoryItem(item_code='HIV-COMBO',  name='HIV Ag/Ab Combo 4th Gen',          category='reagent',    unit='box/25',  quantity=22, min_stock=10, unit_cost=25000, expiry_date=date(2027,1,1),  location='Cold Room', hospital_id=hospital.id),
+        InventoryItem(item_code='HBSAG-RDT',  name='HBsAg Rapid Test',                category='reagent',    unit='box/25',  quantity=18, min_stock=8,  unit_cost=15000, expiry_date=date(2026,11,1), location='Store B',   hospital_id=hospital.id),
+        InventoryItem(item_code='BACTEC-AER', name='BACTEC Aerobic Blood Culture Bottles', category='reagent',unit='bottle', quantity=30, min_stock=20, unit_cost=4500,  expiry_date=date(2026,10,1), location='Cold Room', hospital_id=hospital.id),
+        InventoryItem(item_code='GX-CRTG',    name='GeneXpert MTB/RIF Ultra Cartridges',category='reagent',  unit='cartridge',quantity=2, min_stock=5,  unit_cost=25000, expiry_date=date(2026,9,1),  location='Molecular', hospital_id=hospital.id),
+        InventoryItem(item_code='GLOVES-M',   name='Latex Gloves Medium',             category='ppe',        unit='box/100', quantity=25, min_stock=10, unit_cost=3500,  location='PPE Store',         hospital_id=hospital.id),
+        InventoryItem(item_code='GLOVES-L',   name='Latex Gloves Large',              category='ppe',        unit='box/100', quantity=18, min_stock=10, unit_cost=3500,  location='PPE Store',         hospital_id=hospital.id),
+        InventoryItem(item_code='MASK-N95',   name='N95 Respirator Masks',            category='ppe',        unit='box/20',  quantity=8,  min_stock=5,  unit_cost=12000, expiry_date=date(2028,1,1),  location='PPE Store',         hospital_id=hospital.id),
+        InventoryItem(item_code='SLIDE-PLAIN',name='Plain Glass Slides',              category='consumable', unit='box/72',  quantity=20, min_stock=5,  unit_cost=4500,  location='Store A',           hospital_id=hospital.id),
+        InventoryItem(item_code='IMMERSION',  name='Immersion Oil (Type A)',          category='reagent',    unit='bottle',  quantity=5,  min_stock=2,  unit_cost=8000,  expiry_date=date(2028,6,1),  location='Microscopy', hospital_id=hospital.id),
+        InventoryItem(item_code='LANCETS',    name='Safety Lancets 21G',              category='consumable', unit='box/200', quantity=12, min_stock=5,  unit_cost=6000,  expiry_date=date(2028,1,1),  location='Store A',   hospital_id=hospital.id),
+    ]
+    for it in items:
+        db.add(it)
+    db.commit()
+    logger.info('Inventory seeded: %d items', len(items))
 
 
 async def _load_test_rules(db, hospital):
@@ -494,6 +529,7 @@ class _SilentUndefined(Undefined):
 
 _ROUTERS = [
     # Core
+    ('routers.sync',            'router'),   # first: ping has no auth
     ('routers.auth',            'router'),
     ('routers.patients',        'router'),
     ('routers.laboratory',      'router'),

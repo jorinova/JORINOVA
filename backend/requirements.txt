@@ -83,3 +83,5 @@ numpy>=1.26                   # Array ops for OCR preprocessing
 # ── Utilities ────────────────────────────────────────────────────────────────
 python-dateutil>=2.8
 phonenumbers>=8.13             # Google libphonenumber — E.164 normalisation for all countries
+webrtcvad>=2.0.10              # WebRTC Voice Activity Detection (VAD) for realtime audio processing
+

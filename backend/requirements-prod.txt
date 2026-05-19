@@ -7,3 +7,5 @@ weasyprint>=60.0        # PDF report generation
 africastalking>=1.0     # SMS (Rwanda MTN/Airtel via Africa's Talking)
 sentry-sdk[fastapi]>=1.40  # Error monitoring (optional — leave blank SENTRY_DSN to disable)
 psutil>=5.9             # System health metrics for admin dashboard
+webrtcvad>=2.0.10              # WebRTC Voice Activity Detection (VAD) for realtime audio processing
+

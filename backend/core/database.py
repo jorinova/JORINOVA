@@ -50,5 +50,7 @@ def create_all_tables():
         voice_biometric,
         # Worklist preparation & billing
         worklist, billing,
+        # Sync (offline-first)
+        sync_queue,
     )
     Base.metadata.create_all(bind=engine)

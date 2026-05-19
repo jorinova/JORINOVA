@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
 
+  <link rel="stylesheet" href="{% static 'shared/css/network-indicator.css' %}">
   <link rel="stylesheet" href="{% static 'shared/css/variables.css' %}">
   <link rel="stylesheet" href="{% static 'shared/css/layout.css' %}">
   <link rel="stylesheet" href="{% static 'shared/css/themes.css' %}">
@@ -705,12 +706,6 @@
           <a href="/billing/insurance/" class="flyout-item">
             <span class="flyout-emoji">🛡️</span> Insurance Claims
           </a>
-          <a href="/nexuscare/" class="flyout-item">
-            <span class="flyout-emoji">🏥</span> NexusCare
-          </a>
-          <a href="/telediagnostic/" class="flyout-item">
-            <span class="flyout-emoji">📡</span> TeleDiagnostic
-          </a>
         </div>
       </div>
       {% endif %}
@@ -807,6 +802,35 @@
             <span class="flyout-emoji">🏷️</span> {{ request.user.get_role_display|default:'Staff' }}
           </div>
         </div>
+      </div>
+
+      <!-- ── Network & Sync indicator ───────────────────────── -->
+      <div style="padding:.4rem .75rem .2rem; display:flex; flex-direction:column; gap:.35rem;">
+
+        <!-- Network status bar -->
+        <div class="nexus-network-bar quality-unknown" id="nexus-network-bar"
+             title="Click for network details" onclick="NexusNetwork && document.getElementById('nn-detail').classList.toggle('hidden')"
+             style="cursor:pointer">
+          <span class="conn-dot offline" id="nn-dot"></span>
+          <span id="nn-icon">📡</span>
+          <span id="nn-label" style="flex:1;font-size:.73rem">Checking…</span>
+          <span id="nn-latency" style="font-size:.68rem;opacity:.8"></span>
+          <span id="nn-satellite-warn" style="display:none;font-size:.68rem">HIGH LAT</span>
+        </div>
+
+        <!-- Sync button -->
+        <button class="sync-status-btn" onclick="NexusSync?.sync(true)" title="Sync offline data">
+          <span class="sync-spin" id="sync-spin-icon">🔄</span>
+          <span style="font-size:.72rem">Sync</span>
+          <span id="sync-badge" style="display:none;background:#ffc107;color:#000;border-radius:10px;padding:.05rem .35rem;font-size:.65rem;font-weight:700;margin-left:.25rem">0</span>
+        </button>
+      </div>
+
+      <!-- Offline banner (shown when disconnected) -->
+      <div id="nexus-offline-banner">
+        <span class="ob-icon">🔴</span>
+        <span>Offline mode — data saved locally</span>
+        <button class="ob-sync-btn" onclick="NexusSync?.sync(true)">Sync now</button>
       </div>
 
       <button class="nav-item nav-item-logout" id="logout-btn" type="button" data-tooltip="🚀 Sign Out">
@@ -946,6 +970,10 @@ window.NEXUS = Object.assign(window.NEXUS || {}, {
 });
 </script>
 
+<!-- Offline-first: load before nexus-core so NexusNetwork is available -->
+<script src="{% static 'shared/js/offline-store.js' %}" defer></script>
+<script src="{% static 'shared/js/network-monitor.js' %}" defer></script>
+<script src="{% static 'shared/js/sync-manager.js' %}" defer></script>
 <script src="{% static 'shared/js/nexus-core.js' %}" defer></script>
 <script src="{% static 'shared/js/nexus-signature.js' %}" defer></script>
 <script src="{% static 'shared/js/nexus-search.js' %}" defer></script>
@@ -1018,6 +1046,60 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 </script>
+
+<!-- Network & Sync UI bridge -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var banner  = document.getElementById('nexus-offline-banner');
+  var dot     = document.getElementById('nn-dot');
+
+  function updateDot(quality) {
+    if (!dot) return;
+    dot.className = 'conn-dot ' + (quality || 'offline');
+  }
+
+  document.addEventListener('nexus:online', function (e) {
+    if (banner) banner.classList.remove('visible');
+    updateDot(e.detail.quality);
+  });
+  document.addEventListener('nexus:offline', function () {
+    if (banner) banner.classList.add('visible');
+    updateDot('offline');
+  });
+  document.addEventListener('nexus:network-change', function (e) {
+    updateDot(e.detail.quality);
+    // Show satellite notice
+    var sat = document.getElementById('nexus-sat-notice');
+    if (sat) {
+      if (e.detail.type && e.detail.type.includes('satellite')) {
+        sat.textContent = '🛰️ Satellite connection detected — batching requests for better performance';
+        sat.classList.add('visible');
+        setTimeout(function(){ sat.classList.remove('visible'); }, 8000);
+      } else {
+        sat.classList.remove('visible');
+      }
+    }
+  });
+
+  // Sync progress bar
+  document.addEventListener('nexus:sync-start', function () {
+    var bar = document.getElementById('nexus-sync-bar');
+    if (bar) { bar.className = 'active'; bar.style.width = '30%'; }
+  });
+  document.addEventListener('nexus:sync-complete', function (e) {
+    var bar = document.getElementById('nexus-sync-bar');
+    if (bar) {
+      bar.style.width = '100%'; bar.className = 'done';
+      setTimeout(function(){ bar.style.width = '0%'; bar.className = ''; }, 1000);
+    }
+  });
+});
+</script>
+
+<!-- Satellite notice element -->
+<div id="nexus-sat-notice"></div>
+<!-- Sync progress bar (slim top strip) -->
+<div id="nexus-sync-bar"></div>
 
 <!-- NEXUS Global UX Bridge — connects search/shortcuts/recent to nav buttons -->
 <script>

@@ -439,4 +439,15 @@ function showNotif(msg) {
   setTimeout(() => n.remove(), 3000);
 }
 
-function sectionChanged() { /* placeholder for future test catalog lookup */ }
+function sectionChanged() {
+  const section = document.getElementById('rmod-section')?.value;
+  const unitHints = {
+    GENERAL:  'mmol/L, U/L, g/L, µmol/L',
+    HORMONES: 'mIU/L, pmol/L, nmol/L, IU/L',
+    MARKERS:  'ng/mL, U/mL, µg/L, IU/mL',
+  };
+  const testEl = document.getElementById('rmod-test-name');
+  if (testEl) testEl.placeholder = `e.g. ${section === 'HORMONES' ? 'TSH, FT4, Cortisol' : section === 'MARKERS' ? 'AFP, CEA, PSA' : 'Glucose, Creatinine, ALT'}`;
+  const unitEl = document.getElementById('rmod-unit');
+  if (unitEl && !unitEl.value) unitEl.placeholder = unitHints[section] || 'e.g. mmol/L';
+}

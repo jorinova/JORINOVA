@@ -1,0 +1,167 @@
+/* ── JORINOVA NEXUS — Network & Sync Indicator ──────────────────────────── */
+
+/* ── Network bar (bottom of sidebar or top strip) ──────────────────────── */
+.nexus-network-bar {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .75rem;
+  font-size: .75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: default;
+  user-select: none;
+  transition: background .3s, color .3s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Quality colour states */
+.nexus-network-bar.quality-excellent { background: #d4edda; color: #155724; }
+.nexus-network-bar.quality-good      { background: #cce5ff; color: #004085; }
+.nexus-network-bar.quality-fair      { background: #fff3cd; color: #856404; }
+.nexus-network-bar.quality-poor      { background: #f8d7da; color: #721c24; }
+.nexus-network-bar.quality-offline   { background: #343a40; color: #fff;    }
+.nexus-network-bar.quality-unknown   { background: #e2e3e5; color: #383d41; }
+
+/* Satellite pulsing badge */
+#nn-satellite-warn {
+  background: #fff3cd;
+  color: #856404;
+  border-radius: 4px;
+  padding: .1rem .35rem;
+  font-size: .68rem;
+  font-weight: 700;
+  animation: satellite-pulse 3s ease-in-out infinite;
+}
+
+@keyframes satellite-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .55; }
+}
+
+/* Latency chip */
+#nn-latency {
+  background: rgba(0,0,0,.12);
+  border-radius: 4px;
+  padding: .1rem .35rem;
+  font-family: monospace;
+  font-size: .7rem;
+}
+
+/* ── Sync indicator (sidebar button / badge) ────────────────────────────── */
+.sync-status-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  background: none;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 7px;
+  color: rgba(255,255,255,.8);
+  padding: .3rem .65rem;
+  font-size: .75rem;
+  cursor: pointer;
+  transition: .2s;
+}
+.sync-status-btn:hover { background: rgba(255,255,255,.1); }
+
+/* Pending operations badge */
+#sync-badge {
+  display: none;
+  position: absolute;
+  top: -.4rem;
+  right: -.4rem;
+  background: #ffc107;
+  color: #000;
+  border-radius: 10px;
+  padding: .05rem .35rem;
+  font-size: .65rem;
+  font-weight: 700;
+  min-width: 1.1rem;
+  text-align: center;
+}
+
+/* Spinning sync icon */
+.sync-spin      { display: inline-block; }
+.sync-spin.active { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Offline banner (full-width top alert) ──────────────────────────────── */
+#nexus-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: #343a40;
+  color: #fff;
+  padding: .45rem 1rem;
+  font-size: .82rem;
+  text-align: center;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+#nexus-offline-banner.visible { display: flex; }
+#nexus-offline-banner .ob-icon { font-size: 1.1rem; }
+#nexus-offline-banner .ob-sync-btn {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.3);
+  color: #fff;
+  border-radius: 5px;
+  padding: .2rem .65rem;
+  font-size: .75rem;
+  cursor: pointer;
+}
+
+/* ── Satellite mode notice ───────────────────────────────────────────────── */
+#nexus-sat-notice {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: .5rem 1rem;
+  font-size: .8rem;
+  z-index: 8000;
+  display: none;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+#nexus-sat-notice.visible { display: block; }
+
+/* ── Sync progress bar (slim top bar) ───────────────────────────────────── */
+#nexus-sync-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #6366f1, #0ea5e9);
+  width: 0%;
+  transition: width .4s ease;
+  z-index: 10000;
+  display: none;
+}
+#nexus-sync-bar.active { display: block; }
+#nexus-sync-bar.done   { width: 100%; background: #22c55e; }
+
+/* ── Connection quality dot ──────────────────────────────────────────────── */
+.conn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.conn-dot.excellent { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+.conn-dot.good      { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
+.conn-dot.fair      { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+.conn-dot.poor      { background: #ef4444; box-shadow: 0 0 6px #ef4444; animation: blink-dot 1.2s infinite; }
+.conn-dot.offline   { background: #6b7280; }
+@keyframes blink-dot { 0%,100%{opacity:1} 50%{opacity:.2} }

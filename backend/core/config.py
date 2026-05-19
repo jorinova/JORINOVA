@@ -50,7 +50,9 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         if self.db_engine == 'postgresql':
-            return (f'postgresql+psycopg2://{self.db_user}:{self.db_password}'
+            from urllib.parse import quote_plus
+            pw = quote_plus(self.db_password)   # safely encode @, /, # etc.
+            return (f'postgresql+psycopg2://{self.db_user}:{pw}'
                     f'@{self.db_host}:{self.db_port}/{self.db_name}')
         # SQLite fallback
         base = os.path.dirname(os.path.dirname(__file__))

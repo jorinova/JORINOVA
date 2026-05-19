@@ -83,27 +83,61 @@
     </tr>`;
   }
 
-  function loadEvents(filter = {}) {
+  async function loadEvents(filter = {}) {
     const tbody = document.getElementById('audit-events-tbody');
     if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:1rem;color:#6c757d">Loading…</td></tr>';
 
-    let events = [...DEMO_EVENTS];
-    if (filter.category) events = events.filter(e => e.category === filter.category);
-    if (filter.risk) events = events.filter(e => e.risk_level === filter.risk);
-    if (filter.suspicious) events = events.filter(e => e.is_suspicious);
-    if (filter.search) {
-      const q = filter.search.toLowerCase();
-      events = events.filter(e =>
-        e.description.toLowerCase().includes(q) ||
-        e.username.toLowerCase().includes(q) ||
-        e.action.toLowerCase().includes(q)
-      );
-    }
+    try {
+      const params = new URLSearchParams({ limit: 100 });
+      if (filter.category)   params.set('entity_type', filter.category.toUpperCase());
+      if (filter.suspicious) params.set('suspicious_only', 'true');
+      const tok = window.NEXUS?.token || localStorage.getItem('alis_token') || '';
+      const res = await fetch(`/api/v1/audit-trail/logs?${params}`, {
+        headers: tok ? { Authorization: `Bearer ${tok}` } : {},
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      let events = await res.json();
+      events = Array.isArray(events) ? events : (events.results || events.items || []);
 
-    tbody.innerHTML = events.map(renderEvent).join('');
+      // client-side filter for search/risk
+      if (filter.risk) events = events.filter(e => e.risk_level === filter.risk);
+      if (filter.search) {
+        const q = filter.search.toLowerCase();
+        events = events.filter(e =>
+          (e.description||'').toLowerCase().includes(q) ||
+          (e.username||e.performed_by||'').toLowerCase().includes(q) ||
+          (e.action||'').toLowerCase().includes(q)
+        );
+      }
 
-    const pag = document.getElementById('audit-pagination');
-    if (pag) pag.innerHTML = `<span>Showing ${events.length} of ${DEMO_EVENTS.length} events (demo)</span><span>Page 1 of 1</span>`;
+      if (!events.length) {
+        // fallback to demo data so the page isn't empty
+        events = [...DEMO_EVENTS];
+        const pag = document.getElementById('audit-pagination');
+        if (pag) pag.innerHTML = `<span>Showing ${events.length} sample events — no live data yet</span>`;
+      } else {
+        const pag = document.getElementById('audit-pagination');
+        if (pag) pag.innerHTML = `<span>Showing ${events.length} events</span><span>Live data</span>`;
+      }
+      tbody.innerHTML = events.map(renderEvent).join('');
+    } catch (err) {
+      // Network/auth failure → show demo data with notice
+      let events = [...DEMO_EVENTS];
+      if (filter.category)   events = events.filter(e => e.category === filter.category);
+      if (filter.risk)       events = events.filter(e => e.risk_level === filter.risk);
+      if (filter.suspicious) events = events.filter(e => e.is_suspicious);
+      if (filter.search) {
+        const q = filter.search.toLowerCase();
+        events = events.filter(e =>
+          e.description.toLowerCase().includes(q) ||
+          e.username.toLowerCase().includes(q) ||
+          e.action.toLowerCase().includes(q)
+        );
+      }
+      tbody.innerHTML = events.map(renderEvent).join('');
+      const pag = document.getElementById('audit-pagination');
+      if (pag) pag.innerHTML = `<span>Showing ${events.length} of ${DEMO_EVENTS.length} sample events (offline mode)</span><span>Page 1 of 1</span>`;
   }
 
   function initEventSearch() {
