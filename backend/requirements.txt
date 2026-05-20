@@ -14,7 +14,6 @@ alembic>=1.13               # database migrations
 
 # ── Auth & Security ───────────────────────────────────────────────────────────
 python-jose[cryptography]>=3.3
-passlib[bcrypt]>=1.7
 
 # ── Config ────────────────────────────────────────────────────────────────────
 pydantic-settings>=2.0
@@ -84,4 +83,3 @@ numpy>=1.26                   # Array ops for OCR preprocessing
 python-dateutil>=2.8
 phonenumbers>=8.13             # Google libphonenumber — E.164 normalisation for all countries
 webrtcvad>=2.0.10              # WebRTC Voice Activity Detection (VAD) for realtime audio processing
-
