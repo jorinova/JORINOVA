@@ -212,6 +212,94 @@ def _seed_staff(db, hospital, hash_fn):
     log.info('Staff seeded: %d additional users', added)
 
 
+# ── Universal Operators ─────────────────────────────────────────────────────────
+
+_UNIVERSAL_OPERATOR_SEED = [
+    # Lab-side
+    ('LAB_TECH',       'Lab Tech R.','Lab Technician',      ['LAB_TECH'],              'lab@nexus.rw',   '+250788001001', 8.0, '06:00', '14:00'),
+    ('LAB_TECH_2',     'Lab Tech M.','Lab Technician',      ['LAB_TECH'],              'lm@nexus.rw',    '+250788001002', 8.0, '14:00', '22:00'),
+    ('PATHOLOGIST',    'Dr. P.','Pathologist',             ['PATHOLOGIST'],           'path@nexus.rw',  '+250788002001', 8.0, '08:00', '16:00'),
+    ('QC_OFFICER',     'Q.C. Ofc.', 'QC Officer',          ['QC_OFFICER'],            'qc@nexus.rw',    '+250788003001', 8.0, '07:00', '15:00'),
+    ('DATA_STEWARD',   'Data S.','Data Steward',           ['DATA_STEWARD'],          'dss@nexus.rw',   '+250788004001', 8.0, '08:00', '16:00'),
+    ('RESULT_COORD',   'Res. Cord.','Result Coordinator', ['RESULT_COORD'],          'rc@nexus.rw',    '+250788005001', 8.0, '07:00', '15:00'),
+    ('COURIER',        'Cour. J.', 'Courier',             ['COURIER'],               'courier@nexus.rw', '+250788006001', 8.0,'00:00', '23:59'),
+    # Clinical
+    ('UNIT_DOCTOR',    'Dr. U.','Unit Doctor',             ['UNIT_DOCTOR'],           'ud@nexus.rw',    '+250788007001', 8.0, '08:00', '16:00'),
+    ('NURSE',          'Nurse A.', 'Nurse',               ['NURSE'],                 'nurse@nexus.rw', '+250788008001', 8.0, '06:00', '14:00'),
+    ('CLINICIAN',      'Clin. B.', 'Clinician',            ['CLINICIAN'],             'clin@nexus.rw',  '+250788009001', 8.0, '09:00', '17:00'),
+    ('GYNAECOLOGIST',  'Dr. G.',   'Gynaecologist',         ['GYNAECOLOGIST'],         'gyn@nexus.rw',   '+250788010001', 8.0, '09:00', '17:00'),
+    ('ONCOLOGIST',     'Dr. O.',   'Oncologist',            ['ONCOLOGIST'],            'onco@nexus.rw',  '+250788011001', 8.0, '09:00', '17:00'),
+    ('RADIOLOGIST',    'Dr. R.',   'Radiologist',           ['RADIOLOGIST'],           'rad@nexus.rw',   '+250788012001', 8.0, '08:00', '16:00'),
+]
+
+
+def _seed_universal_operators(db, hash_fn):
+    """Seed the 12 universal operator roles — always fill all 12 before stopping."""
+    import json
+    from models.universal import UniversalOperator, DepartmentOperator
+    from models.core_config import LaboratoryDepartment
+
+    added = 0
+    for row in _UNIVERSAL_OPERATOR_SEED:
+        short, full, role_type, roles, email, phone, hrs, s_start, s_end = row
+        if db.query(UniversalOperator).filter(UniversalOperator.short_name == short).first():
+            continue
+        op = UniversalOperator(
+            short_name=short, full_name=full, role_type=role_type,
+            roles=json.dumps(roles), email=email, phone=phone,
+            default_hours_per_day=hrs, shift_start=s_start, shift_end=s_end,
+            is_active=True,
+        )
+        db.add(op)
+        added += 1
+    db.commit()
+
+    # Assign each operator to all active departments
+    depts = db.query(LaboratoryDepartment).filter(LaboratoryDepartment.is_active == True).all()
+    if depts:
+        ops = db.query(UniversalOperator).all()
+        links = 0
+        for op in ops:
+            for dept in depts:
+                exists = db.query(DepartmentOperator).filter(
+                    DepartmentOperator.operator_id == op.id,
+                    DepartmentOperator.department_id == dept.id,
+                ).first()
+                if not exists:
+                    db.add(DepartmentOperator(operator_id=op.id, department_id=dept.id))
+                    links += 1
+        db.commit()
+        log.info('Universal operators seeded: %d | dept-links created: %d', added, links)
+    else:
+        log.info('Universal operators seeded: %d (no departments available for linking)', added)
+
+
+def _seed_24h_counters(db, hospital):
+    """Seed one Daily24hRackCounter row per active department for today."""
+    from datetime import date
+    from models.worklist import Daily24hRackCounter
+    from models.core_config import LaboratoryDepartment
+
+    today = date.today()
+    depts = db.query(LaboratoryDepartment).filter(LaboratoryDepartment.is_active == True).all()
+    added = 0
+    for dept in depts:
+        exists = db.query(Daily24hRackCounter).filter(
+            Daily24hRackCounter.department == dept.code,
+            Daily24hRackCounter.counter_date == today,
+        ).first()
+        if exists:
+            continue
+        db.add(Daily24hRackCounter(
+            department=dept.code, counter_date=today, last_number=0,
+        ))
+        added += 1
+    db.commit()
+    log.info('24h rack counters seeded: %d departments for %s', added, today)
+
+
+
+
 def _seed(settings):
     """Seed default hospital, admin user, test catalog, specimen types,
     and inventory — aligned with FastAPI startup seed for consistency."""
@@ -280,6 +368,12 @@ def _seed(settings):
         from models.user import User
         if db.query(User).count() == 1:
             _seed_staff(db, hospital, hash_password)
+
+        # Universal operators (all 12 roles)
+        _seed_universal_operators(db, hash_password)
+
+        # 24h cross-shift rack counter rows (one per department per day)
+        _seed_24h_counters(db, hospital)
 
     except Exception as e:
         db.rollback()

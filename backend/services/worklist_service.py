@@ -4,7 +4,8 @@ Worklist Preparation Service
 Core business logic for:
   - SID generation (HEM-01, HEM-02 on rejection, resets per new request/day)
   - CID generation (C-01, C-02 … global microbiology plate counter per day)
-  - Rack number generation (1, 2, 3 … per department per shift)
+  - Rack number generation (1, 2, 3 … per department per day — cross-shift 24h)
+  - 24h slot geometry (floor = rack // 24, column = rack % 24, slot = column + 1)
   - Auto-routing ordered tests to department worklists
   - Specimen label data assembly
 
@@ -20,10 +21,13 @@ CID Rules:
   2. Global per microbiology per day (not patient-scoped)
   3. Assigned only to specimens with generates_cid=True
 
-Rack Number Rules:
+Rack Number Rules (24h model):
   1. Sequential integer: 1, 2, 3 …
-  2. Scoped to department + date + shift
-  3. Resets each shift (or daily if shift setting is 'daily')
+  2. Scoped to department + date  (NO shift column — persists across Morning→Afternoon→Night)
+  3. Resets at midnight only
+  4. Floor (0-indexed row) = rack_number // 24
+  5. Column (0-indexed within floor) = rack_number % 24
+  6. Slot label on tube (> 1) = column + 1
 """
 from __future__ import annotations
 import logging
@@ -208,29 +212,26 @@ def generate_rack_number(
     today: Optional[date] = None,
 ) -> int:
     """
-    Return the next rack/analyzer position number for this department+shift.
-    Resets to 1 on each new shift.
+    Return the next rack/analyzer position number for this department.
+    24-hour model: counter is scoped to department+date ONLY (no shift column).
+    Numbers persist across Morning→Afternoon→Night, reset at midnight.
     """
-    from models.worklist import DailyRackCounter
+    from models.worklist import Daily24hRackCounter
     today = today or date.today()
     department = department.lower()
 
     counter = (
-        db.query(DailyRackCounter)
+        db.query(Daily24hRackCounter)
         .filter(
-            DailyRackCounter.department   == department,
-            DailyRackCounter.counter_date == today,
-            DailyRackCounter.shift_name   == shift_name,
+            Daily24hRackCounter.department   == department,
+            Daily24hRackCounter.counter_date == today,
         )
         .with_for_update()
         .first()
     )
     if counter is None:
-        counter = DailyRackCounter(
-            department=department,
-            counter_date=today,
-            shift_name=shift_name,
-            last_number=0,
+        counter = Daily24hRackCounter(
+            department=department, counter_date=today, last_number=0,
         )
         db.add(counter)
 
@@ -238,6 +239,40 @@ def generate_rack_number(
     db.flush()
 
     return counter.last_number
+
+
+def rack_to_geometry(rack_number: int) -> dict:
+    """
+    Convert an integer rack number to floor/column/slot geometry.
+
+    Layout is a 24-slot repeating grid:
+        floor   = rack_number // 24          (0-indexed floor/row)
+        column  = rack_number %  24           (0-indexed slot within floor)
+        slot    = column + 1                  (1-indexed label on tube)
+
+    Example: rack 31 → floor 1, column 7, slot "8"
+    """
+    floor  = rack_number // 24
+    column = rack_number %  24
+    return {
+        'rack_number': rack_number,
+        'floor':  floor,
+        'column': column,
+        'slot':   column + 1,
+    }
+
+
+def next_24h_slot(db: Session, department: str) -> dict:
+    """
+    Convenience: return rack geometry + shift context for the next available slot.
+    """
+    rack_no = generate_rack_number(db, department)
+    from services.worklist_service import get_current_shift
+    return {
+        **rack_to_geometry(rack_no),
+        'shift': get_current_shift(db),
+        'scanned_at': datetime.now(timezone.utc).isoformat(),
+    }
 
 
 # ── Current shift helper ──────────────────────────────────────────────────────
@@ -360,8 +395,8 @@ def route_request_to_worklist(
         # SID
         sid = generate_sid(db, req.patient_id, lab_request_id, acronym, today)
 
-        # Rack number
-        rack_no = generate_rack_number(db, dept, shift_name, today)
+        # Rack number  (24h cross-shift — resets at midnight, not per shift)
+        rack_no = generate_rack_number(db, dept, today=today)
 
         # CID for culture specimens
         cid = generate_cid(db, today) if generates_cid else None

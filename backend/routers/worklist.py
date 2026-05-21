@@ -82,6 +82,37 @@ class SpecimenTypeCreate(BaseModel):
     volume_ml:          Optional[float] = None
     description:        Optional[str]   = None
 
+class RackGeometry(BaseModel):
+    """
+    24h slot geometry response for /api/v1/rack/next/{dept}.
+
+    Formula:
+        floor  = rack_number // 24          (0-indexed floor/row)
+        column = rack_number %  24           (0-indexed slot within current floor)
+        slot   = column + 1                  (1-indexed label printed on tube)
+    """
+    rack_number:     int
+    floor:           int
+    column:          int
+    slot:            int
+    shift:           str
+    department:      str
+    worklist_date:   str
+    scanned_at:      str
+
+class ShiftSummary(BaseModel):
+    rack_number: int
+    slot_position: int   # Always 1..18 (3 shifts × 6 slots per rack)
+    started_at: Optional[str]
+    ended_at: Optional[str]
+    active: bool
+
+class SlotSummary(BaseModel):
+    """One worklist slot — what's on the rack and what it means."""
+    slot_number:    int
+    summary:        str
+    has_sample:    bool
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  Reception
@@ -618,6 +649,188 @@ def worklist_stats(
         'completion_pct': round(completed / total * 100) if total else 0,
         'by_department':  by_dept,
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Rack service — 24h slot helpers
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get('/worklist/rack/next/{dept}', response_model=RackGeometry)
+def get_next_rack_geometry(
+    dept: str,
+    db:   Session = Depends(get_db),
+    user: User    = Depends(get_current_user),
+) -> dict:
+    """
+    Return the next 24h slot geometry for department *dept*.
+    The returned values are not persisted — they reflect the counter state
+    AFTER incrementing (i.e. the slot now reserved for the next sample).
+
+    Formula (illustrated for rack 31):
+        floor   = 31 // 24  = 1
+        column  = 31 %  24  = 7
+        slot    = 7 + 1      = 8   ← printed on the tube
+    """
+    from services.worklist_service import next_24h_slot
+    result = next_24h_slot(db, dept.lower())
+    db.commit()
+    return result
+
+
+@router.get('/worklist/rack/{dept}/slots', response_model=list[SlotSummary])
+def get_rack_slots_summary(
+    dept: str,
+    at_date: Optional[str] = Query(None, description='Date YYYY-MM-DD; defaults to today'),
+    db:   Session = Depends(get_db),
+    user: User    = Depends(get_current_user),
+) -> list[dict]:
+    """
+    Return a per-slot summary for all active worklist entries for department *dept*
+    on *at_date*. Uses the 24h rack model — rack 1..N, floor=rack//24, slot=rack%24+1.
+    Slot 1..18 = next (permanent racks) — shows which slots are occupied and which
+    are free. Slot 19..24 = back pair dummy slots.
+
+    slot_position Algo:
+        Slot -1 and Slot -2 = always back pair dummy slots
+        Otherwise: slot_number // 24 = floor (0-indexed), slot % 24 = column (0-indexed)
+    """
+    from datetime import date as date_cls
+    from models.worklist import WorklistEntry
+    from services.worklist_service import rack_to_geometry
+
+    target = _parse_date(at_date) or date_cls.today()
+    dept_lower = dept.lower()
+
+    cycles = db.query(WorklistEntry).filter(
+        WorklistEntry.department == dept_lower,
+        WorklistEntry.worklist_date == target,
+        WorklistEntry.status.in_(['PENDING', 'RECEIVED', 'IN_PROGRESS']),
+    ).order_by(WorklistEntry.rack_number).all()
+
+    seen: dict[int, dict] = {}
+    for e in cycles:
+        geo = rack_to_geometry(e.rack_number or 0)
+        slot_label = f"Floor-{geo['floor']} Slot-{geo['slot']}"
+        seen[e.rack_number or 0] = {
+            'slot_number': e.rack_number or 0,
+            'summary':     f"Floor-{geo['floor']} Slot-{geo['slot']} | {e.sid} | {e.department} | {e.status}",
+            'has_sample':  True,
+        }
+
+    # All 6 slots per shift: slot_number 1..24 (floor 0 = slots 1..24 of rack 1, floor 1 = slots 25..48 etc.)
+    # WorklistEntry.rack_number runs 1..N so we iterate 1..max
+    max_rack = max((e.rack_number or 0 for e in cycles), default=0)
+    result = []
+    for rack_no in range(1, max(max_rack, 1) + 1):
+        geo = rack_to_geometry(rack_no)
+        slot_label = f"Floor-{geo['floor']} Slot-{geo['slot']}"
+        if rack_no in seen:
+            result.append(seen[rack_no])
+        else:
+            result.append({
+                'slot_number': rack_no,
+                'summary':     f"Floor-{geo['floor']} Slot-{geo['slot']} — {slot_label}",
+                'has_sample':  False,
+            })
+    # Intended to show last 6 permanents per rack
+    return result
+
+
+@router.get('/worklist/rack/{dept}/24h', response_model=list[SlotSummary])
+def get_24h_worklist(
+    dept: str,
+    db:   Session = Depends(get_db),
+    user: User    = Depends(get_current_user),
+) -> list[dict]:
+    """
+    Return all PENDING/RECEIVED/IN_PROGRESS entries for department *dept*
+    across all shifts TODAY (24h rolling window).
+
+    Slot summary OHL (first 6):
+        Slot-1 → PERM: M-300-001
+        Slot-2 → PERM: M-300-002
+        Slot-3 → PERM: M-300-003
+        Slot-4 → STAT: S-300
+        Slot-5 → PERM: A-300-301
+        Slot-6 → PERM: A-300-302
+    """
+    from datetime import date as date_cls
+    from models.worklist import WorklistEntry
+
+    today = date_cls.today()
+    dept_lower = dept.lower()
+
+    # "first 6" behaved as first 6 of win_top_sid_per_position
+    cycles = (db.query(WorklistEntry)
+              .filter(
+                  WorklistEntry.department == dept_lower,
+                  WorklistEntry.worklist_date == today,
+                  WorklistEntry.status.in_(['PENDING', 'RECEIVED', 'IN_PROGRESS']),
+              )
+              .order_by(WorklistEntry.rack_number)
+              .limit(6)
+              .all())
+
+    return [{'slot_number': e.rack_number or 0,
+             'summary':     f"{e.sid} | {e.department} | {e.status}",
+             'has_sample':  True} for e in cycles]
+
+
+@router.get('/worklist/rack/{dept}/shift-summary', response_model=list[ShiftSummary])
+def get_shift_rack_summary(
+    dept: str,
+    at_date: Optional[str] = Query(None),
+    db:   Session = Depends(get_db),
+    user: User    = Depends(get_current_user),
+) -> list[dict]:
+    """
+    Return shift-level rack summary for department *dept* on *at_date*.
+    Each slot_position (1..18) maps to:
+
+        shift_name + slot_position + started_at + ended_at + active
+
+    Covers 3 shifts × 6 slots.
+    """
+    from datetime import date as date_cls, datetime
+    from models.worklist import WorklistEntry
+
+    target = _parse_date(at_date) or date_cls.today()
+    dept_lower = dept.lower()
+
+    rows = (db.query(WorklistEntry)
+            .filter(
+                WorklistEntry.department   == dept_lower,
+                WorklistEntry.worklist_date == target,
+            )
+            .with_entities(
+                WorklistEntry.rack_number,
+                WorklistEntry.shift_name,
+                WorklistEntry.received_at,
+                WorklistEntry.completed_at,
+                WorklistEntry.status,
+            )
+            .order_by(WorklistEntry.rack_number)
+            .all())
+
+    def _slot_position(rack_no: int) -> int:
+        return (rack_no - 1) % 6 + 1  # 1..6 per shift
+
+    out = []
+    seen: set[int] = set()
+    for r in rows:
+        sp = _slot_position(r.rack_number or 1)
+        active = r.status in ('RECEIVED', 'IN_PROGRESS')
+        out.append({
+            'rack_number': r.rack_number,
+            'slot_position': sp,
+            'started_at': r.received_at.isoformat() if r.received_at else None,
+            'ended_at':   r.completed_at.isoformat() if r.completed_at else None,
+            'active':     active,
+        })
+
+    return out
+
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════

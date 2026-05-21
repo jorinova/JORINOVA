@@ -14,6 +14,8 @@ alembic>=1.13               # database migrations
 
 # ── Auth & Security ───────────────────────────────────────────────────────────
 python-jose[cryptography]>=3.3
+passlib[bcrypt]>=1.7.4         # password hashing (used by core/security.py)
+bcrypt>=4.0                    # backend required by passlib at runtime
 
 # ── Config ────────────────────────────────────────────────────────────────────
 pydantic-settings>=2.0

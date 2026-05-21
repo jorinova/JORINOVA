@@ -72,25 +72,31 @@ class RoutingService:
             .first()
         )
         if entry:
+            # 24h geometry: floor=(rack//24), column=(rack%24), slot=(column+1)
+            from services.worklist_service import rack_to_geometry
+            geo = rack_to_geometry(entry.rack_number or 0)
             spec = (
                 db.query(SpecimenTypeConfig)
                 .filter(SpecimenTypeConfig.acronym == entry.specimen_acronym)
                 .first()
             )
             return {
-                'kind':         'worklist_entry',
-                'sid':          entry.sid,
-                'lab_request':  entry.lab_request_id,
-                'patient_id':   entry.patient_id,
-                'department':   entry.department,
-                'specimen':     entry.specimen_name,
-                'tube_color':   entry.tube_color,
-                'rack':         entry.rack_number,
-                'cid':          entry.cid,
-                'status':       entry.status,
-                'priority':     entry.priority,
+                'kind':          'worklist_entry',
+                'sid':           entry.sid,
+                'lab_request':   entry.lab_request_id,
+                'patient_id':    entry.patient_id,
+                'route_id':      entry.rack_number or 0,
+                'rack_number':   entry.rack_number,
+                'rack_position': geo['slot'],       # 1..24 (tube label position)
+                'rack_floor':    geo['floor'],
+                'department':    entry.department,
+                'specimen':      entry.specimen_name,
+                'tube_color':    entry.tube_color,
+                'cid':           entry.cid,
+                'status':        entry.status,
+                'priority':      entry.priority,
                 'is_replacement': entry.is_rejection_replacement,
-                'received_at':  entry.received_at.isoformat() if entry.received_at else None,
+                'received_at':   entry.received_at.isoformat() if entry.received_at else None,
                 'specimen_volume_ml': spec.volume_ml if spec else None,
             }
 

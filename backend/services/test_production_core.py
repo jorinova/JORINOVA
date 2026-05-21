@@ -239,6 +239,30 @@ class TestP3SeedCompleteness(unittest.TestCase):
         finally:
             db.close()
 
+    def test_universal_operators_seeded(self):
+        from models.universal import UniversalOperator
+        db = self._db()
+        try:
+            count = db.query(UniversalOperator).count()
+            self.assertGreaterEqual(count, 11,
+                msg=f'Expected ≥11 UniversalOperators, got {count}')
+        finally:
+            db.close()
+
+    def test_24h_rack_counters_seeded(self):
+        from models.worklist import Daily24hRackCounter
+        from datetime import date
+        db = self._db()
+        try:
+            today = date.today()
+            rows = db.query(Daily24hRackCounter).filter(
+                Daily24hRackCounter.counter_date == today,
+            ).all()
+            self.assertGreater(len(rows), 0,
+                msg=f'No 24h rack counter for {today}')
+        finally:
+            db.close()
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Entry point

@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request, status, Cookie
+from fastapi import WebSocket, WebSocketDisconnect
+
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -28,7 +30,14 @@ from core.security import hash_password
 try:
     from core.bootstrap import initialize_application
 
+    # Enforce Python 3.12-only runtime compatibility
+    if sys.version_info[:2] != (3, 12):
+        raise RuntimeError(
+            f"ALIS-X requires Python 3.12.x only. Current interpreter: {sys.version}"
+        )
+
     initialize_application()
+
 except Exception as _e:
     logging.getLogger('alis_x').warning('Determinism/ORM bootstrap failed, continuing: %s', str(_e)[:160])
 
@@ -614,7 +623,12 @@ for tmpl_path in [
 
 @app.get('/', include_in_schema=False)
 def root():
-    return RedirectResponse('/auth/login')
+    return JSONResponse({
+        'app': 'JORINOVA NEXUS ALIS-X',
+        'status': 'ok',
+        'docs': '/docs',
+        'health': '/api/v1/health',
+    })
 
 
 def _render(template_path: str, extra_ctx: dict | None = None) -> HTMLResponse:
@@ -651,12 +665,14 @@ def _serve_module(module: str, page: str, extra_ctx: dict | None = None) -> HTML
     """Serve a frontend HTML module page via Jinja2."""
     template_path = f'modules/{module}/html/{page}'
     full = FRONTEND_DIR / 'modules' / module / 'html' / page
+    modules_root = FRONTEND_DIR / 'modules'
     if not full.exists():
-        # Search all module dirs
-        for mdir in (FRONTEND_DIR / 'modules').iterdir():
-            candidate = mdir / 'html' / page
-            if candidate.exists():
-                return _render(f'modules/{mdir.name}/html/{page}', extra_ctx)
+        # Search all module dirs (only if the legacy modules root still exists)
+        if modules_root.is_dir():
+            for mdir in modules_root.iterdir():
+                candidate = mdir / 'html' / page
+                if candidate.exists():
+                    return _render(f'modules/{mdir.name}/html/{page}', extra_ctx)
         return HTMLResponse(
             f'<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ALIS-X 404</title>'
             f'<style>body{{font-family:system-ui;background:#020818;color:#94a3b8;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column}}'
@@ -851,6 +867,93 @@ async def server_error(_req: Request, exc: Exception):
     return JSONResponse({'detail': 'Internal server error'}, status_code=500)
 
 
+# ---------------------------
+# Zero-touch demo WebSocket
+# ---------------------------
+
+@app.websocket('/ws/zero-touch')
+async def ws_zero_touch(websocket: WebSocket):
+    await websocket.accept()
+
+    # Simple demo handshake + step loop driven by backend.
+    # Frontend is responsible for executing cursor moves / voice / highlights.
+    try:
+        await websocket.send_json({
+            'type': 'STEP',
+            'payload': {
+                'step': {
+                    'id': 'step1_search',
+                    'target': 'patient_search',
+                    'voiceText': 'Accessing patient records for ID One-Zero-One.',
+                    'action': 'type',
+                }
+            }
+        })
+
+        while True:
+            msg = await websocket.receive_text()
+            # Expect DONE ack from the frontend
+            try:
+                data = __import__('json').loads(msg)
+            except Exception:
+                continue
+
+            if data.get('type') != 'DONE':
+                continue
+
+            done_step_id = (data.get('payload') or {}).get('stepId')
+
+            if done_step_id == 'step1_search':
+                await websocket.send_json({
+                    'type': 'STEP',
+                    'payload': {
+                        'step': {
+                            'id': 'step2_analysis',
+                            'target': 'lab_results',
+                            'voiceText':
+                                'Analyzing laboratory data. Hemoglobin is normal, but White Blood Cell count is elevated at 15,000 cells per microliter. Flagging mild leukocytosis.',
+                            'action': 'highlight_row',
+                        }
+                    }
+                })
+                continue
+
+            if done_step_id == 'step2_analysis':
+                await websocket.send_json({
+                    'type': 'STEP',
+                    'payload': {
+                        'step': {
+                            'id': 'step3_approve',
+                            'target': 'approve_sign',
+                            'voiceText':
+                                'No critical panic values detected. Results have been automatically validated, digitally signed under Jorinova Nexus protocols, and transmitted.',
+                            'action': 'approve',
+                        }
+                    }
+                })
+                continue
+
+            if done_step_id == 'step3_approve':
+                # Demo complete; send a single terminal message and close.
+                await websocket.send_json({
+                    'type': 'DONE',
+                    'payload': {'stepId': 'complete'}
+                })
+                await websocket.close()
+                return
+
+    except WebSocketDisconnect:
+        return
+    except Exception:
+        # Ensure socket closes on unexpected errors
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+        return
+
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run('main:app', host='0.0.0.0', port=8000, reload=True, log_level='info')
+
