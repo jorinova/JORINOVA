@@ -1,0 +1,82 @@
+[
+  {
+    "text": "démarrer",
+    "language": "fr",
+    "intent": "start"
+  },
+  {
+    "text": "on commence",
+    "language": "fr",
+    "intent": "start"
+  },
+  {
+    "text": "suivant",
+    "language": "fr",
+    "intent": "next"
+  },
+  {
+    "text": "étape suivante",
+    "language": "fr",
+    "intent": "next"
+  },
+  {
+    "text": "attends une seconde",
+    "language": "fr",
+    "intent": "pause"
+  },
+  {
+    "text": "reprends",
+    "language": "fr",
+    "intent": "resume"
+  },
+  {
+    "text": "recommencer",
+    "language": "fr",
+    "intent": "restart"
+  },
+  {
+    "text": "arrête",
+    "language": "fr",
+    "intent": "stop"
+  },
+  {
+    "text": "bonjour",
+    "language": "fr",
+    "intent": "greet"
+  },
+  {
+    "text": "bonsoir",
+    "language": "fr",
+    "intent": "greet"
+  },
+  {
+    "text": "jorinova",
+    "language": "fr",
+    "intent": "wake"
+  },
+  {
+    "text": "aide",
+    "language": "fr",
+    "intent": "help"
+  },
+  {
+    "text": "merci",
+    "language": "fr",
+    "intent": "thanks"
+  },
+  {
+    "text": "merci beaucoup",
+    "language": "fr",
+    "intent": "thanks"
+  },
+  {
+    "text": "bonjour jorinova",
+    "language": "fr",
+    "intent": "greet"
+  },
+  {
+    "text": "quel est ton nom",
+    "language": "fr",
+    "intent": "unknown"
+  }
+]

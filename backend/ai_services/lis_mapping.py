@@ -45,8 +45,10 @@ DIAG_RE    = re.compile(r'(?:Diagnosis|Clinical\s+notes?|Dx)[\s:]+(.{4,140}?)(?=
 
 # ── Priority ──────────────────────────────────────────────────────────────────
 
-STAT_KEYWORDS   = {'stat', 'urgent', 'emergency', 'cito', 'immediately', 'critical'}
-URGENT_KEYWORDS = {'asap', 'expedite', 'expedited'}
+# Keep these tight — 'emergency' alone often refers to the ER/ward, not the
+# priority. Only stable priority markers go in STAT_KEYWORDS.
+STAT_KEYWORDS   = {'stat', 'cito', 'immediately', 'critical'}
+URGENT_KEYWORDS = {'urgent', 'asap', 'expedite', 'expedited'}
 
 # ── Department / specimen heuristics ──────────────────────────────────────────
 
@@ -290,14 +292,32 @@ def _extract_test_candidates(text: str) -> list[str]:
     """
     candidates: list[str] = []
 
-    sections = re.split(
-        r'(?im)^\s*(?:tests?|investigations?|requested|order(?:s|ed)?)\s*:?\s*$',
-        text,
+    # Two patterns: label on its own line ("Tests:\nCBC\nESR") OR inline
+    # ("Tests requested: CBC, ESR"). Both forms are common on real forms.
+    block = text
+    label = re.compile(
+        r'(?im)^\s*(?:tests?\s*(?:requested)?|investigations?|requested|order(?:s|ed)?)\s*:\s*(.*)$',
     )
-    if len(sections) > 1:
-        block = sections[-1]
+    inline_match = label.search(text)
+    if inline_match and inline_match.group(1).strip():
+        # Inline: take what follows the colon on the same line + any indented
+        # continuation lines underneath.
+        start = inline_match.end()
+        rest_lines = []
+        for line in text[start:].splitlines():
+            if line.strip() == '':
+                break
+            if re.match(r'^\s*[A-Z][A-Za-z]+\s*:', line):
+                break  # next label
+            rest_lines.append(line)
+        block = inline_match.group(1) + '\n' + '\n'.join(rest_lines)
     else:
-        block = text
+        sections = re.split(
+            r'(?im)^\s*(?:tests?|investigations?|requested|order(?:s|ed)?)\s*:?\s*$',
+            text,
+        )
+        if len(sections) > 1:
+            block = sections[-1]
 
     for line in block.splitlines():
         line = line.strip(' \t-•*·.')

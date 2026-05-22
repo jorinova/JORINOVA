@@ -26,7 +26,14 @@ from ai_services.lis_mapping import (                                 # noqa: E4
 
 GOLDEN = Path(__file__).parent / 'golden' / 'lis_mapping_golden.jsonl'
 
-PATIENT_FIELDS = ('patient_pid', 'family_name', 'gender', 'national_id')
+# golden key  →  attr on PatientMatch dataclass
+PATIENT_FIELD_MAP = {
+    'patient_pid':  'pid',
+    'family_name':  'family_name',
+    'gender':       'gender',
+    'national_id':  'national_id',
+}
+PATIENT_FIELDS = tuple(PATIENT_FIELD_MAP)
 
 
 def _load_golden() -> list[dict]:
@@ -74,7 +81,7 @@ def main() -> None:
 
         # Patient fields
         for f in PATIENT_FIELDS:
-            pred = getattr(pm, f, None)
+            pred = getattr(pm, PATIENT_FIELD_MAP[f], None)
             counted, ok = _score_field(pred, exp.get(f))
             if counted:
                 field_total[f]   += 1

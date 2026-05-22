@@ -1,0 +1,162 @@
+[
+  {
+    "text": "start the demo please",
+    "language": "en",
+    "intent": "start"
+  },
+  {
+    "text": "let's begin",
+    "language": "en",
+    "intent": "start"
+  },
+  {
+    "text": "go ahead",
+    "language": "en",
+    "intent": "start"
+  },
+  {
+    "text": "next step",
+    "language": "en",
+    "intent": "next"
+  },
+  {
+    "text": "move on",
+    "language": "en",
+    "intent": "next"
+  },
+  {
+    "text": "skip this one",
+    "language": "en",
+    "intent": "next"
+  },
+  {
+    "text": "pause for a second",
+    "language": "en",
+    "intent": "pause"
+  },
+  {
+    "text": "hold on",
+    "language": "en",
+    "intent": "pause"
+  },
+  {
+    "text": "wait",
+    "language": "en",
+    "intent": "pause"
+  },
+  {
+    "text": "resume now",
+    "language": "en",
+    "intent": "resume"
+  },
+  {
+    "text": "keep going",
+    "language": "en",
+    "intent": "resume"
+  },
+  {
+    "text": "restart from the beginning",
+    "language": "en",
+    "intent": "restart"
+  },
+  {
+    "text": "do it again",
+    "language": "en",
+    "intent": "restart"
+  },
+  {
+    "text": "stop",
+    "language": "en",
+    "intent": "stop"
+  },
+  {
+    "text": "cancel",
+    "language": "en",
+    "intent": "stop"
+  },
+  {
+    "text": "hello",
+    "language": "en",
+    "intent": "greet"
+  },
+  {
+    "text": "good morning",
+    "language": "en",
+    "intent": "greet"
+  },
+  {
+    "text": "hi there",
+    "language": "en",
+    "intent": "greet"
+  },
+  {
+    "text": "jorinova",
+    "language": "en",
+    "intent": "wake"
+  },
+  {
+    "text": "hey nexus",
+    "language": "en",
+    "intent": "greet"
+  },
+  {
+    "text": "what can you do",
+    "language": "en",
+    "intent": "help"
+  },
+  {
+    "text": "help me",
+    "language": "en",
+    "intent": "help"
+  },
+  {
+    "text": "thanks",
+    "language": "en",
+    "intent": "thanks"
+  },
+  {
+    "text": "thank you very much",
+    "language": "en",
+    "intent": "thanks"
+  },
+  {
+    "text": "hello jorinova",
+    "language": "en",
+    "intent": "greet"
+  },
+  {
+    "text": "the weather is nice today",
+    "language": "en",
+    "intent": "unknown"
+  },
+  {
+    "text": "what time is it",
+    "language": "en",
+    "intent": "unknown"
+  },
+  {
+    "text": "uhh can you maybe start now",
+    "language": "en",
+    "intent": "start"
+  },
+  {
+    "text": "let me just pause this real quick",
+    "language": "en",
+    "intent": "pause"
+  },
+  {
+    "text": "i need to stop this please",
+    "language": "en",
+    "intent": "stop"
+  },
+  {
+    "text": "could you help me out",
+    "language": "en",
+    "intent": "help"
+  },
+  {
+    "text": "jorinova next step please",
+    "language": "en",
+    "intent": "next"
+  }
+]

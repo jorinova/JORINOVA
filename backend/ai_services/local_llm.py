@@ -180,9 +180,13 @@ async def generate(
                     'messages': messages,
                     'stream':  False,
                     'options': {
-                        'temperature': temperature,
-                        'num_predict': max_tokens,
-                        'top_p':       0.9,
+                        'temperature':    temperature,
+                        'num_predict':    max_tokens,
+                        # Cap context at 2048 tokens. Ollama defaults to the
+                        # model's max (often 128k) which can require 50+ GiB
+                        # of KV-cache RAM. Lab tasks are short — 2k is plenty.
+                        'num_ctx':        2048,
+                        'top_p':          0.9,
                         'repeat_penalty': 1.1,
                     },
                 },

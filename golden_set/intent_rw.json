@@ -1,0 +1,72 @@
+[
+  {
+    "text": "tangira",
+    "language": "rw",
+    "intent": "start"
+  },
+  {
+    "text": "komeza",
+    "language": "rw",
+    "intent": "next"
+  },
+  {
+    "text": "hagarara",
+    "language": "rw",
+    "intent": "pause"
+  },
+  {
+    "text": "tangira nanone",
+    "language": "rw",
+    "intent": "resume"
+  },
+  {
+    "text": "ongera utangire",
+    "language": "rw",
+    "intent": "restart"
+  },
+  {
+    "text": "reka",
+    "language": "rw",
+    "intent": "stop"
+  },
+  {
+    "text": "mwaramutse",
+    "language": "rw",
+    "intent": "greet"
+  },
+  {
+    "text": "muraho",
+    "language": "rw",
+    "intent": "greet"
+  },
+  {
+    "text": "jorinova",
+    "language": "rw",
+    "intent": "wake"
+  },
+  {
+    "text": "ubufasha",
+    "language": "rw",
+    "intent": "help"
+  },
+  {
+    "text": "murakoze",
+    "language": "rw",
+    "intent": "thanks"
+  },
+  {
+    "text": "urakoze cyane",
+    "language": "rw",
+    "intent": "thanks"
+  },
+  {
+    "text": "mwaramutse jorinova",
+    "language": "rw",
+    "intent": "greet"
+  },
+  {
+    "text": "ndabona umuyaga ufite ubukonje",
+    "language": "rw",
+    "intent": "unknown"
+  }
+]

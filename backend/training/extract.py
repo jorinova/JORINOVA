@@ -24,12 +24,22 @@ import sys
 from pathlib import Path
 from typing import Any, Iterable
 
+# Force-disable debug *before* any backend module loads — otherwise
+# settings.debug=True causes SQLAlchemy to echo every query.
+import os                                                              # noqa: E402
+os.environ.setdefault('DEBUG', 'false')
+
 # Allow `python -m training.extract` from the backend directory
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from core.database import SessionLocal                                # noqa: E402
+from core.database import SessionLocal, engine                         # noqa: E402
 from models.laboratory import LabRequest, LabResult                   # noqa: E402
 from models.patient import Patient                                    # noqa: E402
+
+# Belt + suspenders: turn off engine echo and the SQLAlchemy loggers.
+engine.echo = False
+logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
 
 log = logging.getLogger('training.extract')
 
@@ -154,10 +164,38 @@ def extract_clinical(out_dir: Path) -> int:
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
+# ── Task 4: OCR cleanup pairs (noisy → clean) ────────────────────────────────
+
+def extract_ocr(out_dir: Path, n_per_seed: int = 3) -> int:
+    """
+    Build (noisy, clean) pairs for the OCR-cleanup task. Real lab-request
+    rows in the DB become the clean half; the noisy half is synthesised by
+    applying OCR-style perturbations. If the DB is empty, we still emit
+    rows from a small fallback template set so downstream eval has data.
+    """
+    from training.ocr_synth import ocr_pairs
+
+    seeds: list[str] = []
+    try:
+        with SessionLocal() as db:
+            reqs = db.query(LabRequest).limit(500).all()
+            for r in reqs:
+                p = r.patient
+                if p is None:
+                    continue
+                test_codes = [res.test.code for res in r.results if res.test and res.test.code]
+                seeds.append(_synthesize_request_form(p, r, test_codes))
+    except Exception:
+        seeds = []
+
+    rows = list(ocr_pairs(seed_texts=seeds, n_per_seed=n_per_seed))
+    return _write_jsonl(out_dir / 'ocr.jsonl', rows)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description='Extract training data from the pilot DB')
     ap.add_argument('--out', default='training/datasets', help='Output directory')
-    ap.add_argument('--task', choices=['intent', 'lis', 'clinical', 'all'], default='all')
+    ap.add_argument('--task', choices=['intent', 'lis', 'ocr', 'clinical', 'all'], default='all')
     args = ap.parse_args()
 
     out = Path(args.out)
@@ -172,6 +210,12 @@ def main() -> None:
             print(f'  lis_mapping.jsonl  : {n:>6} rows')
         except Exception as e:
             print(f'  lis_mapping.jsonl  : SKIPPED ({e})')
+    if args.task in ('ocr', 'all'):
+        try:
+            n = extract_ocr(out)
+            print(f'  ocr.jsonl          : {n:>6} rows')
+        except Exception as e:
+            print(f'  ocr.jsonl          : SKIPPED ({e})')
     if args.task in ('clinical', 'all'):
         try:
             n = extract_clinical(out)

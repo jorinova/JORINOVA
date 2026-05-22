@@ -1,0 +1,132 @@
+[
+  {
+    "raw_text": "PID: PA-001234\nPatient: MUKAMANA Alice\nDOB: 14/03/1992\nSex: F\nDoctor: Dr Ndayisaba\nWard: Internal Medicine\nDiagnosis: Suspected anemia\nSTAT\nTests requested: CBC, ESR",
+    "expected": {
+      "patient_pid": "PA-001234",
+      "family_name": "MUKAMANA",
+      "gender": "F",
+      "priority": "stat",
+      "tests": [
+        "cbc",
+        "esr"
+      ]
+    }
+  },
+  {
+    "raw_text": "Patient: HABIMANA Eric\nNID: 1199580012345678\nSex: M\nDoctor: Dr Uwase\nWard: Surgery\nDiagnosis: Pre-op screen\nTests requested: HGB, PLT, PT/INR, APTT",
+    "expected": {
+      "family_name": "HABIMANA",
+      "national_id": "1199580012345678",
+      "gender": "M",
+      "priority": "routine",
+      "tests": [
+        "hgb",
+        "plt",
+        "pt/inr",
+        "aptt"
+      ]
+    }
+  },
+  {
+    "raw_text": "PID: PA-004567\nPatient: NIYIBIZI Jeanne\nDOB: 02/01/1968\nSex: F\nDoctor: Dr Mugenzi\nWard: Outpatient\nDiagnosis: Diabetes follow-up\nTests requested: FBS, HBA1C, CREAT, UREA",
+    "expected": {
+      "patient_pid": "PA-004567",
+      "family_name": "NIYIBIZI",
+      "gender": "F",
+      "priority": "routine",
+      "tests": [
+        "fbs",
+        "hba1c",
+        "creat",
+        "urea"
+      ]
+    }
+  },
+  {
+    "raw_text": "URGENT\nPID: PA-009876\nPatient: KAGABO Patrick\nDOB: 28/11/1985\nSex: M\nDoctor: Dr Ingabire\nWard: Emergency\nDiagnosis: Septic shock\nTests requested: CBC, CRP, lactate, electrolytes",
+    "expected": {
+      "patient_pid": "PA-009876",
+      "family_name": "KAGABO",
+      "gender": "M",
+      "priority": "urgent",
+      "tests": [
+        "cbc",
+        "crp",
+        "electrolytes"
+      ]
+    }
+  },
+  {
+    "raw_text": "Patient: UWIMANA Marie\nDOB: 17/07/1979\nDoctor: Dr Karemera\nDiagnosis: Hypertension\nTests requested: lipid profile, RFT",
+    "expected": {
+      "family_name": "UWIMANA",
+      "gender": null,
+      "priority": "routine",
+      "tests": [
+        "lipid",
+        "rft"
+      ]
+    }
+  },
+  {
+    "raw_text": "PID: PA-013344\nPatient: RUKUNDO Joseph\nDOB: 09/05/2001\nSex: M\nDoctor: Dr Tuyisenge\nWard: Pediatrics\nDiagnosis: Fever 3 days, suspect malaria\nSTAT\nTests requested: malaria smear, CBC, blood culture",
+    "expected": {
+      "patient_pid": "PA-013344",
+      "family_name": "RUKUNDO",
+      "gender": "M",
+      "priority": "stat",
+      "tests": [
+        "cbc"
+      ]
+    }
+  },
+  {
+    "raw_text": "Patient: MUTONI Diane\nNID: 1199620098765432\nDOB: 11/02/1996\nSex: F\nDoctor: Dr Habiyaremye\nWard: Antenatal\nDiagnosis: ANC visit 2\nTests requested: HIV, HBsAG, syphilis, blood group, HGB",
+    "expected": {
+      "family_name": "MUTONI",
+      "national_id": "1199620098765432",
+      "gender": "F",
+      "priority": "routine",
+      "tests": [
+        "hgb"
+      ]
+    }
+  },
+  {
+    "raw_text": "URGENT PID: PA-019988\nPatient: NTAGANIRA Eric Bernard\nDOB: 22/06/1975\nSex: M\nDoctor: Dr Mbabazi\nWard: ICU\nDiagnosis: Acute kidney injury\nTests requested: UREA, CREAT, NA, K, CL",
+    "expected": {
+      "patient_pid": "PA-019988",
+      "family_name": "NTAGANIRA",
+      "gender": "M",
+      "priority": "urgent",
+      "tests": [
+        "urea",
+        "creat",
+        "na",
+        "k",
+        "cl"
+      ]
+    }
+  },
+  {
+    "raw_text": "Patient: MUSABYIMANA Claude\nSex: M\nDoctor: Dr Iradukunda\nDiagnosis: Routine check-up\nTests requested: glucose, cholesterol",
+    "expected": {
+      "family_name": "MUSABYIMANA",
+      "gender": "M",
+      "priority": "routine",
+      "tests": []
+    }
+  },
+  {
+    "raw_text": "STAT\nPatient: MUKANDORI Esther\nDOB: 04/12/1959\nSex: F\nWard: Cardiology\nDiagnosis: Chest pain rule out MI\nTests requested: troponin, CK-MB, electrolytes, CBC",
+    "expected": {
+      "family_name": "MUKANDORI",
+      "gender": "F",
+      "priority": "stat",
+      "tests": [
+        "electrolytes",
+        "cbc"
+      ]
+    }
+  }
+]
