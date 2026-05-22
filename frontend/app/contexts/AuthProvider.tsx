@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { TokenOut, User } from '@/types'
 import { login as apiLogin, me as apiMe, logout as apiLogout } from '../lib/api'
@@ -30,6 +30,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     }
   }, [])
+
+  // Refresh the session on every page load (incl. hard refresh / direct URL).
+  // Without this, `loading` stays `true` forever in any tab the user didn't
+  // sign in from, so RequireAuth shows 'Loading…' indefinitely.
+  useEffect(() => {
+    // If there is no token at all, skip the network round-trip — apiMe would
+    // 401 and we'd just sit on Loading… while waiting.
+    const hasToken =
+      typeof document !== 'undefined' &&
+      (document.cookie.split('; ').some(r => r.startsWith('access_token=')) ||
+       !!localStorage.getItem('access_token'))
+    if (!hasToken) {
+      setLoading(false)
+      return
+    }
+    void refreshProfile()
+  }, [refreshProfile])
 
   const login = useCallback(async (username: string, password: string) => {
     const tokenOut = await apiLogin(username, password)
