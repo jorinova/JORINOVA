@@ -2,6 +2,7 @@
 
 import type { SceneProps } from './types'
 import { withHighlight } from './types'
+import NoPilotData from './_NoPilotData'
 
 /**
  * Scene: specimen_intake
@@ -14,9 +15,13 @@ import { withHighlight } from './types'
  *   [data-train="status"]
  */
 export default function SpecimenIntake({ typedText, highlight, liveData }: SceneProps) {
-  const lr      = liveData?.lab_request
-  const patient = liveData?.patient
-  const results = liveData?.results ?? []
+  if (!liveData?.lab_request) {
+    return <NoPilotData entity="STAT-priority LabRequest"
+      hint="Have reception scan a STAT specimen barcode into the LIS. This scene will bind automatically." />
+  }
+  const lr      = liveData.lab_request
+  const patient = liveData.patient
+  const results = liveData.results ?? []
 
   // Up to 3 short labels for the test chips (real test_ids from the request)
   const testChips = results.slice(0, 6).map(r => r.test_id ? `T-${r.test_id}` : '—')

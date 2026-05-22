@@ -12,14 +12,22 @@
  */
 import type { SceneComponent } from './types'
 
-import SpecimenIntake  from './SpecimenIntake'
-import CriticalCBC     from './CriticalCBC'
-import LisMappingDemo  from './LisMappingDemo'
+import SpecimenIntake        from './SpecimenIntake'
+import CriticalCBC           from './CriticalCBC'
+import LisMappingDemo        from './LisMappingDemo'
+import BloodBankCrossmatch   from './BloodBankCrossmatch'
+import MomoBilling           from './MomoBilling'
+import MedgenomePcr          from './MedgenomePcr'
+import IotAnalyzerIntake     from './IotAnalyzerIntake'
 
 export const sceneMap: Record<string, SceneComponent> = {
-  specimen_intake:    SpecimenIntake,
-  critical_cbc:       CriticalCBC,
-  lis_mapping_demo:   LisMappingDemo,
+  specimen_intake:         SpecimenIntake,
+  critical_cbc:            CriticalCBC,
+  lis_mapping_demo:        LisMappingDemo,
+  blood_bank_crossmatch:   BloodBankCrossmatch,
+  momo_billing:            MomoBilling,
+  medgenome_pcr:           MedgenomePcr,
+  iot_analyzer_intake:     IotAnalyzerIntake,
 }
 
 export type SceneId = keyof typeof sceneMap
