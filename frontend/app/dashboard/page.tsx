@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useAuth } from '../contexts/AuthProvider'
 import { useRouter } from 'next/navigation'
 import RequireAuth from '../components/RequireAuth'
+import Avatar from '../components/Avatar'
+import Logo from '../components/Logo'
 
 interface RoutingDecision {
   multi_dept: boolean
@@ -79,13 +81,18 @@ export default function DashboardPage() {
         {/* Header */}
         <header className="sticky top-0 z-10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Logo size={36} />
             <span className="text-xl font-bold text-black dark:text-white">JORINOVA NEXUS</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-200">
               {user!.role.replace('_', ' ')}
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">{user!.full_name}</span>
+            <div className="hidden sm:block text-right leading-tight">
+              <div className="text-sm font-medium text-zinc-800 dark:text-zinc-100">{user!.full_name}</div>
+              <div className="text-[11px] text-zinc-500">{user!.email}</div>
+            </div>
+            <Avatar src={user!.photo_url} name={user!.full_name || user!.username} size={38} />
             <button
               onClick={logout}
               className="text-xs text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
