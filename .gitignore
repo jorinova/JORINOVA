@@ -114,6 +114,9 @@ desktop.ini
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb
+# Source notebooks intended for distribution (Colab, training material)
+# remain tracked despite the blanket *.ipynb rule above.
+!notebooks/*.ipynb
 
 # Type checking
 .mypy_cache/
