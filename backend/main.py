@@ -586,6 +586,12 @@ _ROUTERS = [
     ('routers.escalation',      'router'),
     ('routers.rejection',       'router'),
     ('routers.documents',       'router'),
+    # LIS auto-mapping (lab request form → worklist)
+    ('routers.lis_mapping',      'router'),
+    # Training / AI demo scenarios
+    ('routers.training',         'router'),
+    # IoT / analyzer-agnostic ingestion (HL7, ASTM, JSON, CSV; any vendor)
+    ('routers.iot',              'router'),
     # PDF reports, SMS notifications, token refresh
     ('routers.pdf_sms',          'router'),
     # Worklist preparation + sample reception
