@@ -144,9 +144,14 @@ def extract_clinical(out_dir: Path) -> int:
                 {
                     'test_code': res.test.code if res.test else None,
                     'test_name': res.test.name if res.test else None,
-                    'value':     getattr(res, 'value_text', None) or getattr(res, 'value_numeric', None),
-                    'unit':      getattr(res, 'unit', None),
-                    'flag':      getattr(res, 'flag', None),
+                    'value':     res.numeric_value if res.numeric_value is not None else res.value,
+                    'unit':      res.unit,
+                    'flag':      res.flag,
+                    'reference': (
+                        f'{res.reference_min}-{res.reference_max}'
+                        if res.reference_min is not None and res.reference_max is not None
+                        else None
+                    ),
                 }
                 for res in r.results
             ]

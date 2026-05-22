@@ -5,7 +5,37 @@
     "intent": "start"
   },
   {
+    "text": "commencer",
+    "language": "fr",
+    "intent": "start"
+  },
+  {
     "text": "on commence",
+    "language": "fr",
+    "intent": "start"
+  },
+  {
+    "text": "on y va",
+    "language": "fr",
+    "intent": "start"
+  },
+  {
+    "text": "allez-y",
+    "language": "fr",
+    "intent": "start"
+  },
+  {
+    "text": "lancer la démo",
+    "language": "fr",
+    "intent": "start"
+  },
+  {
+    "text": "démarre la formation",
+    "language": "fr",
+    "intent": "start"
+  },
+  {
+    "text": "vas-y commence",
     "language": "fr",
     "intent": "start"
   },
@@ -20,12 +50,67 @@
     "intent": "next"
   },
   {
+    "text": "continue",
+    "language": "fr",
+    "intent": "next"
+  },
+  {
+    "text": "passe à la suite",
+    "language": "fr",
+    "intent": "next"
+  },
+  {
+    "text": "avancer",
+    "language": "fr",
+    "intent": "next"
+  },
+  {
+    "text": "on passe au suivant",
+    "language": "fr",
+    "intent": "next"
+  },
+  {
+    "text": "pause",
+    "language": "fr",
+    "intent": "pause"
+  },
+  {
     "text": "attends une seconde",
     "language": "fr",
     "intent": "pause"
   },
   {
+    "text": "attends",
+    "language": "fr",
+    "intent": "pause"
+  },
+  {
+    "text": "attendez s'il vous plaît",
+    "language": "fr",
+    "intent": "pause"
+  },
+  {
+    "text": "un instant",
+    "language": "fr",
+    "intent": "pause"
+  },
+  {
+    "text": "reprendre",
+    "language": "fr",
+    "intent": "resume"
+  },
+  {
     "text": "reprends",
+    "language": "fr",
+    "intent": "resume"
+  },
+  {
+    "text": "on continue",
+    "language": "fr",
+    "intent": "resume"
+  },
+  {
+    "text": "vas-y continue",
     "language": "fr",
     "intent": "resume"
   },
@@ -35,7 +120,47 @@
     "intent": "restart"
   },
   {
+    "text": "rejouer",
+    "language": "fr",
+    "intent": "restart"
+  },
+  {
+    "text": "depuis le début",
+    "language": "fr",
+    "intent": "restart"
+  },
+  {
+    "text": "encore une fois",
+    "language": "fr",
+    "intent": "restart"
+  },
+  {
+    "text": "on recommence",
+    "language": "fr",
+    "intent": "restart"
+  },
+  {
     "text": "arrête",
+    "language": "fr",
+    "intent": "stop"
+  },
+  {
+    "text": "arrêter",
+    "language": "fr",
+    "intent": "stop"
+  },
+  {
+    "text": "stop",
+    "language": "fr",
+    "intent": "stop"
+  },
+  {
+    "text": "annuler",
+    "language": "fr",
+    "intent": "stop"
+  },
+  {
+    "text": "terminer",
     "language": "fr",
     "intent": "stop"
   },
@@ -50,12 +175,47 @@
     "intent": "greet"
   },
   {
+    "text": "bonjour à tous",
+    "language": "fr",
+    "intent": "greet"
+  },
+  {
+    "text": "salut",
+    "language": "fr",
+    "intent": "greet"
+  },
+  {
+    "text": "bonjour jorinova",
+    "language": "fr",
+    "intent": "greet"
+  },
+  {
     "text": "jorinova",
     "language": "fr",
     "intent": "wake"
   },
   {
+    "text": "nexus",
+    "language": "fr",
+    "intent": "wake"
+  },
+  {
     "text": "aide",
+    "language": "fr",
+    "intent": "help"
+  },
+  {
+    "text": "que peux-tu faire",
+    "language": "fr",
+    "intent": "help"
+  },
+  {
+    "text": "quelles sont les commandes",
+    "language": "fr",
+    "intent": "help"
+  },
+  {
+    "text": "comment ça marche",
     "language": "fr",
     "intent": "help"
   },
@@ -70,12 +230,22 @@
     "intent": "thanks"
   },
   {
-    "text": "bonjour jorinova",
+    "text": "je vous remercie",
     "language": "fr",
-    "intent": "greet"
+    "intent": "thanks"
   },
   {
     "text": "quel est ton nom",
+    "language": "fr",
+    "intent": "unknown"
+  },
+  {
+    "text": "quelle est la météo",
+    "language": "fr",
+    "intent": "unknown"
+  },
+  {
+    "text": "appelle le docteur",
     "language": "fr",
     "intent": "unknown"
   }

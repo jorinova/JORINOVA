@@ -34,19 +34,48 @@ VALID_INTENTS = {
 # ── Stage 1 : regex (mirrors the frontend matcher, kept slightly broader) ────
 
 _WAKE_RE     = re.compile(r'\b(jorinova|nexus|alis[ -]?x|hey nexus|hi nexus|ok jorinova)\b', re.I)
-_GREET_RE    = re.compile(r'\b(hello|hi|hey|good (morning|afternoon|evening)|mwaramutse|mwiriwe|muraho|bonjour|bonsoir)\b', re.I)
-_HELP_RE     = re.compile(r'\b(help|what can you do|how (do|to) i|what (are|do) (you|the) commands?|ubufasha|aide)\b', re.I)
-_THANKS_RE   = re.compile(r'\b(thank(s| you)?|murakoze|urakoze|merci)\b', re.I)
+_GREET_RE    = re.compile(r'\b(hello|hi|hey|good (morning|afternoon|evening)|mwaramutse|mwiriwe|muraho|bonjour|bonsoir|salut)\b', re.I)
+_HELP_RE     = re.compile(
+    r'\b(help|help me|what can you do|how (do|to) i|how does (this|it) work|'
+    r'what (are|do) (you|the) commands?|show (me )?(the )?commands?|'
+    r'ubufasha|mbwira amategeko|wakora iki|wamfasha|'
+    r'aide|que peux[- ]tu faire|quelles sont les commandes|comment [çc]a marche)\b', re.I)
+_THANKS_RE   = re.compile(
+    r'\b(thank(s| you)?|much appreciated|appreciate it|'
+    r'murakoze|urakoze|merci|je vous remercie)\b', re.I)
 
-# Resume comes BEFORE start so 'tangira nanone' wins over 'tangira' alone.
-# Also: start's 'tangira' uses a negative lookahead for 'nanone'.
+# Order matters: the MORE-SPECIFIC patterns come first.
+#   - restart  before start   so "from the start" beats "start"
+#   - resume   before start   so "tangira nanone" beats "tangira"
+#   - resume   before next    so "okay continue ... keep going" hints win
+#   - help     before next    so "show me the commands" beats nothing
+# Negative-lookaheads in start prevent it from gobbling the longer phrases.
 _INTENT_REGEX: list[tuple[re.Pattern, str]] = [
-    (re.compile(r'\b(resume|continue now|go on|keep going|tangira nanone|reprendre|reprends)\b',  re.I), 'resume'),
-    (re.compile(r'\b(start|begin|launch|let\'?s go|go ahead|on commence|tangira(?!\s+nanone)|d[eé]marrer|commencer)\b', re.I), 'start'),
-    (re.compile(r'\b(next|next step|continue|move on|skip|forward|komeza|suivante?|[eé]tape suivante)\b', re.I), 'next'),
-    (re.compile(r'\b(pause|wait|hold on|hold up|hagarara|attends|attendez)\b',                    re.I), 'pause'),
-    (re.compile(r'\b(restart|replay|again|from the start|from the beginning|subira|ongera|recommencer)\b', re.I), 'restart'),
-    (re.compile(r'\b(stop|halt|cancel|reka|hagarika|arr[eê]te|arr[eê]ter)\b',                      re.I), 'stop'),
+    (re.compile(
+        r'\b(restart|replay|again|from the start|from the beginning|start over|one more time|'
+        r'subira(?!\s+ukomeze)|ongera|'
+        r'recommencer|on recommence|rejouer|depuis le d[eé]but|encore une fois)\b', re.I), 'restart'),
+    (re.compile(
+        r'\b(resume|continue now|go on|keep going|pick it up|okay continue|'
+        r'tangira nanone|komeza nanone|subira ukomeze|'
+        r'reprendre|reprends|on continue|vas[- ]?y continue)\b', re.I), 'resume'),
+    (re.compile(
+        r'\b(start|begin|launch|let\'?s (begin|go)|ok (start|begin)|go ahead|ready when you are|'
+        r'tangira(?!\s+nanone)|tangiriza|tangire demo|genda(?:\s+mbere)?|'
+        r'on commence|on y va|allez[- ]?y|lancer( la d[eé]mo)?|d[eé]marre(?:r)?|commencer|vas[- ]?y commence)\b',
+        re.I), 'start'),
+    (re.compile(
+        r'\b(next|next step|continue|move on|moving on|skip( ahead)?|forward|'
+        r'komeza|intambwe ikurikira|soko ku ikurikira|'
+        r'suivante?|[eé]tape suivante|passe[rz]? [aà] la suite|avancer)\b', re.I), 'next'),
+    (re.compile(
+        r'\b(pause|wait|hold on|hold up|hold for|one moment|'
+        r'hagarara|tegereza(?:ko)?|'
+        r'attends|attendez|un instant)\b', re.I), 'pause'),
+    (re.compile(
+        r'\b(stop|halt|cancel|end (demo|now|training)|exit|'
+        r'reka(?:\s+byose)?|hagarika|birangiye|'
+        r'arr[eê]te|arr[eê]ter|annuler|terminer)\b', re.I), 'stop'),
 ]
 
 

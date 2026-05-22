@@ -22,6 +22,12 @@ import time
 from collections import Counter, defaultdict
 from pathlib import Path
 
+# Force UTF-8 stdout on Windows (box-drawing chars die under cp1252).
+try:
+    sys.stdout.reconfigure(encoding='utf-8')   # type: ignore[attr-defined]
+except Exception:
+    pass
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ai_services import training_intent as ti                         # noqa: E402

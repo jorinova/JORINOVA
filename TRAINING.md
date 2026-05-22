@@ -40,67 +40,103 @@ crash. You still get the regex baseline.
 
 ## The one-day pipeline
 
-### Step 1 — Extract training data (5 min)
+### Step 0 — Seed realistic pilot data (one time, ~5s)
 
 ```
 cd backend
-python -m training.extract --out training/datasets
+python scripts/seed_database.py                 # if you have not already
+python scripts/seed_production_clinical.py      # 30 patients + 80 lab requests + results
 ```
 
-Output:
-- `intent.jsonl`   — synthetic en/fr/rw utterances per intent (always works)
-- `lis_mapping.jsonl` — one row per real LabRequest in the pilot DB
-- `clinical.jsonl` — completed LabRequest + results (interpretation blank)
+`seed_production_clinical.py` builds a realistic week of a Rwandan district
+hospital: real names + national IDs + districts, 10 clinical scenarios
+(sepsis, anemia, ANC, diabetes follow-up, …), realistic value distributions
+(70% normal / 20% mild abnormal / 10% critical) with proper flagging,
+spread across pending/in-progress/validated/released so each downstream
+task has real material to train on. Idempotent — re-running does not
+duplicate. Use `--reset` to wipe the seeded rows and start over.
 
-`lis_mapping` and `clinical` only produce rows if the pilot DB has records.
-If it's empty, those files end up empty too — and that's the signal you
-need to seed data before training those tasks.
-
-### Step 2 — Score the current system (2 min, no Ollama needed)
-
-```
-python -m training.eval_intent --stage regex
-python -m training.eval_lis_mapping --show-misses
-```
-
-The regex baseline is now **100% on the intent golden** (after the fixes
-checked in today). The LIS eval shows per-field accuracy + test
-precision/recall/f1.
-
-### Step 3 — Benchmark the Ollama workers (10–30 min)
+### Step 1 — Extract training data (5 s)
 
 ```
-ollama serve   # in another terminal
-python -m training.benchmark_models --out training/benchmark.json
+python scripts/extract_training_data.py                       # → /datasets/
+```
+
+Output (real numbers on the seeded DB):
+- `intent.jsonl`        — 153 rows (synthetic en/fr/rw)
+- `lis_mapping.jsonl`   —  80 rows (real LabRequests reverse-engineered to text)
+- `ocr.jsonl`           — 240 rows (noisy/clean pairs for OCR-cleanup)
+- `clinical.jsonl`      —  43 rows (validated/released requests with real values + flags)
+
+### Step 2 — Build the golden truth files (one time)
+
+```
+python scripts/build_golden_set.py                            # → /golden_set/
+```
+
+Locks the per-language goldens that all evals score against:
+- `golden_set/intent_en.json`  — 99 examples
+- `golden_set/intent_fr.json`  — 50 examples
+- `golden_set/intent_rw.json`  — 43 examples
+- `golden_set/lis_mapping.json` — 10 OCR snippets
+- `golden_set/ocr_samples.json` —  5 cleanup pairs
+
+These are **locked truth** — do not let any script overwrite them. If you
+disagree with a label, change the source `backend/training/golden/intent_golden.jsonl`
+and re-run `build_golden_set.py`.
+
+### Step 3 — Score the current system (no Ollama / no key needed)
+
+```
+python scripts/eval_intent.py --stage regex
+python scripts/eval_lis_mapping.py --show-misses
+```
+
+Current scores on the production goldens:
+- **Intent (regex)** : 192/192 = **100 %** (en 100 % · fr 100 % · rw 100 %)
+- **LIS PID**        : 100 %
+- **LIS family name** : 100 %
+- **LIS priority**   : 100 %
+- **LIS tests**      : F1 71 % (P 60 % / R 88 %)
+
+### Step 4 — Benchmark the Ollama workers (optional, 10–60 min on CPU)
+
+```
+ollama serve                                       # in another terminal
+python scripts/benchmark_models.py --out backend/training/benchmark.json
 ```
 
 Each of the five workers (fast / deep / chat / general / fallback) runs the
-full intent golden. You get latency p95 + accuracy. Pick the winner per
-task and update the corresponding env var:
+full intent golden. You get latency p95 + accuracy per worker.
+
+**Hardware reality check.** Loading a 4 GB Ollama model on a 4 GB-free CPU
+laptop yields ~30 s per request — useless for live voice. On Rwandan
+laptop-class hardware, regex + cloud Claude is the realistic cascade. Local
+LLM only adds value with ≥ 8 GB free RAM and matters most on a GPU. See
+`local_llm.py` — `num_ctx=2048` is forced so even phi3:mini fits in 3 GiB.
+
+### Step 5 — Enable the cloud fallback (production cascade)
+
+The cascade in `training_intent.classify()` is:
+**regex → local Ollama → cloud Claude → unknown**
+
+To turn on the cloud layer:
 
 ```
-# .env
-OLLAMA_MODEL_CHAT=<winner>      # used by intent.classify()
-OLLAMA_MODEL_FAST=<winner>      # used by structured-output tasks
+# In your .env (copy from .env.example):
+ANTHROPIC_API_KEY=sk-ant-...
+CLAUDE_MODEL=claude-haiku-4-5-20251001        # already the default
 ```
 
-### Step 4 — Run the full cascade (5 min)
+Then verify it works:
 
 ```
-python -m training.eval_intent --stage all
+python scripts/eval_intent.py --stage cloud
+python scripts/eval_intent.py --stage all     # full cascade leaderboard
 ```
 
-You get a leaderboard:
-```
-── leaderboard ────────────────────────
-   auto    100.0%   (62/62)   18.4s
-   regex   100.0%   (62/62)    0.0s
-   local    97.0%   (60/62)    9.2s
-   cloud    98.4%   (61/62)    8.1s
-```
-
-If `auto` doesn't outrank every individual stage, the cascade order is
-wrong — re-tune.
+Without the key, the cloud stage is silently skipped — no error, just no
+fallback for anything the regex misses.
 
 ### Step 5 — Grow the golden set (continuous)
 
