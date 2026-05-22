@@ -79,9 +79,9 @@ export default function DashboardPage() {
     <RequireAuth>
       <div className="min-h-screen bg-zinc-50 dark:bg-black">
         {/* Header */}
-        <header className="sticky top-0 z-10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 px-4 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Logo size={36} />
+            <Logo size={48} className="-my-1" />
             <span className="text-xl font-bold text-black dark:text-white">JORINOVA NEXUS</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-200">
               {user!.role.replace('_', ' ')}
