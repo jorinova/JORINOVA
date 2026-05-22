@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '../contexts/AuthProvider'
 import Logo from '../components/Logo'
+import { landingPathFor } from '../lib/role-routes'
 
 const NEXUS_BLUE   = '#0066CC'        // clear corporate blue (header / footer / accents)
 const NEXUS_BLUE_LT= '#E6F0FA'        // tinted blue background for the body
@@ -82,6 +83,8 @@ export default function LoginPage() {
 
   const { login } = useAuth()
   const router = useRouter()
+  const sp = useSearchParams()
+  const idleSignout = sp?.get('reason') === 'idle'
   const t = STRINGS[lang]
 
   // Persist language across reloads
@@ -118,8 +121,10 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      await login(username.trim(), password)
-      router.replace('/dashboard')
+      const tokenOut = await login(username.trim(), password)
+      // Role-based redirect — doctors land on their portal, RBC officials
+      // on theirs, receptionists on the LIS intake, etc.
+      router.replace(landingPathFor(tokenOut.role))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
@@ -251,6 +256,11 @@ export default function LoginPage() {
           style={{ border: `2px solid ${NEXUS_BLUE}`, boxShadow: `0 12px 40px ${NEXUS_BLUE}33` }}
         >
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            {idleSignout && !error && (
+              <div className="rounded-lg bg-amber-50 border border-amber-300 px-3 py-2.5 text-sm text-amber-800">
+                Session ended after 5 minutes of inactivity. Sign in again to continue.
+              </div>
+            )}
             {error && (
               <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-700">
                 {error}

@@ -92,7 +92,7 @@ function getToken(): string | null {
 export default function DashboardPage() {
   return (
     <RequireAuth>
-      <AppShell>
+      <AppShell theme="dark">
         <DashboardInner />
       </AppShell>
     </RequireAuth>
@@ -160,31 +160,41 @@ function DashboardInner() {
 
   return (
     <>
-      {/* ── WELCOME BANNER ──────────────────────────────────────────────── */}
+      {/* ── WELCOME BANNER (dark neo) ─────────────────────────────────── */}
       <section
         className="border-b"
-        style={{ borderColor: `${NEXUS_BLUE}30`, background: 'rgba(255,255,255,0.55)' }}
+        style={{
+          borderColor: 'rgba(56, 189, 248, 0.18)',
+          background: 'linear-gradient(180deg, rgba(2,8,23,0) 0%, rgba(56,189,248,0.06) 100%)',
+        }}
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-7 text-center space-y-3">
           <h1
             className="text-2xl sm:text-3xl font-extrabold tracking-wide"
-            style={{ color: MIL_GREEN, textShadow: '0 1px 0 rgba(0,0,0,0.05)' }}
+            style={{
+              color: '#A6C97A',                     // brighter olive-green for dark BG
+              textShadow: '0 0 24px rgba(166,201,122,0.35), 0 1px 0 rgba(0,0,0,0.4)',
+            }}
           >
             WELCOME, {user?.first_name?.toUpperCase() || user?.username?.toUpperCase()}
           </h1>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
             <p
               className="text-lg sm:text-xl font-extrabold italic"
-              style={{ color: GOLD_DK, textShadow: `0 1px 0 ${GOLD}66, 0 0 16px ${GOLD}33` }}
+              style={{
+                color: '#FFD970',
+                textShadow: '0 0 18px rgba(255,217,112,0.35), 0 1px 0 rgba(0,0,0,0.4)',
+              }}
             >
               Smart data. Safer health.
             </p>
             <span
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider"
               style={{
-                background: 'linear-gradient(135deg, rgba(75,83,32,0.10) 0%, rgba(75,83,32,0.18) 100%)',
-                color: MIL_GREEN_DK,
-                border: `1px solid ${MIL_GREEN}40`,
+                background: 'linear-gradient(135deg, rgba(166,201,122,0.10) 0%, rgba(166,201,122,0.20) 100%)',
+                color: '#C9E2A0',
+                border: '1px solid rgba(166,201,122,0.45)',
+                boxShadow: '0 0 18px rgba(166,201,122,0.10)',
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -208,12 +218,12 @@ function DashboardInner() {
         </section>
 
         {/* ── Smart sample routing ──────────────────────────────────────── */}
-        <section className="rounded-xl border bg-white p-5 shadow-sm" style={{ borderColor: `${NEXUS_BLUE}30` }}>
+        <section className="rounded-xl border bg-slate-900/60 backdrop-blur p-5 shadow-sm" style={{ borderColor: `${NEXUS_BLUE}30` }}>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold tracking-wide" style={{ color: NEXUS_BLUE }}>
+            <h2 className="text-sm font-bold tracking-wide text-sky-300">
               SMART SAMPLE ROUTING
             </h2>
-            <span className="text-[11px] text-zinc-500">Barcode → auto-pick destination department(s)</span>
+            <span className="text-[11px] text-slate-400">Barcode → auto-pick destination department(s)</span>
           </div>
           <form onSubmit={handleScan} className="flex gap-2">
             <input
@@ -221,7 +231,7 @@ function DashboardInner() {
               value={scanId}
               onChange={(e) => setScanId(e.target.value)}
               placeholder="Scan barcode or enter Sample ID (e.g. S-0042)"
-              className="flex-1 bg-white border border-zinc-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              className="flex-1 bg-slate-800/80 border border-slate-600 rounded-lg px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-sky-400 outline-none"
             />
             <button
               disabled={isScanning || !scanId}
@@ -239,16 +249,16 @@ function DashboardInner() {
             <Link
               key={f.href}
               href={f.href}
-              className="group rounded-xl bg-white border-2 p-4 hover:shadow-md transition-all"
-              style={{ borderColor: `${NEXUS_BLUE}40` }}
+              className="group rounded-xl bg-slate-900/60 backdrop-blur border-2 p-4 transition-all hover:bg-slate-900/80"
+              style={{ borderColor: 'rgba(56,189,248,0.30)', boxShadow: '0 0 20px rgba(56,189,248,0.08)' }}
             >
               <div className="flex items-start gap-3">
                 <div className="text-2xl">{f.icon}</div>
                 <div className="flex-1">
-                  <div className="font-semibold text-sm text-zinc-900 group-hover:text-blue-700">{f.label}</div>
-                  <div className="text-xs text-zinc-500 mt-0.5">{f.desc}</div>
+                  <div className="font-semibold text-sm text-slate-100 group-hover:text-sky-300">{f.label}</div>
+                  <div className="text-xs text-slate-400 mt-0.5">{f.desc}</div>
                 </div>
-                <div className="text-zinc-400 group-hover:text-blue-600">→</div>
+                <div className="text-slate-500 group-hover:text-sky-300">→</div>
               </div>
             </Link>
           ))}
@@ -257,10 +267,10 @@ function DashboardInner() {
         {/* ── Demo scene grid ───────────────────────────────────────────── */}
         <section>
           <div className="flex items-baseline justify-between mb-3">
-            <h2 className="text-sm font-bold tracking-wide" style={{ color: NEXUS_BLUE }}>
+            <h2 className="text-sm font-bold tracking-wide text-sky-300">
               VOICE-NARRATED DEMOS
             </h2>
-            <Link href="/modules/training" className="text-xs font-medium hover:underline" style={{ color: NEXUS_BLUE }}>
+            <Link href="/modules/training" className="text-xs font-medium hover:underline" className="text-sky-300">
               All scenarios →
             </Link>
           </div>
@@ -269,17 +279,18 @@ function DashboardInner() {
               <Link
                 key={s.id}
                 href={`/modules/training/${s.id}?demo=1`}
-                className="group rounded-xl bg-white border border-zinc-200 p-3 hover:shadow-md hover:border-blue-400 transition-all"
+                className="group rounded-xl bg-slate-900/60 backdrop-blur border border-slate-700/60 p-3 transition-all hover:border-sky-400/60 hover:bg-slate-900/80"
+                style={{ boxShadow: '0 0 14px rgba(56,189,248,0.05)' }}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-2xl">{s.icon}</div>
                   <span className="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded-full"
-                        style={{ background: `${MIL_GREEN}15`, color: MIL_GREEN_DK }}>
+                        style={{ background: 'rgba(166,201,122,0.15)', color: '#C9E2A0', border: '1px solid rgba(166,201,122,0.30)' }}>
                     {s.tag}
                   </span>
                 </div>
-                <div className="text-sm font-semibold text-zinc-900 group-hover:text-blue-700">{s.title}</div>
-                <div className="text-[11px] text-zinc-400 mt-1">Say "Jorinova start" to run</div>
+                <div className="text-sm font-semibold text-slate-100 group-hover:text-sky-300">{s.title}</div>
+                <div className="text-[11px] text-slate-400 mt-1">Say &quot;Jorinova start&quot; to run</div>
               </Link>
             ))}
           </div>
@@ -287,7 +298,7 @@ function DashboardInner() {
 
         {/* ── Clinical modules grid ─────────────────────────────────────── */}
         <section>
-          <h2 className="text-sm font-bold tracking-wide mb-3" style={{ color: NEXUS_BLUE }}>
+          <h2 className="text-sm font-bold tracking-wide mb-3 text-sky-300">
             CLINICAL MODULES
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -295,11 +306,12 @@ function DashboardInner() {
               <button
                 key={m.key}
                 onClick={() => router.push(m.href)}
-                className="text-left rounded-xl bg-white border border-zinc-200 p-3 hover:shadow-md hover:border-blue-400 transition-all"
+                className="text-left rounded-xl bg-slate-900/60 backdrop-blur border border-slate-700/60 p-3 transition-all hover:border-sky-400/60 hover:bg-slate-900/80"
+                style={{ boxShadow: '0 0 14px rgba(56,189,248,0.05)' }}
               >
                 <div className="text-2xl mb-1">{m.icon}</div>
-                <div className="font-semibold text-sm text-zinc-900">{m.label}</div>
-                <div className="text-[11px] text-zinc-500 mt-0.5">{m.desc}</div>
+                <div className="font-semibold text-sm text-slate-100">{m.label}</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">{m.desc}</div>
               </button>
             ))}
           </div>
@@ -307,24 +319,24 @@ function DashboardInner() {
 
         {/* ── Activity feed ─────────────────────────────────────────────── */}
         {feed.length > 0 && (
-          <section className="rounded-xl border bg-white p-5 shadow-sm" style={{ borderColor: `${NEXUS_BLUE}30` }}>
-            <h2 className="text-sm font-bold tracking-wide mb-3" style={{ color: NEXUS_BLUE }}>
+          <section className="rounded-xl border bg-slate-900/60 backdrop-blur p-5 shadow-sm" style={{ borderColor: `${NEXUS_BLUE}30` }}>
+            <h2 className="text-sm font-bold tracking-wide mb-3 text-sky-300">
               RECENT ACTIVITY
             </h2>
             <div className="space-y-1.5">
               {feed.map(f => (
-                <div key={f.id} className="flex items-center justify-between text-sm py-1.5 border-b last:border-0 border-zinc-100">
+                <div key={f.id} className="flex items-center justify-between text-sm py-1.5 border-b last:border-0 border-slate-700/40">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className={`inline-block h-2 w-2 rounded-full ${
-                      f.emergency_level === 'stat'   ? 'bg-rose-500 animate-pulse' :
-                      f.emergency_level === 'urgent' ? 'bg-amber-500' : 'bg-zinc-300'
+                      f.emergency_level === 'stat'   ? 'bg-rose-400 animate-pulse' :
+                      f.emergency_level === 'urgent' ? 'bg-amber-400' : 'bg-slate-500'
                     }`} />
-                    <span className="font-mono text-xs text-zinc-700">{f.lab_id}</span>
-                    <span className="text-xs text-zinc-500 truncate">PID {f.pid ?? '—'}</span>
+                    <span className="font-mono text-xs text-slate-200">{f.lab_id}</span>
+                    <span className="text-xs text-slate-400 truncate">PID {f.pid ?? '—'}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[11px] uppercase tracking-wider text-zinc-500">{f.status.replace('_', ' ')}</span>
-                    <span className="text-[10px] text-zinc-400">
+                    <span className="text-[11px] uppercase tracking-wider text-slate-400">{f.status.replace('_', ' ')}</span>
+                    <span className="text-[10px] text-slate-500">
                       {f.timestamp ? new Date(f.timestamp).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
                     </span>
                   </div>
@@ -392,12 +404,20 @@ function KpiTile({
   label, value, accent, hint,
 }: { label: string; value: string | number; accent: string; hint?: string }) {
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm border" style={{ borderColor: `${accent}40` }}>
+    <div
+      className="rounded-xl bg-slate-900/60 backdrop-blur p-4 border"
+      style={{
+        borderColor: `${accent}55`,
+        boxShadow: `0 0 22px ${accent}1F, inset 0 0 0 1px ${accent}10`,
+      }}
+    >
       <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: accent }}>
         {label}
       </div>
-      <div className="text-3xl font-extrabold text-zinc-900 mt-1">{value}</div>
-      {hint && <div className="text-[11px] text-zinc-500 mt-0.5">{hint}</div>}
+      <div className="text-3xl font-extrabold text-slate-100 mt-1" style={{ textShadow: `0 0 18px ${accent}55` }}>
+        {value}
+      </div>
+      {hint && <div className="text-[11px] text-slate-400 mt-0.5">{hint}</div>}
     </div>
   )
 }
