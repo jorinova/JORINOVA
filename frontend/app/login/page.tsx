@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '../contexts/AuthProvider'
+import Logo from '../components/Logo'
 
 const NEXUS_BLUE   = '#0066CC'        // clear corporate blue (header / footer / accents)
 const NEXUS_BLUE_LT= '#E6F0FA'        // tinted blue background for the body
@@ -73,10 +74,11 @@ export default function LoginPage() {
   const [error,      setError]      = useState('')
   const [loading,    setLoading]    = useState(false)
   const [lang,       setLang]       = useState<Lang>('en')
-  const [now,        setNow]        = useState<Date>(() => new Date())
-  const [online,     setOnline]     = useState<boolean>(
-    typeof navigator !== 'undefined' ? navigator.onLine : true,
-  )
+  // SSR-safe initial values — the real values land on the client in useEffect.
+  // (`new Date()` and `navigator.onLine` would otherwise cause a hydration
+  // mismatch because the SSR HTML and the first client render disagree.)
+  const [now,        setNow]        = useState<Date | null>(null)
+  const [online,     setOnline]     = useState<boolean>(true)
 
   const { login } = useAuth()
   const router = useRouter()
@@ -89,15 +91,18 @@ export default function LoginPage() {
   }, [])
   useEffect(() => { if (typeof window !== 'undefined') localStorage.setItem('nexus.lang', lang) }, [lang])
 
-  // Live clock — ticks once per second
+  // Live clock — ticks once per second. Set first value on mount so SSR
+  // and client agree on the initial render.
   useEffect(() => {
+    setNow(new Date())
     const id = window.setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(id)
   }, [])
 
-  // Internet status — pure browser signal, no server call (would never
-  // resolve if we tried to ping the backend when offline)
+  // Internet status — pure browser signal. Initial value also deferred to
+  // after-mount so SSR HTML matches the first client render.
   useEffect(() => {
+    setOnline(navigator.onLine)
     const up   = () => setOnline(true)
     const down = () => setOnline(false)
     window.addEventListener('online',  up)
@@ -122,14 +127,18 @@ export default function LoginPage() {
     }
   }
 
-  const dateStr = now.toLocaleDateString(
-    lang === 'fr' ? 'fr-FR' : lang === 'rw' ? 'rw-RW' : 'en-GB',
-    { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' },
-  )
-  const timeStr = now.toLocaleTimeString(
-    lang === 'fr' ? 'fr-FR' : 'en-GB',
-    { hour: '2-digit', minute: '2-digit', second: '2-digit' },
-  )
+  const dateStr = now
+    ? now.toLocaleDateString(
+        lang === 'fr' ? 'fr-FR' : lang === 'rw' ? 'rw-RW' : 'en-GB',
+        { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' },
+      )
+    : ''
+  const timeStr = now
+    ? now.toLocaleTimeString(
+        lang === 'fr' ? 'fr-FR' : 'en-GB',
+        { hour: '2-digit', minute: '2-digit', second: '2-digit' },
+      )
+    : '--:--:--'
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
@@ -147,10 +156,7 @@ export default function LoginPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex items-center justify-between gap-3 flex-wrap">
           {/* Logo (left) */}
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-white text-[color:var(--nx-blue)] flex items-center justify-center font-bold text-lg shadow-sm"
-                 style={{ color: NEXUS_BLUE }}>
-              JN
-            </div>
+            <Logo size={44} className="ring-2 ring-white/30" />
             <div className="leading-tight">
               <div className="font-bold tracking-wide text-sm sm:text-base">JORINOVA NEXUS</div>
               <div className="text-[10px] sm:text-xs text-blue-100 -mt-0.5">ALIS-X · Laboratory Intelligence</div>

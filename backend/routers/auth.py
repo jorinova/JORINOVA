@@ -1,5 +1,7 @@
 """Authentication router — login, token, profile, password reset, forgot password OTP."""
+import os
 import random
+import secrets
 import string
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request
@@ -9,10 +11,17 @@ from pydantic import BaseModel, EmailStr
 from core.database import get_db
 from core.security import (hash_password, verify_password,
                             create_access_token, get_current_user)
+from core.config import get_settings
 from models.user import User, LoginLog
 
 # In-memory OTP store: {email: (otp, expires_at)}
 _otp_store: dict = {}
+
+# In-memory reset-token store: {token: (email, expires_at)}
+# Issued by /verify-otp once a code is confirmed; consumed by /reset-password.
+# Short-lived (10 min) so a leaked token has tight blast radius.
+_reset_token_store: dict = {}
+_RESET_TOKEN_TTL_MIN = 10
 
 router = APIRouter(prefix='/auth', tags=['Authentication'])
 
@@ -155,9 +164,23 @@ class ForgotPasswordIn(BaseModel):
 
 
 class VerifyOTPIn(BaseModel):
+    """Legacy one-shot: verify + reset in a single call. Kept for backward compat."""
     email:    str
     otp:      str
     new_password: str
+
+
+class VerifyOTPOnlyIn(BaseModel):
+    """Step 2 of the production flow: verify the code, no password yet."""
+    email: str
+    otp:   str
+
+
+class ResetPasswordIn(BaseModel):
+    """Step 3 of the production flow: redeem the reset_token for a new password."""
+    reset_token:  str
+    new_password: str
+    confirm_password: str | None = None
 
 
 def _generate_otp(length: int = 6) -> str:
@@ -221,21 +244,107 @@ JORINOVA NEXUS ALIS-X Security System
 def forgot_password(body: ForgotPasswordIn, db: Session = Depends(get_db)):
     """
     Step 1: Request OTP. Sends a 6-digit code to the registered email.
+
     Always returns 200 (to avoid user enumeration attacks).
+
+    Dev convenience: when DEBUG=true AND no SMTP is configured, the OTP is
+    echoed back in the response so the frontend can show it during local
+    development. In production this is suppressed — never expose secrets.
     """
-    user = db.query(User).filter(User.email == body.email).first()
+    user    = db.query(User).filter(User.email == body.email).first()
+    payload = {'message': 'If that email is registered, an OTP has been sent.'}
     if user:
         otp     = _generate_otp()
         expires = datetime.now(timezone.utc) + timedelta(minutes=15)
         _otp_store[body.email.lower()] = (otp, expires)
         _send_otp_email(user.email, otp, user.username)
-    return {'message': 'If that email is registered, an OTP has been sent.'}
+        # Dev echo: only when both conditions are true
+        settings = get_settings()
+        smtp_configured = bool(os.environ.get('EMAIL_HOST')) and bool(os.environ.get('EMAIL_HOST_USER'))
+        if settings.debug and not smtp_configured:
+            payload['dev_otp'] = otp                      # PLEASE never enable in prod
+            payload['dev_note'] = 'DEV ONLY — SMTP not configured. OTP echoed for local testing.'
+    return payload
+
+
+@router.post('/verify-otp')
+def verify_otp(body: VerifyOTPOnlyIn):
+    """
+    Step 2 (production flow): validate the OTP standalone and issue a
+    short-lived reset_token. The OTP is consumed (removed from the store)
+    here, so it cannot be replayed. Pass the returned reset_token to
+    /reset-password within %d minutes.
+    """ % _RESET_TOKEN_TTL_MIN
+    key    = body.email.lower()
+    stored = _otp_store.get(key)
+
+    if not stored:
+        raise HTTPException(status_code=400, detail='No OTP requested for this email')
+
+    otp, expires = stored
+    if datetime.now(timezone.utc) > expires:
+        _otp_store.pop(key, None)
+        raise HTTPException(status_code=400, detail='OTP has expired. Request a new one.')
+
+    if otp != body.otp.strip():
+        raise HTTPException(status_code=400, detail='Invalid OTP')
+
+    # OTP is valid — consume it and issue a reset token
+    _otp_store.pop(key, None)
+    token  = secrets.token_urlsafe(32)
+    expiry = datetime.now(timezone.utc) + timedelta(minutes=_RESET_TOKEN_TTL_MIN)
+    _reset_token_store[token] = (key, expiry)
+
+    return {
+        'message':     'OTP verified. Use the reset_token to set a new password.',
+        'reset_token': token,
+        'expires_in':  _RESET_TOKEN_TTL_MIN * 60,
+    }
+
+
+@router.post('/reset-password')
+def reset_password(body: ResetPasswordIn, db: Session = Depends(get_db)):
+    """
+    Step 3 (production flow): redeem the reset_token for a new password.
+    The token is single-use and short-lived — see /verify-otp.
+    """
+    stored = _reset_token_store.get(body.reset_token)
+    if not stored:
+        raise HTTPException(status_code=400, detail='Invalid or unknown reset token')
+
+    email_key, expiry = stored
+    if datetime.now(timezone.utc) > expiry:
+        _reset_token_store.pop(body.reset_token, None)
+        raise HTTPException(status_code=400, detail='Reset token has expired. Start over.')
+
+    if len(body.new_password) < 8:
+        raise HTTPException(status_code=400, detail='Password must be at least 8 characters')
+
+    if body.confirm_password is not None and body.confirm_password != body.new_password:
+        raise HTTPException(status_code=400, detail='Passwords do not match')
+
+    user = db.query(User).filter(User.email == email_key).first()
+    if not user:
+        # Token was issued against this email moments ago, so this should
+        # only happen if the user was deleted in the gap.
+        _reset_token_store.pop(body.reset_token, None)
+        raise HTTPException(status_code=404, detail='User no longer exists')
+
+    user.hashed_password = hash_password(body.new_password)
+    db.commit()
+    _reset_token_store.pop(body.reset_token, None)   # single-use
+
+    import logging
+    logging.getLogger('auth.otp').info(f'Password reset successful for {user.username}')
+    return {'message': 'Password reset successful. Please log in with your new password.'}
 
 
 @router.post('/verify-otp-reset')
 def verify_otp_reset(body: VerifyOTPIn, db: Session = Depends(get_db)):
     """
-    Step 2: Verify OTP and set new password.
+    Legacy one-shot endpoint — verify the OTP and reset the password in a
+    single call. Kept for backward compatibility with existing clients;
+    new frontends should use /verify-otp then /reset-password.
     """
     key    = body.email.lower()
     stored = _otp_store.get(key)
@@ -260,7 +369,7 @@ def verify_otp_reset(body: VerifyOTPIn, db: Session = Depends(get_db)):
 
     user.hashed_password = hash_password(body.new_password)
     db.commit()
-    _otp_store.pop(key, None)   # invalidate OTP after use
+    _otp_store.pop(key, None)
 
     import logging
     logging.getLogger('auth.otp').info(f'Password reset successful for {user.username}')
