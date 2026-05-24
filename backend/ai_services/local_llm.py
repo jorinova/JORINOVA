@@ -136,26 +136,31 @@ async def generate(
     max_tokens: int  = 512,
     temperature:float = 0.15,
     timeout_s:  float = None,
+    model:      str  = None,
 ) -> AIResponse:
     """
     Send prompt to Ollama. Returns AIResponse.
     Never raises — errors are returned in AIResponse.error.
+
+    `model` overrides `settings.ollama_model` for this call only. Use the
+    `local_llm_router` to pick a model by task (fast/deep/chat/general/fallback).
     """
     t0 = time.time()
+    active_model = model or settings.ollama_model
 
-    # Cache hit
+    # Cache hit (cache key includes the model so different models don't collide)
     if use_cache:
-        cache_key = f'{system}|||{prompt}'
+        cache_key = f'{active_model}|||{system}|||{prompt}'
         hit = _cache.get(cache_key)
         if hit:
-            logger.debug('Local LLM cache hit')
+            logger.debug('Local LLM cache hit (model=%s)', active_model)
             resp = AIResponse(**hit)
             resp.cached = True
             return resp
 
     if not await is_available():
         return AIResponse(
-            content='', layer_used=AILayer.LOCAL, model=settings.ollama_model,
+            content='', layer_used=AILayer.LOCAL, model=active_model,
             latency_ms=int((time.time()-t0)*1000),
             error='Ollama not reachable — offline fallback to rules engine',
         )
@@ -171,13 +176,17 @@ async def generate(
             r = await c.post(
                 f'{settings.ollama_url}/api/chat',
                 json={
-                    'model':   settings.ollama_model,
+                    'model':   active_model,
                     'messages': messages,
                     'stream':  False,
                     'options': {
-                        'temperature': temperature,
-                        'num_predict': max_tokens,
-                        'top_p':       0.9,
+                        'temperature':    temperature,
+                        'num_predict':    max_tokens,
+                        # Cap context at 2048 tokens. Ollama defaults to the
+                        # model's max (often 128k) which can require 50+ GiB
+                        # of KV-cache RAM. Lab tasks are short — 2k is plenty.
+                        'num_ctx':        2048,
+                        'top_p':          0.9,
                         'repeat_penalty': 1.1,
                     },
                 },
@@ -187,7 +196,7 @@ async def generate(
             resp = AIResponse(
                 content=content,
                 layer_used=AILayer.LOCAL,
-                model=settings.ollama_model,
+                model=active_model,
                 latency_ms=int((time.time()-t0)*1000),
             )
             if use_cache and content:
@@ -195,16 +204,16 @@ async def generate(
             return resp
 
     except httpx.TimeoutException:
-        logger.warning('Ollama timeout after %.1fs for model %s', effective_timeout, settings.ollama_model)
+        logger.warning('Ollama timeout after %.1fs for model %s', effective_timeout, active_model)
         return AIResponse(
-            content='', layer_used=AILayer.LOCAL, model=settings.ollama_model,
+            content='', layer_used=AILayer.LOCAL, model=active_model,
             latency_ms=int((time.time()-t0)*1000),
-            error=f'Timeout ({effective_timeout}s) — reduce prompt length or switch to cloud',
+            error=f'Timeout ({effective_timeout}s) — reduce prompt length or switch model',
         )
     except Exception as e:
-        logger.error('Ollama error: %s', e)
+        logger.error('Ollama error (model=%s): %s', active_model, e)
         return AIResponse(
-            content='', layer_used=AILayer.LOCAL, model=settings.ollama_model,
+            content='', layer_used=AILayer.LOCAL, model=active_model,
             latency_ms=int((time.time()-t0)*1000), error=str(e),
         )
 

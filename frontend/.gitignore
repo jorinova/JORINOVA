@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# example templates are tracked — they contain no secrets
+!.env.example
+!.env.*.example
 
 # vercel
 .vercel

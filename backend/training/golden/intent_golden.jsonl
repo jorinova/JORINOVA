@@ -1,0 +1,192 @@
+{"text": "start", "language": "en", "intent": "start"}
+{"text": "start the demo please", "language": "en", "intent": "start"}
+{"text": "let's begin", "language": "en", "intent": "start"}
+{"text": "let us begin", "language": "en", "intent": "start"}
+{"text": "go ahead", "language": "en", "intent": "start"}
+{"text": "begin", "language": "en", "intent": "start"}
+{"text": "launch it", "language": "en", "intent": "start"}
+{"text": "ok start now", "language": "en", "intent": "start"}
+{"text": "alright let's go", "language": "en", "intent": "start"}
+{"text": "could you start the demo", "language": "en", "intent": "start"}
+{"text": "please begin the training", "language": "en", "intent": "start"}
+{"text": "doctor start the demo", "language": "en", "intent": "start"}
+{"text": "uhh can you maybe start now", "language": "en", "intent": "start"}
+{"text": "ready when you are", "language": "en", "intent": "start"}
+{"text": "next", "language": "en", "intent": "next"}
+{"text": "next step", "language": "en", "intent": "next"}
+{"text": "move on", "language": "en", "intent": "next"}
+{"text": "skip this one", "language": "en", "intent": "next"}
+{"text": "next please", "language": "en", "intent": "next"}
+{"text": "go to next", "language": "en", "intent": "next"}
+{"text": "forward", "language": "en", "intent": "next"}
+{"text": "moving on", "language": "en", "intent": "next"}
+{"text": "okay next", "language": "en", "intent": "next"}
+{"text": "can we go to the next step", "language": "en", "intent": "next"}
+{"text": "jorinova next step please", "language": "en", "intent": "next"}
+{"text": "skip ahead", "language": "en", "intent": "next"}
+{"text": "what's after this, move on", "language": "en", "intent": "next"}
+{"text": "pause", "language": "en", "intent": "pause"}
+{"text": "pause for a second", "language": "en", "intent": "pause"}
+{"text": "hold on", "language": "en", "intent": "pause"}
+{"text": "wait", "language": "en", "intent": "pause"}
+{"text": "hold up", "language": "en", "intent": "pause"}
+{"text": "pause please", "language": "en", "intent": "pause"}
+{"text": "one moment", "language": "en", "intent": "pause"}
+{"text": "let me just pause this real quick", "language": "en", "intent": "pause"}
+{"text": "hold for a second", "language": "en", "intent": "pause"}
+{"text": "wait wait wait", "language": "en", "intent": "pause"}
+{"text": "resume", "language": "en", "intent": "resume"}
+{"text": "resume now", "language": "en", "intent": "resume"}
+{"text": "keep going", "language": "en", "intent": "resume"}
+{"text": "continue now", "language": "en", "intent": "resume"}
+{"text": "go on", "language": "en", "intent": "resume"}
+{"text": "pick it up", "language": "en", "intent": "resume"}
+{"text": "resume please", "language": "en", "intent": "resume"}
+{"text": "okay continue", "language": "en", "intent": "resume"}
+{"text": "restart", "language": "en", "intent": "restart"}
+{"text": "restart from the beginning", "language": "en", "intent": "restart"}
+{"text": "do it again", "language": "en", "intent": "restart"}
+{"text": "replay", "language": "en", "intent": "restart"}
+{"text": "from the start", "language": "en", "intent": "restart"}
+{"text": "one more time", "language": "en", "intent": "restart"}
+{"text": "start over", "language": "en", "intent": "restart"}
+{"text": "can you do that again", "language": "en", "intent": "restart"}
+{"text": "again from scratch", "language": "en", "intent": "restart"}
+{"text": "stop", "language": "en", "intent": "stop"}
+{"text": "cancel", "language": "en", "intent": "stop"}
+{"text": "halt", "language": "en", "intent": "stop"}
+{"text": "i need to stop this please", "language": "en", "intent": "stop"}
+{"text": "stop now", "language": "en", "intent": "stop"}
+{"text": "okay stop", "language": "en", "intent": "stop"}
+{"text": "end demo", "language": "en", "intent": "stop"}
+{"text": "exit", "language": "en", "intent": "stop"}
+{"text": "stop training", "language": "en", "intent": "stop"}
+{"text": "hello", "language": "en", "intent": "greet"}
+{"text": "hi", "language": "en", "intent": "greet"}
+{"text": "hey", "language": "en", "intent": "greet"}
+{"text": "good morning", "language": "en", "intent": "greet"}
+{"text": "good afternoon", "language": "en", "intent": "greet"}
+{"text": "good evening", "language": "en", "intent": "greet"}
+{"text": "hi there", "language": "en", "intent": "greet"}
+{"text": "hello jorinova", "language": "en", "intent": "greet"}
+{"text": "hello nexus", "language": "en", "intent": "greet"}
+{"text": "hey nexus", "language": "en", "intent": "greet"}
+{"text": "good morning everyone", "language": "en", "intent": "greet"}
+{"text": "jorinova", "language": "en", "intent": "wake"}
+{"text": "nexus", "language": "en", "intent": "wake"}
+{"text": "alis x", "language": "en", "intent": "wake"}
+{"text": "ok jorinova", "language": "en", "intent": "wake"}
+{"text": "hey alis-x", "language": "en", "intent": "greet"}
+{"text": "help", "language": "en", "intent": "help"}
+{"text": "help me", "language": "en", "intent": "help"}
+{"text": "what can you do", "language": "en", "intent": "help"}
+{"text": "could you help me out", "language": "en", "intent": "help"}
+{"text": "how do i use this", "language": "en", "intent": "help"}
+{"text": "what are the commands", "language": "en", "intent": "help"}
+{"text": "show me the commands", "language": "en", "intent": "help"}
+{"text": "thanks", "language": "en", "intent": "thanks"}
+{"text": "thank you", "language": "en", "intent": "thanks"}
+{"text": "thank you very much", "language": "en", "intent": "thanks"}
+{"text": "much appreciated", "language": "en", "intent": "thanks"}
+{"text": "thanks a lot", "language": "en", "intent": "thanks"}
+{"text": "appreciate it", "language": "en", "intent": "thanks"}
+{"text": "the weather is nice today", "language": "en", "intent": "unknown"}
+{"text": "what time is it", "language": "en", "intent": "unknown"}
+{"text": "what's your favourite colour", "language": "en", "intent": "unknown"}
+{"text": "can you order me a coffee", "language": "en", "intent": "unknown"}
+{"text": "tell me a joke", "language": "en", "intent": "unknown"}
+{"text": "remind me to call the doctor", "language": "en", "intent": "unknown"}
+{"text": "what is the patient's blood pressure", "language": "en", "intent": "unknown"}
+{"text": "démarrer", "language": "fr", "intent": "start"}
+{"text": "commencer", "language": "fr", "intent": "start"}
+{"text": "on commence", "language": "fr", "intent": "start"}
+{"text": "on y va", "language": "fr", "intent": "start"}
+{"text": "allez-y", "language": "fr", "intent": "start"}
+{"text": "lancer la démo", "language": "fr", "intent": "start"}
+{"text": "démarre la formation", "language": "fr", "intent": "start"}
+{"text": "vas-y commence", "language": "fr", "intent": "start"}
+{"text": "suivant", "language": "fr", "intent": "next"}
+{"text": "étape suivante", "language": "fr", "intent": "next"}
+{"text": "continue", "language": "fr", "intent": "next"}
+{"text": "passe à la suite", "language": "fr", "intent": "next"}
+{"text": "avancer", "language": "fr", "intent": "next"}
+{"text": "on passe au suivant", "language": "fr", "intent": "next"}
+{"text": "pause", "language": "fr", "intent": "pause"}
+{"text": "attends une seconde", "language": "fr", "intent": "pause"}
+{"text": "attends", "language": "fr", "intent": "pause"}
+{"text": "attendez s'il vous plaît", "language": "fr", "intent": "pause"}
+{"text": "un instant", "language": "fr", "intent": "pause"}
+{"text": "reprendre", "language": "fr", "intent": "resume"}
+{"text": "reprends", "language": "fr", "intent": "resume"}
+{"text": "on continue", "language": "fr", "intent": "resume"}
+{"text": "vas-y continue", "language": "fr", "intent": "resume"}
+{"text": "recommencer", "language": "fr", "intent": "restart"}
+{"text": "rejouer", "language": "fr", "intent": "restart"}
+{"text": "depuis le début", "language": "fr", "intent": "restart"}
+{"text": "encore une fois", "language": "fr", "intent": "restart"}
+{"text": "on recommence", "language": "fr", "intent": "restart"}
+{"text": "arrête", "language": "fr", "intent": "stop"}
+{"text": "arrêter", "language": "fr", "intent": "stop"}
+{"text": "stop", "language": "fr", "intent": "stop"}
+{"text": "annuler", "language": "fr", "intent": "stop"}
+{"text": "terminer", "language": "fr", "intent": "stop"}
+{"text": "bonjour", "language": "fr", "intent": "greet"}
+{"text": "bonsoir", "language": "fr", "intent": "greet"}
+{"text": "bonjour à tous", "language": "fr", "intent": "greet"}
+{"text": "salut", "language": "fr", "intent": "greet"}
+{"text": "bonjour jorinova", "language": "fr", "intent": "greet"}
+{"text": "jorinova", "language": "fr", "intent": "wake"}
+{"text": "nexus", "language": "fr", "intent": "wake"}
+{"text": "aide", "language": "fr", "intent": "help"}
+{"text": "que peux-tu faire", "language": "fr", "intent": "help"}
+{"text": "quelles sont les commandes", "language": "fr", "intent": "help"}
+{"text": "comment ça marche", "language": "fr", "intent": "help"}
+{"text": "merci", "language": "fr", "intent": "thanks"}
+{"text": "merci beaucoup", "language": "fr", "intent": "thanks"}
+{"text": "je vous remercie", "language": "fr", "intent": "thanks"}
+{"text": "quel est ton nom", "language": "fr", "intent": "unknown"}
+{"text": "quelle est la météo", "language": "fr", "intent": "unknown"}
+{"text": "appelle le docteur", "language": "fr", "intent": "unknown"}
+{"text": "tangira", "language": "rw", "intent": "start"}
+{"text": "tangiriza", "language": "rw", "intent": "start"}
+{"text": "tangire demo", "language": "rw", "intent": "start"}
+{"text": "genda", "language": "rw", "intent": "start"}
+{"text": "genda mbere", "language": "rw", "intent": "start"}
+{"text": "tangira ubu", "language": "rw", "intent": "start"}
+{"text": "komeza", "language": "rw", "intent": "next"}
+{"text": "intambwe ikurikira", "language": "rw", "intent": "next"}
+{"text": "soko ku ikurikira", "language": "rw", "intent": "next"}
+{"text": "komeza ubu", "language": "rw", "intent": "next"}
+{"text": "hagarara", "language": "rw", "intent": "pause"}
+{"text": "tegereza", "language": "rw", "intent": "pause"}
+{"text": "hagarara gato", "language": "rw", "intent": "pause"}
+{"text": "tegerezako", "language": "rw", "intent": "pause"}
+{"text": "tangira nanone", "language": "rw", "intent": "resume"}
+{"text": "komeza nanone", "language": "rw", "intent": "resume"}
+{"text": "subira ukomeze", "language": "rw", "intent": "resume"}
+{"text": "subira", "language": "rw", "intent": "restart"}
+{"text": "ongera utangire", "language": "rw", "intent": "restart"}
+{"text": "ongera", "language": "rw", "intent": "restart"}
+{"text": "reka", "language": "rw", "intent": "stop"}
+{"text": "hagarika", "language": "rw", "intent": "stop"}
+{"text": "birangiye", "language": "rw", "intent": "stop"}
+{"text": "reka byose", "language": "rw", "intent": "stop"}
+{"text": "mwaramutse", "language": "rw", "intent": "greet"}
+{"text": "mwiriwe", "language": "rw", "intent": "greet"}
+{"text": "muraho", "language": "rw", "intent": "greet"}
+{"text": "muraho neza", "language": "rw", "intent": "greet"}
+{"text": "mwaramutse jorinova", "language": "rw", "intent": "greet"}
+{"text": "jorinova", "language": "rw", "intent": "wake"}
+{"text": "nexus", "language": "rw", "intent": "wake"}
+{"text": "ubufasha", "language": "rw", "intent": "help"}
+{"text": "mbwira amategeko", "language": "rw", "intent": "help"}
+{"text": "wakora iki", "language": "rw", "intent": "help"}
+{"text": "wamfasha", "language": "rw", "intent": "help"}
+{"text": "murakoze", "language": "rw", "intent": "thanks"}
+{"text": "urakoze", "language": "rw", "intent": "thanks"}
+{"text": "urakoze cyane", "language": "rw", "intent": "thanks"}
+{"text": "murakoze cyane", "language": "rw", "intent": "thanks"}
+{"text": "ndabona umuyaga ufite ubukonje", "language": "rw", "intent": "unknown"}
+{"text": "ni saa ngahe", "language": "rw", "intent": "unknown"}
+{"text": "umuganga ari hehe", "language": "rw", "intent": "unknown"}
+{"text": "patient ari mu cyumba", "language": "rw", "intent": "unknown"}

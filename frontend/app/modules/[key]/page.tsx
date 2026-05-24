@@ -1,90 +1,82 @@
 'use client'
 
-import { useMemo } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import RequireAuth from '../../components/RequireAuth'
-import { useAuth } from '../../contexts/AuthProvider'
+/**
+ * Generic module placeholder.
+ *
+ * Renders when the dashboard links to a module that doesn't yet have a
+ * dedicated page (patients, billing, inventory, ...). Wraps in AppShell
+ * so the chrome (header logo, avatar, footer) is consistent across the
+ * whole app, even for not-yet-built sections.
+ */
 
-const MODULES: Record<
-  string,
-  { label: string; icon: string; desc: string; roles?: string[] }
-> = {
-  dashboard: { label: 'Dashboard', icon: '🏠', desc: 'System overview & KPIs' },
-  patients: { label: 'Patients', icon: '👤', desc: 'Patient registry & history' },
-  laboratory: { label: 'Laboratory', icon: '🧪', desc: 'Results & worklists' },
-  ai_nexus: { label: 'AI Nexus', icon: '🤖', desc: 'Hybrid AI assistant' },
-  billing: { label: 'Billing', icon: '💳', desc: 'Invoices & insurance' },
-  inventory: { label: 'Inventory', icon: '📦', desc: 'Stock & reorder' },
-  notifications: { label: 'Notifications', icon: '🔔', desc: 'Alerts & SMS' },
-  audit: { label: 'Audit', icon: '📋', desc: 'Compliance & logs' },
+import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import RequireAuth from '../../components/RequireAuth'
+import AppShell    from '../../components/AppShell'
+
+const MODULES: Record<string, { label: string; icon: string; desc: string }> = {
+  dashboard:     { label: 'Dashboard',        icon: '🏠', desc: 'System overview & KPIs' },
+  patients:      { label: 'Patients',         icon: '👤', desc: 'Patient registry & history' },
+  laboratory:    { label: 'Laboratory',       icon: '🧪', desc: 'Results & worklists' },
+  ai_nexus:      { label: 'AI Nexus',         icon: '🤖', desc: 'Hybrid AI assistant (rules → local → cloud)' },
+  billing:       { label: 'Billing & MoMo',   icon: '💳', desc: 'Invoices, Mobile Money, insurance' },
+  inventory:     { label: 'Inventory',        icon: '📦', desc: 'Stock levels, reorder triggers, reagent expiry' },
+  blood_bank:    { label: 'Blood Bank',       icon: '🩸', desc: 'Chamber/slot tracking, crossmatch, haemovigilance' },
+  notifications: { label: 'Notifications',    icon: '🔔', desc: 'SMS alerts, escalations, read-back log' },
+  audit:         { label: 'Audit',            icon: '📋', desc: 'PQC signatures, immutable activity log' },
 }
+
+const NEXUS_BLUE = '#0066CC'
+const MIL_GREEN  = '#4B5320'
 
 export default function ModulePage() {
   const params = useParams<{ key: string }>()
   const router = useRouter()
-  const { user } = useAuth()
-
-  const key = params.key
-  const module = MODULES[key] ?? null
-
-  const title = module?.label ?? 'Module'
-
-  const roleBadge = useMemo(() => {
-    if (!user) return null
-    return user.role.replaceAll('_', ' ')
-  }, [user])
+  const key    = params?.key ?? ''
+  const module = MODULES[key]
 
   return (
     <RequireAuth>
-      <div className="min-h-screen bg-zinc-50 dark:bg-black">
-        <header className="sticky top-0 z-10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="text-sm text-zinc-700 dark:text-zinc-200 hover:underline"
-              aria-label="Back to dashboard"
-            >
-              ←
-            </button>
-            <span className="text-xl font-bold text-black dark:text-white">
-              JORINOVA NEXUS
-            </span>
-            {roleBadge && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-200">
-                {roleBadge}
-              </span>
-            )}
-          </div>
-        </header>
+      <AppShell pageTag={module?.label ?? 'Module'}>
+        <div className="mx-auto max-w-3xl px-4 py-10">
+          <div className="rounded-2xl bg-white border p-7 shadow-sm" style={{ borderColor: `${NEXUS_BLUE}30` }}>
+            <div className="text-5xl">{module?.icon ?? '🧩'}</div>
+            <h1 className="mt-3 text-3xl font-extrabold tracking-wide" style={{ color: MIL_GREEN }}>
+              {(module?.label ?? key).toUpperCase()}
+            </h1>
+            <p className="mt-2 text-sm text-zinc-600">
+              {module?.desc ?? 'This section will be implemented next.'}
+            </p>
 
-        <main className="max-w-3xl mx-auto px-4 py-8">
-          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-4xl">{module?.icon ?? '🧩'}</div>
-                <h1 className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-                  {title}
-                </h1>
-                <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                  {module?.desc ?? 'This section will be implemented next.'}
-                </p>
+            {/* Placeholder body */}
+            <div className="mt-6 rounded-lg p-4" style={{ background: '#F0F7FF', border: `1px solid ${NEXUS_BLUE}20` }}>
+              <div className="text-sm font-semibold text-zinc-900">Module under build</div>
+              <div className="text-sm text-zinc-600 mt-1">
+                Backend models and API endpoints for this module already exist. The
+                front-end view is the next step — coming in the same visual
+                language as the rest of the system.
               </div>
             </div>
 
-            <div className="mt-6 space-y-3">
-              <div className="rounded-lg bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-4">
-                <div className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                  Placeholder UI
-                </div>
-                <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                  Start wiring module-specific pages and API endpoints here.
-                </div>
-              </div>
+            {/* Navigation */}
+            <div className="mt-6 flex flex-wrap gap-2 text-sm">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="px-4 py-2 rounded-lg text-white font-medium"
+                style={{ background: NEXUS_BLUE }}
+              >
+                ← Back to dashboard
+              </button>
+              <Link
+                href="/modules/training"
+                className="px-4 py-2 rounded-lg border border-zinc-300 text-zinc-700 hover:bg-zinc-50"
+              >
+                Open a demo scene
+              </Link>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </AppShell>
     </RequireAuth>
   )
 }
-

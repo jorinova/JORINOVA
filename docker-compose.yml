@@ -168,6 +168,64 @@ services:
     profiles: ['standard']
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # TIER 4b — Next.js Frontend (web)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Serves login, dashboard, doctor portal, RBC portal, training runner, etc.
+  # In the full profile nginx proxies / -> web and /api/* -> api.
+  # In the standard profile, expose it directly on port 3000.
+
+  web:
+    build:
+      context:    ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Empty so the browser uses relative /api/* (nginx handles the proxy).
+        # Set to your backend public URL when running without nginx.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+    container_name: alis_web
+    restart: unless-stopped
+    environment:
+      # SSR-side rewrites target the backend by its service name.
+      BACKEND_INTERNAL_URL: http://api:8000
+      NODE_ENV:             production
+      PORT:                 '3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - alis_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/login || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    # Behind nginx in 'full' — not exposed directly.
+    profiles: ['full']
+
+  # Same web image but exposed directly on 3000 for profiles without nginx.
+  web-exposed:
+    build:
+      context:    ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    container_name: alis_web_std
+    restart: unless-stopped
+    environment:
+      BACKEND_INTERNAL_URL: http://api-exposed:8000
+      NODE_ENV:             production
+      PORT:                 '3000'
+    depends_on:
+      api-exposed:
+        condition: service_healthy
+    networks:
+      - alis_net
+    ports:
+      - '0.0.0.0:3000:3000'
+    profiles: ['standard']
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # TIER 5 — Background Workers (Celery)
   # ═══════════════════════════════════════════════════════════════════════════
 
@@ -261,6 +319,8 @@ services:
       - log_data:/var/log/nginx
     depends_on:
       api:
+        condition: service_healthy
+      web:
         condition: service_healthy
     networks:
       - alis_net

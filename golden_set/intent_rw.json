@@ -1,0 +1,217 @@
+[
+  {
+    "text": "tangira",
+    "language": "rw",
+    "intent": "start"
+  },
+  {
+    "text": "tangiriza",
+    "language": "rw",
+    "intent": "start"
+  },
+  {
+    "text": "tangire demo",
+    "language": "rw",
+    "intent": "start"
+  },
+  {
+    "text": "genda",
+    "language": "rw",
+    "intent": "start"
+  },
+  {
+    "text": "genda mbere",
+    "language": "rw",
+    "intent": "start"
+  },
+  {
+    "text": "tangira ubu",
+    "language": "rw",
+    "intent": "start"
+  },
+  {
+    "text": "komeza",
+    "language": "rw",
+    "intent": "next"
+  },
+  {
+    "text": "intambwe ikurikira",
+    "language": "rw",
+    "intent": "next"
+  },
+  {
+    "text": "soko ku ikurikira",
+    "language": "rw",
+    "intent": "next"
+  },
+  {
+    "text": "komeza ubu",
+    "language": "rw",
+    "intent": "next"
+  },
+  {
+    "text": "hagarara",
+    "language": "rw",
+    "intent": "pause"
+  },
+  {
+    "text": "tegereza",
+    "language": "rw",
+    "intent": "pause"
+  },
+  {
+    "text": "hagarara gato",
+    "language": "rw",
+    "intent": "pause"
+  },
+  {
+    "text": "tegerezako",
+    "language": "rw",
+    "intent": "pause"
+  },
+  {
+    "text": "tangira nanone",
+    "language": "rw",
+    "intent": "resume"
+  },
+  {
+    "text": "komeza nanone",
+    "language": "rw",
+    "intent": "resume"
+  },
+  {
+    "text": "subira ukomeze",
+    "language": "rw",
+    "intent": "resume"
+  },
+  {
+    "text": "subira",
+    "language": "rw",
+    "intent": "restart"
+  },
+  {
+    "text": "ongera utangire",
+    "language": "rw",
+    "intent": "restart"
+  },
+  {
+    "text": "ongera",
+    "language": "rw",
+    "intent": "restart"
+  },
+  {
+    "text": "reka",
+    "language": "rw",
+    "intent": "stop"
+  },
+  {
+    "text": "hagarika",
+    "language": "rw",
+    "intent": "stop"
+  },
+  {
+    "text": "birangiye",
+    "language": "rw",
+    "intent": "stop"
+  },
+  {
+    "text": "reka byose",
+    "language": "rw",
+    "intent": "stop"
+  },
+  {
+    "text": "mwaramutse",
+    "language": "rw",
+    "intent": "greet"
+  },
+  {
+    "text": "mwiriwe",
+    "language": "rw",
+    "intent": "greet"
+  },
+  {
+    "text": "muraho",
+    "language": "rw",
+    "intent": "greet"
+  },
+  {
+    "text": "muraho neza",
+    "language": "rw",
+    "intent": "greet"
+  },
+  {
+    "text": "mwaramutse jorinova",
+    "language": "rw",
+    "intent": "greet"
+  },
+  {
+    "text": "jorinova",
+    "language": "rw",
+    "intent": "wake"
+  },
+  {
+    "text": "nexus",
+    "language": "rw",
+    "intent": "wake"
+  },
+  {
+    "text": "ubufasha",
+    "language": "rw",
+    "intent": "help"
+  },
+  {
+    "text": "mbwira amategeko",
+    "language": "rw",
+    "intent": "help"
+  },
+  {
+    "text": "wakora iki",
+    "language": "rw",
+    "intent": "help"
+  },
+  {
+    "text": "wamfasha",
+    "language": "rw",
+    "intent": "help"
+  },
+  {
+    "text": "murakoze",
+    "language": "rw",
+    "intent": "thanks"
+  },
+  {
+    "text": "urakoze",
+    "language": "rw",
+    "intent": "thanks"
+  },
+  {
+    "text": "urakoze cyane",
+    "language": "rw",
+    "intent": "thanks"
+  },
+  {
+    "text": "murakoze cyane",
+    "language": "rw",
+    "intent": "thanks"
+  },
+  {
+    "text": "ndabona umuyaga ufite ubukonje",
+    "language": "rw",
+    "intent": "unknown"
+  },
+  {
+    "text": "ni saa ngahe",
+    "language": "rw",
+    "intent": "unknown"
+  },
+  {
+    "text": "umuganga ari hehe",
+    "language": "rw",
+    "intent": "unknown"
+  },
+  {
+    "text": "patient ari mu cyumba",
+    "language": "rw",
+    "intent": "unknown"
+  }
+]

@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ai_services import training_generator as tg
+from ai_services import training_intent    as ti
 from ai_services import training_scenarios as ts
 from core.database import get_db
 from core.security import get_current_user
@@ -138,6 +139,30 @@ def get_generated(
 
 
 # ── Live data sources (anonymised) ────────────────────────────────────────────
+
+# ── Voice intent (regex → local LLM → cloud) ─────────────────────────────────
+
+class IntentRequest(BaseModel):
+    text:     str
+    language: Literal['en', 'fr', 'rw']                   = 'en'
+    use_llm:  bool                                        = True
+    provider: Literal['auto', 'cloud', 'local', 'none']   = 'auto'
+
+
+@router.post('/intent')
+async def classify_intent(body: IntentRequest, _u: User = Depends(get_current_user)) -> dict:
+    """
+    Classify free-form transcribed speech into one of the runner intents.
+    Cascade: regex → local LLM (nous-hermes/llama3) → cloud (Claude) → unknown.
+    """
+    return await ti.classify(body.text, body.language, body.use_llm, body.provider)
+
+
+@router.post('/public/intent')
+async def classify_intent_public(body: IntentRequest) -> dict:
+    """No-auth variant for kiosk/showcase. Same cascade."""
+    return await ti.classify(body.text, body.language, body.use_llm, body.provider)
+
 
 @router.get('/data-source/lab-request')
 def data_source_lab_request(

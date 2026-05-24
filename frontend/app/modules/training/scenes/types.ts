@@ -43,6 +43,66 @@ export type LiveData = {
     flag:          string | null   // H | L | HH | LL | POS | null
     status:        string | null
   }>
+
+  // Blood bank
+  blood_bag?: {
+    id:              number
+    bag_number:      string
+    component:       string
+    blood_group:     string
+    volume_ml:       number
+    status:          string
+    expiry_date?:    string | null
+    days_to_expiry?: number | null
+    expiry_status?:  string | null
+    is_irradiated:   boolean
+    is_leukoreduced: boolean
+  }
+  crossmatch?: {
+    id?:           number | null
+    result?:       string | null   // compatible | incompatible | pending | weak_pos
+    method?:       string | null
+    ai_flag?:      boolean
+    performed_at?: string | null
+  } | null
+  recipient?: LiveData['patient']
+
+  // Billing / MoMo
+  billing_record?: {
+    id:              number
+    status:          string         // DRAFT | CONFIRMED | PAID | CANCELLED
+    currency:        string
+    subtotal:        number
+    discount:        number
+    total:           number
+    paid:            number
+    payment_method?: string | null  // MOMO | CASH | INSURANCE | RSSB | CREDIT
+    momo_ref?:       string | null
+    insurance_name?: string | null
+  }
+  items?: Array<{
+    code:       string
+    name:       string
+    quantity:   number
+    unit_price: number
+    total:      number
+  }>
+
+  // Molecular / MedGenome
+  pcr_result?: {
+    id:                     number
+    pcr_id:                 string
+    category:               string  // TB | VIRAL | STI | …
+    test_name:              string
+    target_organism?:       string | null
+    instrument?:            string | null
+    cartridge_type?:        string | null
+    result:                 string  // PENDING | DETECTED | NOT_DETECTED | INVALID
+    ct_value?:              number | null
+    semi_quant?:            string | null
+    rifampicin_resistance?: string | null
+    resistance_markers?:    Record<string, string> | null
+  }
 }
 
 export type SceneProps = {

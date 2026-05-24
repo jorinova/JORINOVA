@@ -2,6 +2,7 @@
 
 import type { SceneProps } from './types'
 import { withHighlight } from './types'
+import NoPilotData from './_NoPilotData'
 
 /**
  * Scene: lis_mapping_demo
@@ -23,9 +24,13 @@ const TEST_CODE: Record<number, string> = {
 }
 
 export default function LisMappingDemo({ highlight, liveData }: SceneProps) {
-  const lr      = liveData?.lab_request
-  const patient = liveData?.patient
-  const results = liveData?.results ?? []
+  if (!liveData?.lab_request) {
+    return <NoPilotData entity="LabRequest created by LIS auto-mapping"
+      hint="Upload a real lab-request form through the LIS Mapping module. This scene will bind to the resulting LabRequest automatically." />
+  }
+  const lr      = liveData.lab_request
+  const patient = liveData.patient
+  const results = liveData.results ?? []
 
   const chips = results.map(r => r.test_id ? (TEST_CODE[r.test_id] ?? `T-${r.test_id}`) : '?')
 

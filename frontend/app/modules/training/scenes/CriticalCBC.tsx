@@ -2,6 +2,7 @@
 
 import type { SceneProps } from './types'
 import { withHighlight } from './types'
+import NoPilotData from './_NoPilotData'
 
 /**
  * Scene: critical_cbc
@@ -20,9 +21,15 @@ const T_WBC = 3
 const T_PLT = 4
 
 export default function CriticalCBC({ typedText, highlight, liveData }: SceneProps) {
-  const lr      = liveData?.lab_request
-  const patient = liveData?.patient
-  const results = liveData?.results ?? []
+  // Production rule: no synthetic fallback. If the pilot DB has no matching
+  // record yet, render the explicit waiting state instead of imaginary data.
+  if (!liveData?.lab_request) {
+    return <NoPilotData entity="LabRequest with a flagged result"
+      hint="Wire an analyzer through the IoT adapter, or have a clinician submit a critical-flag result. This scene will bind automatically." />
+  }
+  const lr      = liveData.lab_request
+  const patient = liveData.patient
+  const results = liveData.results ?? []
 
   const find = (testId: number) => results.find(r => r.test_id === testId)
   const hgb  = find(T_HGB)

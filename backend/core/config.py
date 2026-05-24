@@ -46,10 +46,18 @@ class Settings(BaseSettings):
     jwt_algorithm:       str = 'HS256'
     access_token_expire: int = 480   # minutes (8 hours)
 
-    # AI — Local
-    ollama_url:       str = 'http://localhost:11434'
-    ollama_model:     str = 'phi3:mini'
-    local_ai_timeout: int = 15
+    # AI — Local (Ollama hybrid worker pool)
+    # `ollama_model` is the default workhorse; the task router
+    # (ai_services.local_llm_router) picks a more appropriate worker for
+    # specialised tasks. Set OLLAMA_MODEL_<ROLE> env vars to override.
+    ollama_url:                str = 'http://localhost:11434'
+    ollama_model:              str = 'phi3:mini'           # legacy default
+    ollama_model_fast:         str = 'phi3:mini'           # fast reasoning
+    ollama_model_deep:         str = 'mistral'             # deep reasoning
+    ollama_model_chat:         str = 'nous-hermes'         # chat / instructions
+    ollama_model_general:      str = 'llama3'              # general intelligence
+    ollama_model_fallback:     str = 'tinyllama'           # ultra-light fallback
+    local_ai_timeout:          int = 15
 
     # AI — Cloud
     anthropic_api_key: str = ''
