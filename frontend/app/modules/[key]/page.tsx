@@ -25,9 +25,9 @@ export default function ModulePage() {
   const { user } = useAuth()
 
   const key = params.key
-  const module = MODULES[key] ?? null
+  const modData = MODULES[key] ?? null
 
-  const title = module?.label ?? 'Module'
+  const title = modData?.label ?? 'Module'
 
   const roleBadge = useMemo(() => {
     if (!user) return null
@@ -61,12 +61,12 @@ export default function ModulePage() {
           <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-4xl">{module?.icon ?? '🧩'}</div>
+                <div className="text-4xl">{modData?.icon ?? '🧩'}</div>
                 <h1 className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
                   {title}
                 </h1>
                 <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                  {module?.desc ?? 'This section will be implemented next.'}
+                  {modData?.desc ?? 'This section will be implemented next.'}
                 </p>
               </div>
             </div>
@@ -87,4 +87,3 @@ export default function ModulePage() {
     </RequireAuth>
   )
 }
-
