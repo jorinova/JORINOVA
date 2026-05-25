@@ -81,11 +81,11 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <span className="text-xl font-bold text-black dark:text-white">JORINOVA NEXUS</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-200">
-              {user!.role.replace('_', ' ')}
+              {user?.role.replace('_', ' ') ?? ''}
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-zinc-600 dark:text-zinc-400">{user!.full_name}</span>
+            <span className="text-sm text-zinc-600 dark:text-zinc-400">{user?.full_name ?? ''}</span>
             <button
               onClick={logout}
               className="text-xs text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
@@ -99,9 +99,9 @@ export default function DashboardPage() {
         <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
           <div>
             <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-              Welcome back, {user!.first_name}
+              Welcome back, {user?.first_name ?? ''}
             </h2>
-            <p className="text-sm text-zinc-500">{user!.department ?? 'General'}</p>
+            <p className="text-sm text-zinc-500">{user?.department ?? 'General'}</p>
           </div>
 
           {/* Sample Scan Section */}
@@ -142,7 +142,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Admin-only tools */}
-          {user!.is_superuser && (
+          {user?.is_superuser && (
             <div className="rounded-xl border border-purple-200 dark:border-purple-900 bg-purple-50 dark:bg-purple-950/30 p-4 space-y-2 mt-6">
               <div className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider">
                 Admin
