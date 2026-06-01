@@ -1,10 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import RequireAuth from '../../../components/RequireAuth'
-import { resolveScene } from '../scenes'
+import { resolveScene, sceneMap } from '../scenes'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -46,11 +46,19 @@ function getToken(): string | null {
     ?? localStorage.getItem('access_token')
 }
 
-export default function TrainingRunnerPage() {
+function RunnerContent() {
   const sp = useSearchParams()
   const isPublic = sp?.get('demo') === '1'
   const body = <RunnerInner isPublic={isPublic} />
   return isPublic ? body : <RequireAuth>{body}</RequireAuth>
+}
+
+export default function TrainingRunnerPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#02061a] flex items-center justify-center text-zinc-400">Loading runner...</div>}>
+      <RunnerContent />
+    </Suspense>
+  )
 }
 
 function RunnerInner({ isPublic }: { isPublic: boolean }) {
@@ -169,7 +177,7 @@ function RunnerInner({ isPublic }: { isPublic: boolean }) {
   useEffect(() => {
     if (!scenario || stepIdx < 0 || paused) return
     if (stepIdx >= scenario.steps.length) {
-      setDone(true)
+      setTimeout(() => setDone(true), 0)
       return
     }
     const runId = runIdRef.current
@@ -210,7 +218,6 @@ function RunnerInner({ isPublic }: { isPublic: boolean }) {
     ? scenario.steps[stepIdx]
     : null
   const sceneName = scenario?.scenes?.[0] ?? ''
-  const SceneComponent = resolveScene(sceneName)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#070a17] to-[#02061a] text-zinc-100 relative overflow-hidden">
@@ -292,14 +299,12 @@ function RunnerInner({ isPublic }: { isPublic: boolean }) {
 
       {/* Scene mount — resolved by the dispatcher (scenes/index.ts) */}
       <div className="mx-auto max-w-5xl px-4 py-8">
-        {SceneComponent
-          ? <SceneComponent typedText={typedText} highlight={highlight} liveData={scenario?.live_data ?? undefined} />
-          : sceneName && (
-            <div className="text-xs text-rose-300">
-              Unknown scene <code className="font-mono">{sceneName}</code> — register it in <code>scenes/index.ts</code>.
-            </div>
-          )
-        }
+        <SceneDispatcher
+          sceneName={sceneName}
+          typedText={typedText}
+          highlight={highlight}
+          liveData={scenario?.live_data ?? undefined}
+        />
       </div>
     </div>
   )
@@ -343,4 +348,33 @@ async function simulateTyping(_intoSel: string, text: string, onTick: (cur: stri
     onTick(text.slice(0, i))
     await wait(60)
   }
+}
+
+function SceneDispatcher({
+  sceneName,
+  typedText,
+  highlight,
+  liveData,
+}: {
+  sceneName: string
+  typedText: Record<string, string>
+  highlight: Record<string, string>
+  liveData?: LiveData
+}) {
+  if (sceneName === 'specimen_intake') {
+    return <sceneMap.specimen_intake typedText={typedText} highlight={highlight} liveData={liveData} />
+  }
+  if (sceneName === 'critical_cbc') {
+    return <sceneMap.critical_cbc typedText={typedText} highlight={highlight} liveData={liveData} />
+  }
+  if (sceneName === 'lis_mapping_demo') {
+    return <sceneMap.lis_mapping_demo typedText={typedText} highlight={highlight} liveData={liveData} />
+  }
+
+  if (!sceneName) return null
+  return (
+    <div className="text-xs text-rose-300">
+      Unknown scene <code className="font-mono">{sceneName}</code> — register it in <code>scenes/index.ts</code>.
+    </div>
+  )
 }

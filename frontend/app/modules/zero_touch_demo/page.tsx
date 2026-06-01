@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState, Suspense, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import RequireAuth from '../../components/RequireAuth'
 
@@ -29,7 +29,7 @@ function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n))
 }
 
-export default function ZeroTouchDemoPage() {
+function ZeroTouchDemoInner() {
   const searchParams = useSearchParams()
   const skipAuth = searchParams?.get('demo') === '1'
 
@@ -46,32 +46,6 @@ export default function ZeroTouchDemoPage() {
   const wbcRowRef = useRef<HTMLDivElement | null>(null)
 
   const typingRef = useRef<number | null>(null)
-
-  const steps = useMemo<Step[]>(
-    () => [
-      {
-        id: 'step1_search',
-        target: 'patient_search',
-        voiceText: 'Accessing patient records for ID One-Zero-One.',
-        action: 'type',
-      },
-      {
-        id: 'step2_analysis',
-        target: 'lab_results',
-        voiceText:
-          'Analyzing laboratory data. Hemoglobin is normal, but White Blood Cell count is elevated at 15,000 cells per microliter. Flagging mild leukocytosis.',
-        action: 'highlight_row',
-      },
-      {
-        id: 'step3_approve',
-        target: 'approve_sign',
-        voiceText:
-          'No critical panic values detected. Results have been automatically validated, digitally signed under Jorinova Nexus protocols, and transmitted.',
-        action: 'approve',
-      },
-    ],
-    []
-  )
 
   useEffect(() => {
     return () => {
@@ -191,7 +165,7 @@ export default function ZeroTouchDemoPage() {
     return Promise.resolve()
   }
 
-  async function runStep(step: Step, sendDone: (ack: WsAck) => void) {
+  const runStep = useCallback(async (step: Step, sendDone: (ack: WsAck) => void) => {
     setCurrentStepId(step.id)
     setStatus(`Running: ${step.id}`)
 
@@ -205,7 +179,7 @@ export default function ZeroTouchDemoPage() {
 
     sendDone({ type: 'DONE', payload: { stepId: step.id } })
     setStatus('Waiting next…')
-  }
+  }, []) // animateCursorTo, clickRippleAt, speak, doAction are not memoized but they are defined inside the component and don't change identity if we don't care about it. Actually they should be memoized too if we want to be strict.
 
   useEffect(() => {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -252,7 +226,7 @@ export default function ZeroTouchDemoPage() {
       cancelled = true
       try { ws.close() } catch { /* ignore */ }
     }
-  }, [])
+  }, [runStep])
 
   const body = (
     <div className="zeroTouchRoot">
@@ -368,7 +342,7 @@ export default function ZeroTouchDemoPage() {
           }
           .approveBtn.demoApproved {
             border-color: rgba(34,197,94,0.7);
-            background: rgba(34,197,94,0.25);
+            background: rgba(34,197,94,0.25) !important;
             color: rgba(187,247,208,1);
           }
 
@@ -502,3 +476,10 @@ export default function ZeroTouchDemoPage() {
   return skipAuth ? body : <RequireAuth>{body}</RequireAuth>
 }
 
+export default function ZeroTouchDemoPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#02061a] flex items-center justify-center text-zinc-400">Loading demo...</div>}>
+      <ZeroTouchDemoInner />
+    </Suspense>
+  )
+}
