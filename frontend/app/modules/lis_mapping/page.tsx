@@ -340,10 +340,10 @@ function DraftPanel({
                   {t.status}
                 </span>
                 <span className="font-mono text-zinc-300 w-16 shrink-0">{t.code ?? '—'}</span>
-                <span className="text-zinc-200 truncate">{t.name ?? `“${t.query}”`}</span>
+                <span className="text-zinc-200 truncate">{t.name ?? `&ldquo;${t.query}&rdquo;`}</span>
               </div>
               <div className="flex items-center gap-3 text-zinc-400 text-[11px] shrink-0">
-                <span>q="{t.query}"</span>
+                <span>q=&quot;{t.query}&quot;</span>
                 <span>{(t.confidence * 100).toFixed(0)}%</span>
                 {t.price > 0 && <span>{t.price.toFixed(0)} RWF</span>}
                 <button

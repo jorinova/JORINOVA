@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import RequireAuth from '../../components/RequireAuth'
@@ -26,11 +26,19 @@ function getToken(): string | null {
 
 const ALL_ROLES = ['receptionist', 'lab_technician', 'lab_manager', 'pathologist', 'super_admin']
 
-export default function TrainingHubPage() {
+function TrainingHubContent() {
   const sp = useSearchParams()
   const isPublic = sp?.get('demo') === '1'
   const body = <TrainingHubInner isPublic={isPublic} />
   return isPublic ? body : <RequireAuth>{body}</RequireAuth>
+}
+
+export default function TrainingHubPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#02061a] flex items-center justify-center text-zinc-400">Loading training...</div>}>
+      <TrainingHubContent />
+    </Suspense>
+  )
 }
 
 type FeatureSummary = {
